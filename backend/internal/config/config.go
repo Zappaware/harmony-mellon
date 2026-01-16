@@ -12,6 +12,13 @@ type Config struct {
 	JWTSecret   string
 	FrontendURL string
 	Environment string
+	// Email configuration
+	SMTPHost     string
+	SMTPPort     string
+	SMTPUser     string
+	SMTPPassword string
+	SMTPFrom     string
+	SMTPFromName string
 }
 
 func Load() *Config {
@@ -24,6 +31,13 @@ func Load() *Config {
 		JWTSecret:   getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
 		FrontendURL: getEnv("FRONTEND_URL", ""),
 		Environment: getEnv("ENVIRONMENT", "development"),
+		// Email configuration
+		SMTPHost:     getEnv("SMTP_HOST", "smtp.gmail.com"),
+		SMTPPort:     getEnv("SMTP_PORT", "587"),
+		SMTPUser:     getEnv("SMTP_USER", ""),
+		SMTPPassword: getEnv("SMTP_PASSWORD", ""),
+		SMTPFrom:     getEnv("SMTP_FROM", ""),
+		SMTPFromName: getEnv("SMTP_FROM_NAME", "Mellon Harmony"),
 	}
 }
 

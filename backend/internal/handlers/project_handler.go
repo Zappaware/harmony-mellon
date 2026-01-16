@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"log"
 	"mellon-harmony-api/internal/models"
+	"mellon-harmony-api/internal/repository"
 	"mellon-harmony-api/internal/service"
 	"net/http"
 	"time"
@@ -12,10 +14,16 @@ import (
 
 type ProjectHandler struct {
 	projectService service.ProjectService
+	emailService   service.EmailService
+	userRepo       repository.UserRepository
 }
 
-func NewProjectHandler(projectService service.ProjectService) *ProjectHandler {
-	return &ProjectHandler{projectService: projectService}
+func NewProjectHandler(projectService service.ProjectService, emailService service.EmailService, userRepo repository.UserRepository) *ProjectHandler {
+	return &ProjectHandler{
+		projectService: projectService,
+		emailService:   emailService,
+		userRepo:       userRepo,
+	}
 }
 
 func (h *ProjectHandler) GetProjects(c *gin.Context) {
@@ -94,6 +102,18 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 		return
 	}
 
+	// Send email to creator (non-blocking)
+	if h.emailService != nil {
+		go func() {
+			creator, err := h.userRepo.GetByID(userID)
+			if err == nil && creator != nil {
+				if err := h.emailService.SendProjectCreatedEmail(creator.Email, project.Name, project.ID.String()); err != nil {
+					log.Printf("Failed to send project created email to %s: %v", creator.Email, err)
+				}
+			}
+		}()
+	}
+
 	c.JSON(http.StatusCreated, project)
 }
 
@@ -149,10 +169,46 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 		}
 	}
 
+	// Get old project for comparison
+	oldProject, _ := h.projectService.GetProject(id)
+
 	project, err := h.projectService.UpdateProject(id, updates)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Track changes for email
+	var changes []string
+	if req.Name != nil && *req.Name != oldProject.Name {
+		changes = append(changes, "Nombre actualizado")
+	}
+	if req.Description != nil && *req.Description != oldProject.Description {
+		changes = append(changes, "Descripción actualizada")
+	}
+	if req.Progress != nil && *req.Progress != oldProject.Progress {
+		changes = append(changes, "Progreso actualizado")
+	}
+	if req.Status != nil && *req.Status != oldProject.Status {
+		changes = append(changes, "Estado actualizado")
+	}
+	if req.StartDate != nil {
+		changes = append(changes, "Fecha de inicio actualizada")
+	}
+	if req.Deadline != nil {
+		changes = append(changes, "Fecha límite actualizada")
+	}
+
+	// Send email to creator if there are changes (non-blocking)
+	if len(changes) > 0 && h.emailService != nil {
+		go func() {
+			creator, err := h.userRepo.GetByID(project.CreatedBy)
+			if err == nil && creator != nil {
+				if err := h.emailService.SendProjectUpdatedEmail(creator.Email, project.Name, project.ID.String(), changes); err != nil {
+					log.Printf("Failed to send project updated email to %s: %v", creator.Email, err)
+				}
+			}
+		}()
 	}
 
 	c.JSON(http.StatusOK, project)

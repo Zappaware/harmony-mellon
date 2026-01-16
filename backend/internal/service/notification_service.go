@@ -18,11 +18,21 @@ type NotificationService interface {
 
 type notificationService struct {
 	notificationRepo repository.NotificationRepository
+	emailService     EmailService
+	userRepo         repository.UserRepository
 }
 
 func NewNotificationService(notificationRepo repository.NotificationRepository) NotificationService {
 	return &notificationService{
 		notificationRepo: notificationRepo,
+	}
+}
+
+func NewNotificationServiceWithEmail(notificationRepo repository.NotificationRepository, emailService EmailService, userRepo repository.UserRepository) NotificationService {
+	return &notificationService{
+		notificationRepo: notificationRepo,
+		emailService:     emailService,
+		userRepo:         userRepo,
 	}
 }
 
@@ -35,7 +45,26 @@ func (s *notificationService) CreateNotification(userID uuid.UUID, notificationT
 		Read:      false,
 		RelatedID: relatedID,
 	}
-	return s.notificationRepo.Create(notification)
+	
+	err := s.notificationRepo.Create(notification)
+	if err != nil {
+		return err
+	}
+
+	// Send email notification (non-blocking)
+	if s.emailService != nil && s.userRepo != nil {
+		go func() {
+			user, err := s.userRepo.GetByID(userID)
+			if err == nil && user != nil {
+				if err := s.emailService.SendNotificationEmail(user.Email, title, message, notification.ID.String()); err != nil {
+					// Log error but don't fail notification creation
+					// log.Printf("Failed to send notification email to %s: %v", user.Email, err)
+				}
+			}
+		}()
+	}
+
+	return nil
 }
 
 func (s *notificationService) GetUserNotifications(userID uuid.UUID) ([]models.Notification, error) {

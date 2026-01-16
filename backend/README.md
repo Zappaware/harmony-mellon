@@ -9,6 +9,7 @@ A RESTful API built with Go, Gin, GORM, and PostgreSQL for the Mellon Harmony is
 - **Issue Tracking**: Full issue lifecycle management with status and priority
 - **Comments**: Threaded comments on issues
 - **Projects**: Project management with member assignment
+- **Email Notifications**: Automated email notifications for user, issue, project, and notification events
 - **PostgreSQL**: Robust database with GORM ORM
 
 ## Tech Stack
@@ -62,19 +63,51 @@ go mod download
 cp .env.example .env
 ```
 
-4. Update the `.env` file with your database credentials:
+4. Update the `.env` file with your database credentials and email configuration:
 ```
 PORT=8080
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/mellon_harmony?sslmode=disable
 JWT_SECRET=your-secret-key-change-in-production
+FRONTEND_URL=http://localhost:3000
+
+# Email Configuration (optional for development)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=tu-email@gmail.com
+SMTP_PASSWORD=tu-contraseña-de-aplicación
+SMTP_FROM=tu-email@gmail.com
+SMTP_FROM_NAME=Mellon Harmony
 ```
 
-5. Run the application:
+5. **Configure Email (Optional but Recommended)**
+   - For quick setup: See [SETUP-EMAIL.md](./SETUP-EMAIL.md)
+   - For custom domain (e.g., mellon.mx): See [CUSTOM-DOMAIN-EMAIL.md](./CUSTOM-DOMAIN-EMAIL.md)
+   - Test email configuration: `go run test-email.go tu-email@example.com`
+
+6. Run the application:
 ```bash
 go run main.go
 ```
 
 The API will be available at `http://localhost:8080`
+
+## Email Notifications
+
+The system automatically sends email notifications for:
+- User creation, updates, and deletion
+- Issue creation, updates, and assignments
+- Project creation and updates
+- System notifications
+
+**Setup Email:**
+- Quick guide: [SETUP-EMAIL.md](./SETUP-EMAIL.md)
+- Custom domain guide: [CUSTOM-DOMAIN-EMAIL.md](./CUSTOM-DOMAIN-EMAIL.md)
+- Detailed documentation: [EMAIL-SETUP.md](./EMAIL-SETUP.md)
+
+**Test Email Configuration:**
+```bash
+go run test-email.go tu-email@example.com
+```
 
 ## API Endpoints
 

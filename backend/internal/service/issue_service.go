@@ -3,6 +3,7 @@ package service
 import (
 	"mellon-harmony-api/internal/models"
 	"mellon-harmony-api/internal/repository"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -65,6 +66,12 @@ func (s *issueService) UpdateIssue(id uuid.UUID, updates map[string]interface{})
 	}
 	if projectID, ok := updates["project_id"].(*uuid.UUID); ok {
 		issue.ProjectID = projectID
+	}
+	if startDate, ok := updates["start_date"].(*time.Time); ok {
+		issue.StartDate = startDate
+	}
+	if dueDate, ok := updates["due_date"].(*time.Time); ok {
+		issue.DueDate = dueDate
 	}
 
 	if err := s.issueRepo.Update(issue); err != nil {
