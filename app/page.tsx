@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 import { Loading } from '@/components/Loading';
 import { LogIn } from 'lucide-react';

@@ -95,7 +95,12 @@ class ApiService {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('token');
         }
-        throw new Error('Authorization header required');
+        throw new Error('Unauthorized: Invalid or expired token');
+      }
+      
+      // Handle network errors
+      if (response.status === 0 || response.status >= 500) {
+        throw new Error('Network error: Unable to reach server');
       }
       
       const error = await response.json().catch(() => ({ 

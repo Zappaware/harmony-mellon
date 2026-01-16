@@ -240,29 +240,53 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const restoreSession = async () => {
       setIsLoading(true);
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      if (token && !user) {
-        try {
-          // Try to get user info from API
-          const apiUser = await api.getMe();
-          setUser({
-            id: apiUser.id,
-            name: apiUser.name,
-            email: apiUser.email,
-            role: apiUser.role === 'team_lead' ? 'admin' : apiUser.role,
-            avatar: apiUser.avatar,
-          });
-          setUseApi(true);
-        } catch (error) {
-          // If token is invalid, clear it
-          console.error('Failed to restore session:', error);
+      
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      // Only restore if we don't already have a user
+      if (user) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // Try to get user info from API
+        const apiUser = await api.getMe();
+        setUser({
+          id: apiUser.id,
+          name: apiUser.name,
+          email: apiUser.email,
+          role: apiUser.role === 'team_lead' ? 'admin' : apiUser.role,
+          avatar: apiUser.avatar,
+        });
+        setUseApi(true);
+      } catch (error: any) {
+        // Only clear token if it's an authentication error (401)
+        const errorMessage = error?.message || '';
+        const isAuthError = errorMessage.includes('Authorization') || 
+                           errorMessage.includes('Unauthorized') ||
+                           errorMessage.includes('401');
+        
+        if (isAuthError) {
+          // Token is invalid, clear it
+          console.error('Invalid token, clearing session:', error);
           if (typeof window !== 'undefined') {
             localStorage.removeItem('token');
           }
           setUser(null);
           setUseApi(false);
+        } else {
+          // Network or other error - don't clear token, might be temporary
+          console.error('Failed to restore session (network error?):', error);
+          // Keep the token, might be a temporary network issue
+          // Don't set user to null, let the user try again
         }
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     restoreSession();

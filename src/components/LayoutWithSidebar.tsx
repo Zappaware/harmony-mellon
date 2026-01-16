@@ -16,8 +16,16 @@ export function LayoutWithSidebar({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
+    // Only redirect if we're done loading and there's no user
+    // Add a small delay to avoid race conditions
     if (!isLoading && !user) {
-      router.push('/');
+      const timer = setTimeout(() => {
+        // Double check that user is still null after delay
+        if (!user) {
+          router.push('/');
+        }
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [user, isLoading, router]);
 
