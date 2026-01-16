@@ -10,6 +10,8 @@ type Config struct {
 	Port        string
 	DatabaseURL string
 	JWTSecret   string
+	FrontendURL string
+	Environment string
 }
 
 func Load() *Config {
@@ -20,6 +22,8 @@ func Load() *Config {
 		Port:        getEnv("PORT", "8080"),
 		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/mellon_harmony?sslmode=disable"),
 		JWTSecret:   getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
+		FrontendURL: getEnv("FRONTEND_URL", ""),
+		Environment: getEnv("ENVIRONMENT", "development"),
 	}
 }
 

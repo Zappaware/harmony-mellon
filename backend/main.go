@@ -52,13 +52,33 @@ func main() {
 	router := gin.Default()
 
 	// CORS configuration
-	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:3001"},
+	// Get allowed origins from environment variable or use defaults
+	allowedOrigins := []string{
+		"http://localhost:3000",
+		"http://localhost:3001",
+	}
+	
+	// Add frontend URL from environment if provided
+	if cfg.FrontendURL != "" {
+		allowedOrigins = append(allowedOrigins, cfg.FrontendURL)
+	}
+	
+	// Allow all origins in development, or specific origins in production
+	corsConfig := cors.Config{
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
-	}))
+	}
+	
+	// In production, use specific origins; in development, allow all
+	if cfg.Environment == "production" {
+		corsConfig.AllowOrigins = allowedOrigins
+	} else {
+		corsConfig.AllowAllOrigins = true
+	}
+	
+	router.Use(cors.New(corsConfig))
 
 	// Health check
 	router.GET("/health", func(c *gin.Context) {
