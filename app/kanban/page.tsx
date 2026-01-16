@@ -94,7 +94,7 @@ function Column({ title, status, issues, count, color }: ColumnProps) {
   return (
     <div
       ref={drop as any}
-      className={`flex-1 min-w-[280px] md:min-w-[300px] rounded-lg transition-all ${
+      className={`flex-1 min-w-[300px] rounded-lg transition-all ${
         isOver ? 'bg-indigo-50 ring-2 ring-indigo-300' : 'bg-gray-50'
       }`}
     >
@@ -156,13 +156,13 @@ function Kanban() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="p-4 md:p-8 h-screen overflow-x-auto">
+      <div className="p-8 h-screen overflow-x-auto">
         <PageHeader
           title="Tablero Kanban"
           subtitle="Arrastra las tarjetas para cambiar su estado"
         />
 
-        <div className="flex gap-3 md:gap-4 pb-4 md:pb-8">
+        <div className="flex gap-4 pb-8">
           {columns.map((column) => {
             const columnIssues = issues.filter((issue) => issue.status === column.status);
             return (
