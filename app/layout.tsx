@@ -3,7 +3,7 @@ import { AppProvider } from "@/context/AppContext";
 import "@/styles/index.css";
 
 export const metadata: Metadata = {
-  title: "Mellon Harmony - Issue Tracker",
+  title: "Harmony Mellon",
   description: "Gestiona tus proyectos eficientemente",
 };
 
