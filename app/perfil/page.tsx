@@ -17,6 +17,7 @@ export default function PerfilPage() {
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
+    avatar: user?.avatar || '',
   });
   const [userDetails, setUserDetails] = useState<{
     created_at?: string;
@@ -28,6 +29,7 @@ export default function PerfilPage() {
       setFormData({
         name: user.name,
         email: user.email,
+        avatar: user.avatar || '',
       });
       // Fetch user details from API
       fetchUserDetails();
@@ -39,10 +41,14 @@ export default function PerfilPage() {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       if (token) {
         const me = await api.getMe();
-        setUserDetails({
-          created_at: me.created_at,
-          avatar: me.avatar,
-        });
+      setUserDetails({
+        created_at: me.created_at,
+        avatar: me.avatar,
+      });
+      setFormData(prev => ({
+        ...prev,
+        avatar: me.avatar || '',
+      }));
       }
     } catch (err) {
       console.error('Error fetching user details:', err);
@@ -60,6 +66,7 @@ export default function PerfilPage() {
     setFormData({
       name: user?.name || '',
       email: user?.email || '',
+      avatar: user?.avatar || userDetails?.avatar || '',
     });
     setError(null);
     setSuccess(null);
@@ -77,6 +84,7 @@ export default function PerfilPage() {
       await api.updateUser(user.id, {
         name: formData.name,
         email: formData.email,
+        avatar: formData.avatar || undefined,
       });
 
       setSuccess('Perfil actualizado correctamente');
@@ -101,13 +109,50 @@ export default function PerfilPage() {
     }));
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Por favor, selecciona un archivo de imagen válido');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('La imagen es demasiado grande. El tamaño máximo es 5MB');
+      return;
+    }
+
+    try {
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setFormData(prev => ({
+          ...prev,
+          avatar: base64String,
+        }));
+        setError(null);
+      };
+      reader.onerror = () => {
+        setError('Error al leer el archivo');
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      setError('Error al procesar la imagen');
+      console.error('File processing error:', err);
+    }
+  };
+
   if (!user) return null;
 
   return (
     <LayoutWithSidebar>
       <div className="p-4 md:p-8">
         <div className="mb-6 md:mb-8">
-          <h1 className="text-xl md:text-3xl text-gray-800 mb-2 pr-12 md:pr-0">Mi Perfil</h1>
+          <h1 className="text-xl md:text-3xl text-gray-800 mb-2 pr-12 md:pr-16">Mi Perfil</h1>
           <p className="text-sm md:text-base text-gray-600">Gestiona tu información personal</p>
         </div>
 
@@ -116,7 +161,11 @@ export default function PerfilPage() {
           <div className="bg-white rounded-lg shadow-lg p-6 md:p-8 mb-6">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
               <div className="flex-shrink-0">
-                <Avatar name={user.name} size="xl" src={userDetails?.avatar} />
+                <Avatar 
+                  name={user.name} 
+                  size="xl" 
+                  src={formData.avatar || userDetails?.avatar || user.avatar} 
+                />
               </div>
               
               <div className="flex-1 w-full md:w-auto text-center md:text-left">
@@ -149,6 +198,34 @@ export default function PerfilPage() {
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         placeholder="tu@email.com"
                       />
+                    </div>
+                    <div>
+                      <label htmlFor="avatar" className="block text-sm font-medium text-gray-700 mb-2">
+                        Imagen de Perfil
+                      </label>
+                      <div className="space-y-2">
+                        <input
+                          type="file"
+                          id="avatar"
+                          name="avatar"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                        />
+                        {formData.avatar && formData.avatar.startsWith('data:image') && (
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-600 mb-2">Vista previa:</p>
+                            <img
+                              src={formData.avatar}
+                              alt="Vista previa"
+                              className="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
+                            />
+                          </div>
+                        )}
+                        <p className="text-xs text-gray-500">
+                          Selecciona una imagen desde tu computadora (máximo 5MB)
+                        </p>
+                      </div>
                     </div>
                   </div>
                 ) : (

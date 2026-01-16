@@ -46,7 +46,11 @@ export interface CreateIssueRequest {
 class ApiService {
   private getToken(): string | null {
     if (typeof window === 'undefined') return null;
-    return localStorage.getItem('token');
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.warn('No token found in localStorage');
+    }
+    return token;
   }
 
   private async request<T>(
@@ -54,13 +58,25 @@ class ApiService {
     options: RequestInit = {}
   ): Promise<T> {
     const token = this.getToken();
+    
+    // Build headers object
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...(options.headers as Record<string, string>),
     };
 
+    // Merge any existing headers from options
+    if (options.headers) {
+      Object.assign(headers, options.headers as Record<string, string>);
+    }
+
+    // Add Authorization header if token exists
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
+    } else {
+      // Log warning if no token for protected endpoints
+      if (endpoint !== '/auth/login' && endpoint !== '/auth/register') {
+        console.warn(`No token found for request to ${endpoint}`);
+      }
     }
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -69,7 +85,18 @@ class ApiService {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Error desconocido' }));
+      // Handle 401 Unauthorized specifically
+      if (response.status === 401) {
+        // Clear invalid token
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+        }
+        throw new Error('Authorization header required');
+      }
+      
+      const error = await response.json().catch(() => ({ 
+        error: response.status === 404 ? 'Recurso no encontrado' : 'Error desconocido' 
+      }));
       throw new Error(error.error || `Error: ${response.statusText}`);
     }
 
@@ -143,7 +170,7 @@ class ApiService {
     return this.request<ApiUser>(`/users/${id}`);
   }
 
-  async updateUser(id: string, data: { name?: string; email?: string; role?: string }): Promise<ApiUser> {
+  async updateUser(id: string, data: { name?: string; email?: string; role?: string; avatar?: string }): Promise<ApiUser> {
     return this.request<ApiUser>(`/users/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -188,6 +215,33 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  // Notification methods
+  async getNotifications(): Promise<ApiNotification[]> {
+    return this.request<ApiNotification[]>('/notifications');
+  }
+
+  async getUnreadNotifications(): Promise<ApiNotification[]> {
+    return this.request<ApiNotification[]>('/notifications/unread');
+  }
+
+  async markNotificationAsRead(id: string): Promise<void> {
+    return this.request<void>(`/notifications/${id}/read`, {
+      method: 'PATCH',
+    });
+  }
+
+  async markAllNotificationsAsRead(): Promise<void> {
+    return this.request<void>('/notifications/read-all', {
+      method: 'PATCH',
+    });
+  }
+
+  async deleteNotification(id: string): Promise<void> {
+    return this.request<void>(`/notifications/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export interface ApiProject {
@@ -222,6 +276,17 @@ export interface CreateUserRequest {
   email: string;
   password: string;
   role?: 'user' | 'admin' | 'team_lead';
+}
+
+export interface ApiNotification {
+  id: string;
+  user_id: string;
+  type: 'comment' | 'assignment' | 'complete' | 'user' | 'status';
+  title: string;
+  message: string;
+  read: boolean;
+  related_id?: string;
+  created_at: string;
 }
 
 export const api = new ApiService();

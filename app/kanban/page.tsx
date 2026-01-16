@@ -99,10 +99,10 @@ function Column({ title, status, issues, count, color }: ColumnProps) {
         isOver ? 'bg-indigo-50 ring-2 ring-indigo-300' : 'bg-gray-50'
       }`}
     >
-      <div className={`${color} rounded-t-lg p-3 md:p-4`}>
+      <div className={`${color} rounded-t-lg p-3 md:p-4 text-white`}>
         <div className="flex items-center justify-between">
-          <h2 className="text-white text-sm md:text-base">{title}</h2>
-          <span className="bg-white bg-opacity-30 text-white px-2 md:px-3 py-1 rounded-full text-xs md:text-sm">
+          <h2 className="text-white font-semibold text-sm md:text-base">{title}</h2>
+          <span className="bg-white bg-opacity-30 text-white px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-medium">
             {count}
           </span>
         </div>
@@ -132,7 +132,7 @@ function Kanban() {
     { 
       title: 'Por Hacer', 
       status: 'todo' as const, 
-      color: 'bg-gray-600',
+      color: 'bg-red-600',
       icon: Clock 
     },
     { 

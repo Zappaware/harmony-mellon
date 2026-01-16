@@ -11,7 +11,7 @@ import (
 type UserService interface {
 	GetUser(id uuid.UUID) (*models.User, error)
 	GetAllUsers() ([]models.User, error)
-	UpdateUser(id uuid.UUID, name, email *string, role *models.UserRole) (*models.User, error)
+	UpdateUser(id uuid.UUID, name, email *string, role *models.UserRole, avatar *string) (*models.User, error)
 	DeleteUser(id uuid.UUID) error
 }
 
@@ -44,7 +44,7 @@ func (s *userService) GetAllUsers() ([]models.User, error) {
 	return users, nil
 }
 
-func (s *userService) UpdateUser(id uuid.UUID, name, email *string, role *models.UserRole) (*models.User, error) {
+func (s *userService) UpdateUser(id uuid.UUID, name, email *string, role *models.UserRole, avatar *string) (*models.User, error) {
 	user, err := s.userRepo.GetByID(id)
 	if err != nil {
 		return nil, err
@@ -58,6 +58,9 @@ func (s *userService) UpdateUser(id uuid.UUID, name, email *string, role *models
 	}
 	if role != nil {
 		user.Role = *role
+	}
+	if avatar != nil {
+		user.Avatar = avatar
 	}
 
 	if err := s.userRepo.Update(user); err != nil {

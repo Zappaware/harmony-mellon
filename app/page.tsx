@@ -37,17 +37,22 @@ export default function Login() {
   };
 
   const handleQuickLogin = async (userEmail: string) => {
+    // Use correct passwords for test users
+    const password = userEmail === 'admin@example.com' ? 'admin123' : 'user123';
     setEmail(userEmail);
-    setPassword('password');
+    setPassword(password);
     try {
-      const success = await login(userEmail, 'password');
+      const success = await login(userEmail, password);
       if (success) {
         setTimeout(() => {
           router.push('/dashboard');
         }, 100);
+      } else {
+        setError('Credenciales incorrectas');
       }
     } catch (err) {
       setError('Error al iniciar sesión. Intenta nuevamente.');
+      console.error('Login error:', err);
     }
   };
 
@@ -62,7 +67,7 @@ export default function Login() {
           <p className="text-gray-600 mt-2">Gestiona tus proyectos eficientemente</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" suppressHydrationWarning>
           <div>
             <label htmlFor="email" className="block text-sm text-gray-700 mb-2">
               Email
@@ -75,6 +80,7 @@ export default function Login() {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="usuario@ejemplo.com"
               required
+              suppressHydrationWarning
             />
           </div>
 
@@ -90,6 +96,7 @@ export default function Login() {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="••••••••"
               required
+              suppressHydrationWarning
             />
           </div>
 
@@ -128,9 +135,8 @@ export default function Login() {
           
           <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
             <p className="mb-1">Credenciales de prueba:</p>
-            <p>Admin: admin@example.com</p>
-            <p>Usuario: user@example.com</p>
-            <p className="mt-1">Cualquier contraseña funciona</p>
+            <p>Admin: admin@example.com / admin123</p>
+            <p>Usuario: user@example.com / user123</p>
           </div>
         </div>
       </div>

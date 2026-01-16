@@ -23,5 +23,6 @@ func Migrate(db *gorm.DB) error {
 		&models.Comment{},
 		&models.Project{},
 		&models.ProjectMember{},
+		&models.Notification{},
 	)
 }

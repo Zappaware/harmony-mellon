@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { Sidebar } from './Sidebar';
+import { NotificationBadge } from './NotificationBadge';
 import { Menu } from 'lucide-react';
 
 export function LayoutWithSidebar({ children }: { children: React.ReactNode }) {
@@ -32,7 +33,12 @@ export function LayoutWithSidebar({ children }: { children: React.ReactNode }) {
         <Menu className="w-5 h-5" />
       </button>
 
-      <div className="flex-1 overflow-auto md:ml-0 pt-14 md:pt-0">
+      {/* Notification Badge - Fixed top right */}
+      <div className="fixed top-4 right-4 md:top-6 md:right-6 z-50">
+        <NotificationBadge />
+      </div>
+
+      <div className="flex-1 overflow-auto md:ml-0 pt-16 md:pt-0">
         {children}
       </div>
     </div>

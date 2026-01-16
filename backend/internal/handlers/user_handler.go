@@ -44,9 +44,10 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 }
 
 type UpdateUserRequest struct {
-	Name  *string          `json:"name"`
-	Email *string          `json:"email"`
-	Role  *models.UserRole `json:"role"`
+	Name   *string          `json:"name"`
+	Email  *string          `json:"email"`
+	Role   *models.UserRole `json:"role"`
+	Avatar *string          `json:"avatar"`
 }
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {
@@ -62,7 +63,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userService.UpdateUser(id, req.Name, req.Email, req.Role)
+	user, err := h.userService.UpdateUser(id, req.Name, req.Email, req.Role, req.Avatar)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

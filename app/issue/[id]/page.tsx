@@ -59,7 +59,7 @@ export default function DetalleIssue() {
               <div className="flex items-center gap-2 mb-2 md:mb-3">
                 <span className="text-xs md:text-sm text-gray-500">Issue #{issue.id}</span>
               </div>
-              <h1 className="text-xl md:text-3xl text-gray-800 mb-3 md:mb-4 pr-12 md:pr-0">{issue.title}</h1>
+              <h1 className="text-xl md:text-3xl text-gray-800 mb-3 md:mb-4 pr-12 md:pr-16">{issue.title}</h1>
               <div className="flex items-center gap-3">
                 <Badge variant="priority" value={issue.priority} />
                 <Badge variant="status" value={issue.status} />

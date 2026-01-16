@@ -38,10 +38,12 @@ func main() {
 	issueRepo := repository.NewIssueRepository(db)
 	commentRepo := repository.NewCommentRepository(db)
 	projectRepo := repository.NewProjectRepository(db)
+	notificationRepo := repository.NewNotificationRepository(db)
 
 	// Initialize services
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 	userService := service.NewUserService(userRepo)
+	notificationService := service.NewNotificationService(notificationRepo)
 	issueService := service.NewIssueService(issueRepo, userRepo)
 	commentService := service.NewCommentService(commentRepo, userRepo, issueRepo)
 	projectService := service.NewProjectService(projectRepo, userRepo)
@@ -49,6 +51,7 @@ func main() {
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandlerWithUserService(authService, userService)
 	userHandler := handlers.NewUserHandler(userService)
+	notificationHandler := handlers.NewNotificationHandler(notificationService)
 	issueHandler := handlers.NewIssueHandler(issueService)
 	commentHandler := handlers.NewCommentHandler(commentService)
 	projectHandler := handlers.NewProjectHandler(projectService)
@@ -133,6 +136,13 @@ func main() {
 		protected.DELETE("/projects/:id", projectHandler.DeleteProject)
 		protected.POST("/projects/:id/members", projectHandler.AddProjectMember)
 		protected.DELETE("/projects/:id/members/:userId", projectHandler.RemoveProjectMember)
+
+		// Notification routes
+		protected.GET("/notifications", notificationHandler.GetNotifications)
+		protected.GET("/notifications/unread", notificationHandler.GetUnreadNotifications)
+		protected.PATCH("/notifications/:id/read", notificationHandler.MarkAsRead)
+		protected.PATCH("/notifications/read-all", notificationHandler.MarkAllAsRead)
+		protected.DELETE("/notifications/:id", notificationHandler.DeleteNotification)
 	}
 
 	// Start server

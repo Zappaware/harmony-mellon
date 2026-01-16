@@ -31,14 +31,14 @@ export function PageHeader({ title, subtitle, showBack, action }: PageHeaderProp
       
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl md:text-3xl text-gray-800 mb-1 md:mb-2 pr-12 md:pr-0">{title}</h1>
+          <h1 className="text-xl md:text-3xl text-gray-800 mb-1 md:mb-2 pr-12 md:pr-16">{title}</h1>
           {subtitle && <p className="text-sm md:text-base text-gray-600">{subtitle}</p>}
         </div>
         
         {action && (
           <button
             onClick={action.onClick}
-            className="bg-indigo-600 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm md:text-base w-full md:w-auto flex-shrink-0"
+            className="bg-indigo-600 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm md:text-base w-full md:w-auto flex-shrink-0 mr-16 md:mr-20"
           >
             {action.label}
           </button>

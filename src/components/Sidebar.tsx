@@ -50,6 +50,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     { to: '/proyectos', icon: FolderKanban, label: 'Proyectos' },
     { to: '/kanban', icon: FolderKanban, label: 'Kanban' },
     { to: '/usuarios', icon: Users, label: 'Equipo' },
+    { to: '/notificaciones', icon: Bell, label: 'Notificaciones' },
     { to: '/configuracion', icon: Settings, label: 'Configuración' },
     { to: '/perfil', icon: UserCircle, label: 'Mi Perfil' },
   ];
