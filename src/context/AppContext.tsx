@@ -325,13 +325,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
           });
           setUseApi(true);
         } catch (error) {
-          // If token is invalid, clear it
-          console.error('Failed to restore session:', error);
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('token');
+          // Only clear token if it's an authentication error (401), not network errors
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          
+          // If it's an authentication error, clear the token
+          if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
+            console.error('Failed to restore session: Invalid token', error);
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('token');
+            }
+            setUser(null);
+            setUseApi(false);
+          } else {
+            // For network errors, keep the token but log the error
+            // This prevents clearing session on temporary network issues
+            console.warn('Failed to restore session (network error):', errorMessage);
+            // Don't clear token on network errors - might be temporary
           }
-          setUser(null);
-          setUseApi(false);
         }
       }
     };

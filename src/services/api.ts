@@ -1,4 +1,21 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+// Get API URL from environment variable
+// In production, this MUST be set to the production backend URL
+const getApiBaseUrl = () => {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  
+  // In browser (production), warn if using localhost fallback
+  if (typeof window !== 'undefined' && !apiUrl) {
+    console.error(
+      '❌ NEXT_PUBLIC_API_URL is not set! ' +
+      'The app will try to connect to localhost:8080 which will fail in production. ' +
+      'Please set NEXT_PUBLIC_API_URL environment variable in Railway/Vercel.'
+    );
+  }
+  
+  return apiUrl || 'http://localhost:8080/api/v1';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export interface ApiUser {
   id: string;
@@ -83,10 +100,28 @@ class ApiService {
       }
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      headers,
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        headers,
+      });
+    } catch (fetchError) {
+      // Handle network errors (CORS, connection refused, etc.)
+      const errorMessage = fetchError instanceof Error ? fetchError.message : 'Network error';
+      
+      // Check if this is a CORS or localhost connection error
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('CORS') || 
+          API_BASE_URL.includes('localhost') && typeof window !== 'undefined' && window.location.protocol === 'https:') {
+        throw new Error(
+          'Network error: Cannot connect to backend. ' +
+          'This is likely because NEXT_PUBLIC_API_URL is not set correctly in production. ' +
+          'Please configure NEXT_PUBLIC_API_URL in your deployment platform (Railway/Vercel).'
+        );
+      }
+      
+      throw new Error(`Network error: ${errorMessage}`);
+    }
 
     if (!response.ok) {
       // Handle 401 Unauthorized specifically
