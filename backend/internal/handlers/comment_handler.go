@@ -17,7 +17,7 @@ func NewCommentHandler(commentService service.CommentService) *CommentHandler {
 }
 
 func (h *CommentHandler) GetComments(c *gin.Context) {
-	issueID, err := uuid.Parse(c.Param("issueId"))
+	issueID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid issue ID"})
 		return
@@ -37,7 +37,7 @@ type CreateCommentRequest struct {
 }
 
 func (h *CommentHandler) CreateComment(c *gin.Context) {
-	issueID, err := uuid.Parse(c.Param("issueId"))
+	issueID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid issue ID"})
 		return

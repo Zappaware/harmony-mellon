@@ -8,6 +8,7 @@ import { Badge } from '@/components/Badge';
 import { Avatar } from '@/components/Avatar';
 import { PageHeader } from '@/components/PageHeader';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+import { DateDisplay } from '@/components/DateDisplay';
 
 export default function DetalleIssue() {
   const params = useParams();
@@ -110,7 +111,9 @@ export default function DetalleIssue() {
                 <Calendar className="w-5 h-5 text-gray-400" />
                 <span className="text-sm text-gray-500">Fecha de creación</span>
               </div>
-              <p className="text-gray-800">{new Date(issue.createdAt).toLocaleDateString()}</p>
+              <p className="text-gray-800">
+                <DateDisplay date={issue.createdAt} format="date" />
+              </p>
             </div>
           </div>
         </div>
@@ -130,7 +133,7 @@ export default function DetalleIssue() {
                     <p className="text-sm text-gray-800">{comment.userName}</p>
                     <div className="flex items-center gap-2 text-xs text-gray-500">
                       <Clock className="w-3 h-3" />
-                      <span>{new Date(comment.createdAt).toLocaleString()}</span>
+                      <DateDisplay date={comment.createdAt} format="datetime" />
                     </div>
                   </div>
                 </div>

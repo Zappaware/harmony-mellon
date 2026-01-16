@@ -95,8 +95,8 @@ func main() {
 		protected.DELETE("/issues/:id", issueHandler.DeleteIssue)
 
 		// Comment routes
-		protected.GET("/issues/:issueId/comments", commentHandler.GetComments)
-		protected.POST("/issues/:issueId/comments", commentHandler.CreateComment)
+		protected.GET("/issues/:id/comments", commentHandler.GetComments)
+		protected.POST("/issues/:id/comments", commentHandler.CreateComment)
 		protected.PUT("/comments/:id", commentHandler.UpdateComment)
 		protected.DELETE("/comments/:id", commentHandler.DeleteComment)
 

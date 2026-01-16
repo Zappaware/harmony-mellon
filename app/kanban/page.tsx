@@ -34,7 +34,7 @@ function IssueCard({ issue }: IssueCardProps) {
 
   return (
     <div
-      ref={drag}
+      ref={drag as any}
       onClick={handleClick}
       className={`bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-all ${
         isDragging ? 'opacity-50 rotate-2' : ''
@@ -93,7 +93,7 @@ function Column({ title, status, issues, count, color }: ColumnProps) {
 
   return (
     <div
-      ref={drop}
+      ref={drop as any}
       className={`flex-1 min-w-[280px] md:min-w-[300px] rounded-lg transition-all ${
         isOver ? 'bg-indigo-50 ring-2 ring-indigo-300' : 'bg-gray-50'
       }`}

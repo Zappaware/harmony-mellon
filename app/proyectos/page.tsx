@@ -5,6 +5,7 @@ import { FolderKanban, Users, Calendar, TrendingUp, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { PageHeader } from '@/components/PageHeader';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+import { DateDisplay } from '@/components/DateDisplay';
 
 export default function Proyectos() {
   const proyectos = [
@@ -135,7 +136,7 @@ export default function Proyectos() {
                 </div>
                 <div className="flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
-                  <span>{new Date(proyecto.fechaLimite).toLocaleDateString()}</span>
+                  <DateDisplay date={proyecto.fechaLimite} format="date" />
                 </div>
               </div>
             </Link>

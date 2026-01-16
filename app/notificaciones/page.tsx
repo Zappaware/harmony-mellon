@@ -3,6 +3,7 @@
 import React from 'react';
 import { Bell, CheckCircle2, MessageSquare, UserPlus } from 'lucide-react';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+import { DateDisplay } from '@/components/DateDisplay';
 
 export default function Notificaciones() {
   const notificaciones = [
@@ -88,7 +89,7 @@ export default function Notificaciones() {
                     </div>
                     <p className="text-sm text-gray-600 mb-2">{notif.mensaje}</p>
                     <p className="text-xs text-gray-500">
-                      {new Date(notif.fecha).toLocaleString()}
+                      <DateDisplay date={notif.fecha} format="datetime" />
                     </p>
                   </div>
                 </div>

@@ -6,6 +6,7 @@ import { Issue, User } from '@/context/AppContext';
 import { Badge } from './Badge';
 import { Avatar } from './Avatar';
 import { Calendar, MessageSquare } from 'lucide-react';
+import { DateDisplay } from './DateDisplay';
 
 interface IssueCardListProps {
   issue: Issue;
@@ -34,7 +35,7 @@ export function IssueCardList({ issue, assignedUser, showProject }: IssueCardLis
           <div className="flex items-center gap-3 mt-3 text-sm text-gray-500">
             <div className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
-              <span>{new Date(issue.createdAt).toLocaleDateString()}</span>
+              <DateDisplay date={issue.createdAt} format="date" />
             </div>
             {issue.comments.length > 0 && (
               <div className="flex items-center gap-1">
