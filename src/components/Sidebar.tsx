@@ -12,10 +12,16 @@ import {
   BarChart3, 
   Users, 
   Settings, 
-  LogOut 
+  LogOut,
+  X
 } from 'lucide-react';
 
-export function Sidebar() {
+interface SidebarProps {
+  readonly isOpen?: boolean;
+  readonly onClose?: () => void;
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useApp();
   const pathname = usePathname();
   const router = useRouter();
@@ -23,6 +29,11 @@ export function Sidebar() {
   const handleLogout = () => {
     logout();
     router.push('/');
+    onClose?.();
+  };
+
+  const handleLinkClick = () => {
+    onClose?.();
   };
 
   const userLinks = [
@@ -42,15 +53,26 @@ export function Sidebar() {
 
   const links = user?.role === 'admin' ? adminLinks : userLinks;
 
-  return (
-    <div className="w-64 bg-gray-900 text-white h-screen flex flex-col">
-      <div className="p-6 border-b border-gray-800">
-        <h2 className="text-xl">Harmony Mellon</h2>
-        <p className="text-sm text-gray-400 mt-1">{user?.name}</p>
-        <p className="text-xs text-gray-500">{user?.role === 'admin' ? 'Administrador' : 'Usuario'}</p>
+  const sidebarContent = (
+    <>
+      <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+        <div>
+          <h2 className="text-xl">Harmony Mellon</h2>
+          <p className="text-sm text-gray-400 mt-1">{user?.name}</p>
+          <p className="text-xs text-gray-500">{user?.role === 'admin' ? 'Administrador' : 'Usuario'}</p>
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="md:hidden text-gray-400 hover:text-white transition-colors p-2"
+            aria-label="Cerrar menú"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
-      <nav className="flex-1 p-4">
+      <nav className="flex-1 p-4 overflow-y-auto">
         <ul className="space-y-2">
           {links.map((link) => {
             const Icon = link.icon;
@@ -60,6 +82,7 @@ export function Sidebar() {
               <li key={link.to}>
                 <Link
                   href={link.to}
+                  onClick={handleLinkClick}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                     isActive
                       ? 'bg-indigo-600 text-white'
@@ -84,6 +107,35 @@ export function Sidebar() {
           <span>Cerrar Sesión</span>
         </button>
       </div>
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop: Always visible */}
+      <div className="hidden md:flex w-64 bg-gray-900 text-white h-screen flex-col">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+      
+      {/* Mobile Sidebar */}
+      <div
+        className={`fixed top-0 left-0 h-full w-64 bg-gray-900 text-white z-50 transform transition-transform duration-300 ease-in-out md:hidden ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex flex-col h-full">
+          {sidebarContent}
+        </div>
+      </div>
+    </>
   );
 }

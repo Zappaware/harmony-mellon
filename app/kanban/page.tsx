@@ -37,16 +37,16 @@ function IssueCard({ issue }: IssueCardProps) {
     <div
       ref={drag as any}
       onClick={handleClick}
-      className={`bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-all ${
+      className={`bg-white p-4 md:p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-all ${
         isDragging ? 'opacity-50 rotate-2' : ''
       }`}
     >
-      <div className="flex items-start justify-between mb-3">
-        <h3 className="text-sm text-gray-800 pr-2 flex-1">{issue.title}</h3>
+      <div className="flex items-start justify-between mb-3 md:mb-3">
+        <h3 className="text-sm md:text-sm text-gray-800 pr-2 flex-1">{issue.title}</h3>
         <Badge variant="priority" value={issue.priority} className="flex-shrink-0" />
       </div>
       
-      <p className="text-xs text-gray-600 mb-3 line-clamp-2">{issue.description}</p>
+      <p className="text-xs text-gray-600 mb-3 md:mb-3 line-clamp-2">{issue.description}</p>
       
       <div className="flex items-center justify-between">
         {assignedUser ? (
@@ -95,20 +95,20 @@ function Column({ title, status, issues, count, color }: ColumnProps) {
   return (
     <div
       ref={drop as any}
-      className={`flex-1 min-w-[300px] rounded-lg transition-all ${
+      className={`flex-1 min-w-[300px] md:min-w-[300px] rounded-lg transition-all ${
         isOver ? 'bg-indigo-50 ring-2 ring-indigo-300' : 'bg-gray-50'
       }`}
     >
-      <div className={`${color} rounded-t-lg p-4`}>
+      <div className={`${color} rounded-t-lg p-4 md:p-4`}>
         <div className="flex items-center justify-between">
-          <h2 className="text-white">{title}</h2>
-          <span className="bg-white bg-opacity-30 text-white px-3 py-1 rounded-full text-sm">
+          <h2 className="text-white md:text-base">{title}</h2>
+          <span className="bg-white bg-opacity-30 text-white px-3 md:px-3 py-1 rounded-full text-sm md:text-sm">
             {count}
           </span>
         </div>
       </div>
       
-      <div className="p-4 space-y-3 min-h-[500px]">
+      <div className="p-4 md:p-4 space-y-3 md:space-y-3 min-h-[500px] md:min-h-[500px]">
         {issues.map((issue) => (
           <IssueCard key={issue.id} issue={issue} />
         ))}
@@ -159,7 +159,7 @@ function Kanban() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="p-8 h-screen overflow-x-auto">
+      <div className="p-8 md:p-8 h-screen overflow-x-auto">
         <PageHeader
           title="Tablero Kanban"
           subtitle="Arrastra las tarjetas para cambiar su estado"
@@ -169,7 +169,7 @@ function Kanban() {
           }}
         />
 
-        <div className="flex gap-4 pb-8">
+        <div className="flex gap-4 md:gap-4 pb-8 md:pb-8 overflow-x-auto">
           {columns.map((column) => {
             const columnIssues = issues.filter((issue) => issue.status === column.status);
             return (

@@ -50,21 +50,21 @@ function DashboardUsuario() {
   ];
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl text-gray-800 mb-2">Resumen</h1>
-        <p className="text-gray-600">Bienvenido de nuevo, {user?.name}</p>
+    <div className="p-8 md:p-8">
+      <div className="mb-8 md:mb-8">
+        <h1 className="text-3xl md:text-3xl text-gray-800 mb-2">Resumen</h1>
+        <p className="text-gray-600 md:text-gray-600">Bienvenido de nuevo, {user?.name}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-6 mb-8 md:mb-8">
         {stats.map((stat) => (
           <StatCard key={stat.label} {...stat} />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg text-gray-800 mb-4">Actividad Reciente</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-6 mb-8 md:mb-8">
+        <div className="bg-white rounded-lg shadow p-6 md:p-6">
+          <h3 className="text-lg md:text-lg text-gray-800 mb-4">Actividad Reciente</h3>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
@@ -90,8 +90,8 @@ function DashboardUsuario() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg text-gray-800 mb-4">Progreso Semanal</h3>
+        <div className="bg-white rounded-lg shadow p-6 md:p-6">
+          <h3 className="text-lg md:text-lg text-gray-800 mb-4">Progreso Semanal</h3>
           <div className="space-y-3">
             <div>
               <div className="flex items-center justify-between mb-1">
@@ -125,8 +125,8 @@ function DashboardUsuario() {
       </div>
 
       <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-xl text-gray-800">Mis Tareas Recientes</h2>
+        <div className="p-6 md:p-6 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-xl md:text-xl text-gray-800">Mis Tareas Recientes</h2>
           <Link href="/mis-tareas" className="text-indigo-600 hover:text-indigo-700 text-sm">
             Ver todas →
           </Link>
@@ -174,13 +174,13 @@ function DashboardAdmin() {
   const PRIORITY_COLORS = ['#ef4444', '#f59e0b', '#10b981'];
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl text-gray-800 mb-2">Panel de Métricas</h1>
-        <p className="text-gray-600">Vista general del sistema</p>
+    <div className="p-8 md:p-8">
+      <div className="mb-8 md:mb-8">
+        <h1 className="text-3xl md:text-3xl text-gray-800 mb-2">Panel de Métricas</h1>
+        <p className="text-gray-600 md:text-gray-600">Vista general del sistema</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-6 mb-8 md:mb-8">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -197,7 +197,7 @@ function DashboardAdmin() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 hidden md:grid">
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl text-gray-800 mb-4">Issues por Estado</h2>
           <ResponsiveContainer width="100%" height={300}>
