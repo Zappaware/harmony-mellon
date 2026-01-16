@@ -27,7 +27,7 @@ export default function MisTareas() {
 
   return (
     <LayoutWithSidebar>
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <PageHeader
           title="Mis Tareas"
           subtitle="Todas las tareas asignadas a ti"

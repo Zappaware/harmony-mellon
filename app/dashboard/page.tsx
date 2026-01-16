@@ -50,19 +50,19 @@ function DashboardUsuario() {
   ];
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl text-gray-800 mb-2">Resumen</h1>
+    <div className="p-4 md:p-8">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl text-gray-800 mb-2">Resumen</h1>
         <p className="text-gray-600">Bienvenido de nuevo, {user?.name}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
         {stats.map((stat) => (
           <StatCard key={stat.label} {...stat} />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg text-gray-800 mb-4">Actividad Reciente</h3>
           <div className="space-y-4">
@@ -174,13 +174,13 @@ function DashboardAdmin() {
   const PRIORITY_COLORS = ['#ef4444', '#f59e0b', '#10b981'];
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl text-gray-800 mb-2">Panel de Métricas</h1>
+    <div className="p-4 md:p-8">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl text-gray-800 mb-2">Panel de Métricas</h1>
         <p className="text-gray-600">Vista general del sistema</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -197,7 +197,7 @@ function DashboardAdmin() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl text-gray-800 mb-4">Issues por Estado</h2>
           <ResponsiveContainer width="100%" height={300}>

@@ -21,9 +21,9 @@ export default function DetalleIssue() {
   if (!issue) {
     return (
       <LayoutWithSidebar>
-        <div className="p-8">
+        <div className="p-4 md:p-8">
           <div className="text-center">
-            <h1 className="text-2xl text-gray-800 mb-4">Issue no encontrado</h1>
+            <h1 className="text-xl md:text-2xl text-gray-800 mb-4">Issue no encontrado</h1>
             <button
               onClick={() => router.back()}
               className="text-indigo-600 hover:text-indigo-700"
@@ -49,16 +49,16 @@ export default function DetalleIssue() {
 
   return (
     <LayoutWithSidebar>
-      <div className="p-8 max-w-5xl mx-auto">
+      <div className="p-4 md:p-8 max-w-5xl mx-auto">
         <PageHeader title="" subtitle="" showBack />
 
-        <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
+        <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-6">
           <div className="flex items-start justify-between mb-6">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-sm text-gray-500">Issue #{issue.id}</span>
               </div>
-              <h1 className="text-3xl text-gray-800 mb-4">{issue.title}</h1>
+              <h1 className="text-xl md:text-3xl text-gray-800 mb-4">{issue.title}</h1>
               <div className="flex items-center gap-3">
                 <Badge variant="priority" value={issue.priority} />
                 <Badge variant="status" value={issue.status} />
@@ -76,7 +76,7 @@ export default function DetalleIssue() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="flex items-center gap-3 mb-2">
                 <User className="w-5 h-5 text-gray-400" />
@@ -115,8 +115,8 @@ export default function DetalleIssue() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <h2 className="text-xl text-gray-800 mb-6 flex items-center gap-2">
+        <div className="bg-white rounded-lg shadow-lg p-4 md:p-8">
+          <h2 className="text-lg md:text-xl text-gray-800 mb-6 flex items-center gap-2">
             <MessageSquare className="w-5 h-5" />
             Comentarios ({issue.comments.length})
           </h2>
@@ -146,9 +146,11 @@ export default function DetalleIssue() {
             )}
           </div>
 
-          <form onSubmit={handleAddComment} className="flex gap-3">
-            <Avatar name={currentUser?.name || 'Usuario'} size="md" />
-            <div className="flex-1 flex gap-3">
+          <form onSubmit={handleAddComment} className="flex flex-col sm:flex-row gap-3">
+            <div className="hidden sm:block">
+              <Avatar name={currentUser?.name || 'Usuario'} size="md" />
+            </div>
+            <div className="flex-1 flex flex-col sm:flex-row gap-3">
               <input
                 type="text"
                 value={newComment}
@@ -159,7 +161,7 @@ export default function DetalleIssue() {
               <button
                 type="submit"
                 disabled={!newComment.trim()}
-                className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-indigo-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-5 h-5" />
                 <span>Enviar</span>
