@@ -1,13 +1,15 @@
 'use client'
 
-import React from 'react';
+import React, { useState } from 'react';
 import { FolderKanban, Users, Calendar, TrendingUp, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { PageHeader } from '@/components/PageHeader';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { DateDisplay } from '@/components/DateDisplay';
+import { CreateProjectModal } from '@/components/CreateProjectModal';
 
 export default function Proyectos() {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const proyectos = [
     {
       id: '1',
@@ -59,7 +61,7 @@ export default function Proyectos() {
           subtitle="Gestiona todos tus proyectos activos"
           action={{
             label: 'Nuevo Proyecto',
-            onClick: () => alert('Crear nuevo proyecto'),
+            onClick: () => setIsCreateModalOpen(true),
           }}
         />
 
@@ -143,7 +145,7 @@ export default function Proyectos() {
           ))}
           
           <button
-            onClick={() => alert('Crear nuevo proyecto')}
+            onClick={() => setIsCreateModalOpen(true)}
             className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6 hover:bg-gray-100 hover:border-indigo-400 transition-all flex flex-col items-center justify-center min-h-[280px] group"
           >
             <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-indigo-200 transition-colors">
@@ -153,6 +155,14 @@ export default function Proyectos() {
           </button>
         </div>
       </div>
+      <CreateProjectModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          // Projects will be reloaded when page refreshes or when needed
+          window.location.reload();
+        }}
+      />
     </LayoutWithSidebar>
   );
 }

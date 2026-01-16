@@ -1,12 +1,14 @@
 'use client'
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Users, Mail, Shield, UserCircle, Edit, Trash2 } from 'lucide-react';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+import { CreateUserModal } from '@/components/CreateUserModal';
 
 export default function GestionUsuarios() {
   const { users } = useApp();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   return (
     <LayoutWithSidebar>
@@ -22,7 +24,10 @@ export default function GestionUsuarios() {
               <Users className="w-6 h-6 text-gray-600" />
               <h2 className="text-xl text-gray-800">Usuarios del Sistema</h2>
             </div>
-            <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+            <button 
+              onClick={() => setIsCreateModalOpen(true)}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+            >
               Agregar Usuario
             </button>
           </div>
@@ -142,6 +147,14 @@ export default function GestionUsuarios() {
           </div>
         </div>
       </div>
+      <CreateUserModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          // Users will be reloaded automatically via useEffect in AppContext
+          window.location.reload();
+        }}
+      />
     </LayoutWithSidebar>
   );
 }

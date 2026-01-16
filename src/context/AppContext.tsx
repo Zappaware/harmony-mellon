@@ -1,6 +1,7 @@
 'use client'
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { api, ApiIssue, ApiUser, ApiProject } from '@/services/api';
 
 export interface User {
   id: string;
@@ -30,13 +31,40 @@ export interface Comment {
   createdAt: string;
 }
 
+interface CreateIssueData {
+  title: string;
+  description: string;
+  priority?: 'low' | 'medium' | 'high';
+  assignedTo?: string;
+  projectId?: string;
+}
+
+interface CreateProjectData {
+  name: string;
+  description?: string;
+  progress?: number;
+  status?: string;
+  deadline?: string;
+  color?: string;
+}
+
+interface CreateUserData {
+  name: string;
+  email: string;
+  password: string;
+  role?: 'user' | 'admin';
+}
+
 interface AppContextType {
   user: User | null;
-  login: (email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   issues: Issue[];
-  updateIssueStatus: (issueId: string, newStatus: Issue['status']) => void;
-  addComment: (issueId: string, text: string) => void;
+  updateIssueStatus: (issueId: string, newStatus: Issue['status']) => Promise<void>;
+  addComment: (issueId: string, text: string) => Promise<void>;
+  createIssue: (data: CreateIssueData) => Promise<void>;
+  createProject: (data: CreateProjectData) => Promise<void>;
+  createUser: (data: CreateUserData) => Promise<void>;
   users: User[];
 }
 
@@ -174,51 +202,241 @@ const mockIssues: Issue[] = [
 export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [issues, setIssues] = useState<Issue[]>(mockIssues);
-  const [users] = useState<User[]>(mockUsers);
+  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [useApi, setUseApi] = useState(false);
 
-  const login = (email: string, password: string): boolean => {
-    const foundUser = mockUsers.find((u) => u.email === email);
-    if (foundUser) {
-      setUser(foundUser);
-      return true;
+  // Convert API issue to app issue format
+  const convertApiIssue = (apiIssue: ApiIssue, userList: User[]): Issue => {
+    return {
+      id: apiIssue.id,
+      title: apiIssue.title,
+      description: apiIssue.description,
+      status: apiIssue.status,
+      priority: apiIssue.priority,
+      assignedTo: apiIssue.assigned_to,
+      createdBy: apiIssue.created_by,
+      createdAt: apiIssue.created_at,
+      comments: (apiIssue.comments || []).map(comment => ({
+        id: comment.id,
+        userId: comment.user_id,
+        userName: comment.user?.name || userList.find(u => u.id === comment.user_id)?.name || 'Usuario',
+        text: comment.text,
+        createdAt: comment.created_at,
+      })),
+    };
+  };
+
+  // Load issues from API
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (token && useApi) {
+      api.getIssues()
+        .then(apiIssues => {
+          const convertedIssues = apiIssues.map(issue => convertApiIssue(issue, users));
+          setIssues(convertedIssues);
+        })
+        .catch(() => {
+          // Fallback to mock data if API fails
+          setUseApi(false);
+        });
+    }
+  }, [useApi, users]);
+
+  // Load users from API
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (token && useApi) {
+      api.getUsers()
+        .then(apiUsers => {
+          const convertedUsers: User[] = apiUsers.map(u => ({
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            role: u.role === 'team_lead' ? 'admin' : u.role,
+            avatar: u.avatar,
+          }));
+          setUsers(convertedUsers);
+        })
+        .catch(() => {
+          // Fallback to mock data if API fails
+        });
+    }
+  }, [useApi]);
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      // Try API first
+      const response = await api.login(email, password);
+      if (response.token && response.user) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('token', response.token);
+        }
+        setUser({
+          id: response.user.id,
+          name: response.user.name,
+          email: response.user.email,
+          role: response.user.role === 'team_lead' ? 'admin' : response.user.role,
+          avatar: response.user.avatar,
+        });
+        setUseApi(true);
+        return true;
+      }
+    } catch (error) {
+      // Fallback to mock data
+      const foundUser = mockUsers.find((u) => u.email === email);
+      if (foundUser) {
+        setUser(foundUser);
+        setUseApi(false);
+        return true;
+      }
     }
     return false;
   };
 
   const logout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+    }
     setUser(null);
+    setUseApi(false);
   };
 
-  const updateIssueStatus = (issueId: string, newStatus: Issue['status']) => {
-    setIssues((prev) =>
-      prev.map((issue) =>
-        issue.id === issueId ? { ...issue, status: newStatus } : issue
-      )
-    );
+  const updateIssueStatus = async (issueId: string, newStatus: Issue['status']) => {
+    if (useApi) {
+      try {
+        await api.updateIssueStatus(issueId, newStatus);
+        // Reload issues to get updated status
+        const apiIssues = await api.getIssues();
+        const convertedIssues = apiIssues.map(issue => convertApiIssue(issue, users));
+        setIssues(convertedIssues);
+      } catch (error) {
+        console.error('Error updating issue status:', error);
+      }
+    } else {
+      setIssues((prev) =>
+        prev.map((issue) =>
+          issue.id === issueId ? { ...issue, status: newStatus } : issue
+        )
+      );
+    }
   };
 
-  const addComment = (issueId: string, text: string) => {
+  const addComment = async (issueId: string, text: string) => {
     if (!user) return;
     
-    setIssues((prev) =>
-      prev.map((issue) =>
-        issue.id === issueId
-          ? {
-              ...issue,
-              comments: [
-                ...issue.comments,
-                {
-                  id: Date.now().toString(),
-                  userId: user.id,
-                  userName: user.name,
-                  text,
-                  createdAt: new Date().toISOString(),
-                },
-              ],
-            }
-          : issue
-      )
-    );
+    if (useApi) {
+      try {
+        await api.createComment(issueId, text);
+        // Reload issues to get updated comments
+        const apiIssues = await api.getIssues();
+        const convertedIssues = apiIssues.map(issue => convertApiIssue(issue, users));
+        setIssues(convertedIssues);
+      } catch (error) {
+        console.error('Error adding comment:', error);
+      }
+    } else {
+      setIssues((prev) =>
+        prev.map((issue) =>
+          issue.id === issueId
+            ? {
+                ...issue,
+                comments: [
+                  ...issue.comments,
+                  {
+                    id: Date.now().toString(),
+                    userId: user.id,
+                    userName: user.name,
+                    text,
+                    createdAt: new Date().toISOString(),
+                  },
+                ],
+              }
+            : issue
+        )
+      );
+    }
+  };
+
+  const createIssue = async (data: CreateIssueData): Promise<void> => {
+    if (useApi) {
+      try {
+        const newIssue = await api.createIssue({
+          title: data.title,
+          description: data.description,
+          priority: data.priority || 'medium',
+          assigned_to: data.assignedTo,
+          project_id: data.projectId,
+        });
+        const convertedIssue = convertApiIssue(newIssue, users);
+        setIssues((prev) => [convertedIssue, ...prev]);
+      } catch (error) {
+        throw error;
+      }
+    } else {
+      // Mock implementation
+      const newIssue: Issue = {
+        id: Date.now().toString(),
+        title: data.title,
+        description: data.description,
+        status: 'todo',
+        priority: data.priority || 'medium',
+        assignedTo: data.assignedTo,
+        createdBy: user?.id || '1',
+        createdAt: new Date().toISOString(),
+        comments: [],
+      };
+      setIssues((prev) => [newIssue, ...prev]);
+    }
+  };
+
+  const createProject = async (data: CreateProjectData): Promise<void> => {
+    if (useApi) {
+      try {
+        await api.createProject({
+          name: data.name,
+          description: data.description,
+          progress: data.progress || 0,
+          status: data.status || 'planning',
+          deadline: data.deadline,
+          color: data.color,
+        });
+        // Projects are not stored in context, they will be loaded from API when needed
+      } catch (error) {
+        throw error;
+      }
+    } else {
+      // Mock implementation - just show success
+      console.log('Project created (mock):', data);
+    }
+  };
+
+  const createUser = async (data: CreateUserData): Promise<void> => {
+    if (useApi) {
+      try {
+        await api.register(data.name, data.email, data.password, data.role || 'user');
+        // Reload users to get updated list
+        const apiUsers = await api.getUsers();
+        const convertedUsers: User[] = apiUsers.map(u => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          role: u.role === 'team_lead' ? 'admin' : u.role,
+          avatar: u.avatar,
+        }));
+        setUsers(convertedUsers);
+      } catch (error) {
+        throw error;
+      }
+    } else {
+      // Mock implementation
+      const newUser: User = {
+        id: Date.now().toString(),
+        name: data.name,
+        email: data.email,
+        role: data.role || 'user',
+      };
+      setUsers((prev) => [...prev, newUser]);
+    }
   };
 
   return (
@@ -230,6 +448,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         issues,
         updateIssueStatus,
         addComment,
+        createIssue,
+        createProject,
+        createUser,
         users,
       }}
     >

@@ -18,28 +18,36 @@ export default function Login() {
     }
   }, [user, router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    const success = login(email, password);
-    if (success) {
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 100);
-    } else {
-      setError('Credenciales incorrectas');
+    try {
+      const success = await login(email, password);
+      if (success) {
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 100);
+      } else {
+        setError('Credenciales incorrectas');
+      }
+    } catch (err) {
+      setError('Error al iniciar sesión. Intenta nuevamente.');
     }
   };
 
-  const handleQuickLogin = (userEmail: string) => {
+  const handleQuickLogin = async (userEmail: string) => {
     setEmail(userEmail);
     setPassword('password');
-    const success = login(userEmail, 'password');
-    if (success) {
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 100);
+    try {
+      const success = await login(userEmail, 'password');
+      if (success) {
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 100);
+      }
+    } catch (err) {
+      setError('Error al iniciar sesión. Intenta nuevamente.');
     }
   };
 

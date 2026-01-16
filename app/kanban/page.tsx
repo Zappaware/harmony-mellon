@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react';
+import React, { useState } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useApp, Issue } from '@/context/AppContext';
@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/Badge';
 import { Avatar } from '@/components/Avatar';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+import { CreateIssueModal } from '@/components/CreateIssueModal';
 
 interface IssueCardProps {
   issue: Issue;
@@ -154,12 +155,18 @@ function Kanban() {
     },
   ];
 
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="p-8 h-screen overflow-x-auto">
         <PageHeader
           title="Tablero Kanban"
           subtitle="Arrastra las tarjetas para cambiar su estado"
+          action={{
+            label: 'Nueva Tarea',
+            onClick: () => setIsCreateModalOpen(true),
+          }}
         />
 
         <div className="flex gap-4 pb-8">
@@ -178,6 +185,13 @@ function Kanban() {
           })}
         </div>
       </div>
+      <CreateIssueModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          // Issues will be reloaded automatically via useEffect in AppContext
+        }}
+      />
     </DndProvider>
   );
 }

@@ -7,10 +7,12 @@ import { PageHeader } from '@/components/PageHeader';
 import { IssueCardList } from '@/components/IssueCardList';
 import { EmptyState } from '@/components/EmptyState';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+import { CreateIssueModal } from '@/components/CreateIssueModal';
 
 export default function MisTareas() {
   const { issues, user, users } = useApp();
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const myIssues = issues.filter((issue) => issue.assignedTo === user?.id);
 
   const filteredIssues = filterStatus === 'all' 
@@ -31,6 +33,10 @@ export default function MisTareas() {
         <PageHeader
           title="Mis Tareas"
           subtitle="Todas las tareas asignadas a ti"
+          action={{
+            label: 'Nueva Tarea',
+            onClick: () => setIsCreateModalOpen(true),
+          }}
         />
 
         <div className="flex gap-2 mb-6 flex-wrap">
@@ -119,6 +125,13 @@ export default function MisTareas() {
           )}
         </div>
       </div>
+      <CreateIssueModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          // Issues will be reloaded automatically via useEffect in AppContext
+        }}
+      />
     </LayoutWithSidebar>
   );
 }
