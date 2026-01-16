@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { Avatar } from '@/components/Avatar';
-import { User, Mail, Shield, UserCircle, Calendar, Edit, Save, X } from 'lucide-react';
+import { User, Mail, Shield, UserCircle, Calendar, Edit, Save, X, Upload, Trash2, Camera } from 'lucide-react';
 import { api } from '@/services/api';
 import { DateDisplay } from '@/components/DateDisplay';
 
@@ -160,12 +160,66 @@ export default function PerfilPage() {
           {/* Profile Header Card */}
           <div className="bg-white rounded-lg shadow-lg p-6 md:p-8 mb-6">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-              <div className="flex-shrink-0">
-                <Avatar 
-                  name={user.name} 
-                  size="xl" 
-                  src={formData.avatar || userDetails?.avatar || user.avatar} 
-                />
+              <div className="flex-shrink-0 flex flex-col items-center gap-4">
+                <div className="relative">
+                  <Avatar 
+                    name={user.name} 
+                    size="xl" 
+                    src={formData.avatar || userDetails?.avatar || user.avatar} 
+                  />
+                  {isEditing && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                      <Camera className="w-6 h-6 text-white" />
+                    </div>
+                  )}
+                </div>
+                
+                {isEditing && (
+                  <div className="flex flex-col gap-2 w-full">
+                    <input
+                      type="file"
+                      id="avatar"
+                      name="avatar"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="avatar"
+                      className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer text-sm font-medium"
+                    >
+                      <Upload className="w-4 h-4" />
+                      {formData.avatar && formData.avatar.startsWith('data:image') ? 'Cambiar Foto' : 'Subir Foto'}
+                    </label>
+                    {formData.avatar && formData.avatar.startsWith('data:image') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, avatar: '' }));
+                          const fileInput = document.getElementById('avatar') as HTMLInputElement;
+                          if (fileInput) fileInput.value = '';
+                        }}
+                        className="flex items-center justify-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Eliminar Foto
+                      </button>
+                    )}
+                    {formData.avatar && formData.avatar.startsWith('data:image') && (
+                      <div className="mt-2 p-2 bg-gray-50 rounded-lg">
+                        <p className="text-xs text-gray-600 mb-2 text-center">Vista previa:</p>
+                        <img
+                          src={formData.avatar}
+                          alt="Vista previa"
+                          className="w-20 h-20 rounded-full object-cover border-2 border-gray-300 mx-auto"
+                        />
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-500 text-center">
+                      Máximo 5MB
+                    </p>
+                  </div>
+                )}
               </div>
               
               <div className="flex-1 w-full md:w-auto text-center md:text-left">
@@ -198,34 +252,6 @@ export default function PerfilPage() {
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         placeholder="tu@email.com"
                       />
-                    </div>
-                    <div>
-                      <label htmlFor="avatar" className="block text-sm font-medium text-gray-700 mb-2">
-                        Imagen de Perfil
-                      </label>
-                      <div className="space-y-2">
-                        <input
-                          type="file"
-                          id="avatar"
-                          name="avatar"
-                          accept="image/*"
-                          onChange={handleFileChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                        />
-                        {formData.avatar && formData.avatar.startsWith('data:image') && (
-                          <div className="mt-2">
-                            <p className="text-xs text-gray-600 mb-2">Vista previa:</p>
-                            <img
-                              src={formData.avatar}
-                              alt="Vista previa"
-                              className="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
-                            />
-                          </div>
-                        )}
-                        <p className="text-xs text-gray-500">
-                          Selecciona una imagen desde tu computadora (máximo 5MB)
-                        </p>
-                      </div>
                     </div>
                   </div>
                 ) : (
