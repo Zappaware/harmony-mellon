@@ -169,7 +169,7 @@ function Kanban() {
           }}
         />
 
-        <div className="flex flex-col md:flex-row gap-4 md:gap-4 pb-8 md:pb-8 overflow-x-auto md:overflow-x-auto">
+        <div className="flex flex-col md:flex-row gap-3 md:gap-4 pb-6 md:pb-8 overflow-x-auto md:overflow-x-auto">
           {columns.map((column) => {
             const columnIssues = issues.filter((issue) => issue.status === column.status);
             return (

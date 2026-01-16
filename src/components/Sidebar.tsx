@@ -13,7 +13,8 @@ import {
   Users, 
   Settings, 
   LogOut,
-  X
+  X,
+  UserCircle
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -41,6 +42,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     { to: '/mis-tareas', icon: CheckSquare, label: 'Mis Tareas' },
     { to: '/proyectos', icon: FolderKanban, label: 'Proyectos' },
     { to: '/notificaciones', icon: Bell, label: 'Notificaciones' },
+    { to: '/perfil', icon: Users, label: 'Mi Perfil' },
   ];
 
   const adminLinks = [
@@ -49,6 +51,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     { to: '/kanban', icon: FolderKanban, label: 'Kanban' },
     { to: '/usuarios', icon: Users, label: 'Equipo' },
     { to: '/configuracion', icon: Settings, label: 'Configuración' },
+    { to: '/perfil', icon: UserCircle, label: 'Mi Perfil' },
   ];
 
   const links = user?.role === 'admin' ? adminLinks : userLinks;

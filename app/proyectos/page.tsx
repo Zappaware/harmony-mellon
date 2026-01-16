@@ -55,7 +55,7 @@ export default function Proyectos() {
 
   return (
     <LayoutWithSidebar>
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <PageHeader
           title="Proyectos"
           subtitle="Gestiona todos tus proyectos activos"
@@ -65,7 +65,7 @@ export default function Proyectos() {
           }}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-600">Total Proyectos</span>

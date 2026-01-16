@@ -50,16 +50,16 @@ export default function DetalleIssue() {
 
   return (
     <LayoutWithSidebar>
-      <div className="p-8 max-w-5xl mx-auto">
+      <div className="p-4 md:p-8 max-w-5xl mx-auto">
         <PageHeader title="" subtitle="" showBack />
 
-        <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm text-gray-500">Issue #{issue.id}</span>
+        <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 mb-4 md:mb-6">
+          <div className="flex items-start justify-between mb-4 md:mb-6">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-2 md:mb-3">
+                <span className="text-xs md:text-sm text-gray-500">Issue #{issue.id}</span>
               </div>
-              <h1 className="text-3xl text-gray-800 mb-4">{issue.title}</h1>
+              <h1 className="text-xl md:text-3xl text-gray-800 mb-3 md:mb-4 pr-12 md:pr-0">{issue.title}</h1>
               <div className="flex items-center gap-3">
                 <Badge variant="priority" value={issue.priority} />
                 <Badge variant="status" value={issue.status} />
@@ -118,8 +118,8 @@ export default function DetalleIssue() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <h2 className="text-xl text-gray-800 mb-6 flex items-center gap-2">
+        <div className="bg-white rounded-lg shadow-lg p-4 md:p-8">
+          <h2 className="text-lg md:text-xl text-gray-800 mb-4 md:mb-6 flex items-center gap-2">
             <MessageSquare className="w-5 h-5" />
             Comentarios ({issue.comments.length})
           </h2>

@@ -58,13 +58,13 @@ export default function Notificaciones() {
 
   return (
     <LayoutWithSidebar>
-      <div className="p-8">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl text-gray-800 mb-2">Notificaciones</h1>
-            <p className="text-gray-600">Mantente al día con las actualizaciones</p>
+      <div className="p-4 md:p-8">
+        <div className="mb-6 md:mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl md:text-3xl text-gray-800 mb-2 pr-12 md:pr-0">Notificaciones</h1>
+            <p className="text-sm md:text-base text-gray-600">Mantente al día con las actualizaciones</p>
           </div>
-          <button className="text-indigo-600 hover:text-indigo-700">
+          <button className="text-sm md:text-base text-indigo-600 hover:text-indigo-700 whitespace-nowrap flex-shrink-0">
             Marcar todas como leídas
           </button>
         </div>
@@ -74,7 +74,7 @@ export default function Notificaciones() {
             {notificaciones.map((notif) => (
               <div
                 key={notif.id}
-                className={`p-6 hover:bg-gray-50 transition-colors ${
+                className={`p-4 md:p-6 hover:bg-gray-50 transition-colors ${
                   !notif.leida ? 'bg-blue-50' : ''
                 }`}
               >

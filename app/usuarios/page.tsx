@@ -14,7 +14,7 @@ export default function GestionUsuarios() {
     <LayoutWithSidebar>
       <div className="p-4 md:p-8">
         <div className="mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-3xl text-gray-800 mb-2">Gestión de Usuarios</h1>
+          <h1 className="text-xl md:text-3xl text-gray-800 mb-2 pr-12 md:pr-0">Gestión de Usuarios</h1>
           <p className="text-sm md:text-base text-gray-600">Administra el equipo y sus permisos</p>
         </div>
 

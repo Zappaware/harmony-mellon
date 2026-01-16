@@ -143,6 +143,13 @@ class ApiService {
     return this.request<ApiUser>(`/users/${id}`);
   }
 
+  async updateUser(id: string, data: { name?: string; email?: string; role?: string }): Promise<ApiUser> {
+    return this.request<ApiUser>(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
   async createComment(issueId: string, text: string): Promise<ApiComment> {
     return this.request<ApiComment>(`/issues/${issueId}/comments`, {
       method: 'POST',

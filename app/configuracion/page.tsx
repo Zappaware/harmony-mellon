@@ -20,13 +20,13 @@ export default function Configuracion() {
 
   return (
     <LayoutWithSidebar>
-      <div className="p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl text-gray-800 mb-2">Configuración</h1>
-          <p className="text-gray-600">Gestiona los parámetros del sistema</p>
+      <div className="p-4 md:p-8">
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-xl md:text-3xl text-gray-800 mb-2 pr-12 md:pr-0">Configuración</h1>
+          <p className="text-sm md:text-base text-gray-600">Gestiona los parámetros del sistema</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           <div className="bg-white rounded-lg shadow">
             <div className="p-6 border-b border-gray-200 flex items-center gap-2">
               <Tag className="w-6 h-6 text-gray-600" />

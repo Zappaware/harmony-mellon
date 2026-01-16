@@ -26,13 +26,13 @@ export function LayoutWithSidebar({ children }: { children: React.ReactNode }) {
       {/* Mobile Menu Button */}
       <button
         onClick={() => setSidebarOpen(true)}
-        className="md:hidden fixed top-4 left-4 z-30 p-2 bg-gray-900 text-white rounded-lg shadow-lg hover:bg-gray-800 transition-colors"
+        className="md:hidden fixed top-3 left-3 z-50 p-2 bg-gray-900 text-white rounded-lg shadow-lg hover:bg-gray-800 transition-colors"
         aria-label="Abrir menú"
       >
-        <Menu className="w-6 h-6" />
+        <Menu className="w-5 h-5" />
       </button>
 
-      <div className="flex-1 overflow-auto md:ml-0">
+      <div className="flex-1 overflow-auto md:ml-0 pt-14 md:pt-0">
         {children}
       </div>
     </div>

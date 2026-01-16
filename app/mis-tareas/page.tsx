@@ -29,7 +29,7 @@ export default function MisTareas() {
 
   return (
     <LayoutWithSidebar>
-      <div className="p-8">
+      <div className="p-4 md:p-8 pb-6 md:pb-8">
         <PageHeader
           title="Mis Tareas"
           subtitle="Todas las tareas asignadas a ti"
@@ -39,7 +39,7 @@ export default function MisTareas() {
           }}
         />
 
-        <div className="flex gap-2 mb-6 flex-wrap">
+        <div className="flex gap-2 mb-4 md:mb-6 flex-wrap">
           <button
             onClick={() => setFilterStatus('all')}
             className={`px-4 py-2 rounded-lg text-sm transition-colors ${
@@ -93,16 +93,16 @@ export default function MisTareas() {
         </div>
 
         <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <div className="p-4 md:p-6 border-b border-gray-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CheckSquare className="w-6 h-6 text-gray-600" />
-              <h2 className="text-xl text-gray-800">
+              <CheckSquare className="w-5 h-5 md:w-6 md:h-6 text-gray-600" />
+              <h2 className="text-base md:text-xl text-gray-800">
                 {filterStatus === 'all' ? 'Todas las Tareas' : 'Tareas Filtradas'} ({filteredIssues.length})
               </h2>
             </div>
-            <button className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors">
+            <button className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors text-sm">
               <Filter className="w-4 h-4" />
-              <span className="text-sm">Ordenar</span>
+              <span className="hidden sm:inline">Ordenar</span>
             </button>
           </div>
           {filteredIssues.length > 0 ? (
