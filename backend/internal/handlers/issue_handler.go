@@ -4,6 +4,7 @@ import (
 	"mellon-harmony-api/internal/models"
 	"mellon-harmony-api/internal/service"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -68,6 +69,8 @@ type CreateIssueRequest struct {
 	Priority    models.IssuePriority  `json:"priority"`
 	AssignedTo  *string               `json:"assigned_to"`
 	ProjectID   *string               `json:"project_id"`
+	StartDate   *string               `json:"start_date"`
+	DueDate     *string               `json:"due_date"`
 }
 
 func (h *IssueHandler) CreateIssue(c *gin.Context) {
@@ -104,6 +107,18 @@ func (h *IssueHandler) CreateIssue(c *gin.Context) {
 		}
 	}
 
+	if req.StartDate != nil {
+		if startDate, err := time.Parse(time.RFC3339, *req.StartDate); err == nil {
+			issue.StartDate = &startDate
+		}
+	}
+
+	if req.DueDate != nil {
+		if dueDate, err := time.Parse(time.RFC3339, *req.DueDate); err == nil {
+			issue.DueDate = &dueDate
+		}
+	}
+
 	if err := h.issueService.CreateIssue(issue); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -118,6 +133,8 @@ type UpdateIssueRequest struct {
 	Priority    *models.IssuePriority  `json:"priority"`
 	AssignedTo  *string               `json:"assigned_to"`
 	ProjectID   *string               `json:"project_id"`
+	StartDate   *string               `json:"start_date"`
+	DueDate     *string               `json:"due_date"`
 }
 
 func (h *IssueHandler) UpdateIssue(c *gin.Context) {
@@ -151,6 +168,18 @@ func (h *IssueHandler) UpdateIssue(c *gin.Context) {
 	if req.ProjectID != nil {
 		if id, err := uuid.Parse(*req.ProjectID); err == nil {
 			updates["project_id"] = &id
+		}
+	}
+
+	if req.StartDate != nil {
+		if startDate, err := time.Parse(time.RFC3339, *req.StartDate); err == nil {
+			updates["start_date"] = &startDate
+		}
+	}
+
+	if req.DueDate != nil {
+		if dueDate, err := time.Parse(time.RFC3339, *req.DueDate); err == nil {
+			updates["due_date"] = &dueDate
 		}
 	}
 

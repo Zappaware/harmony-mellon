@@ -49,6 +49,7 @@ type CreateProjectRequest struct {
 	Description string                `json:"description"`
 	Progress    int                   `json:"progress"`
 	Status      models.ProjectStatus  `json:"status"`
+	StartDate   *string               `json:"start_date"`
 	Deadline    *string               `json:"deadline"`
 	Color       string                `json:"color"`
 }
@@ -70,6 +71,12 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 		Status:      req.Status,
 		Color:       req.Color,
 		CreatedBy:   userID,
+	}
+
+	if req.StartDate != nil {
+		if startDate, err := time.Parse(time.RFC3339, *req.StartDate); err == nil {
+			project.StartDate = &startDate
+		}
 	}
 
 	if req.Deadline != nil {
@@ -95,6 +102,7 @@ type UpdateProjectRequest struct {
 	Description *string               `json:"description"`
 	Progress    *int                  `json:"progress"`
 	Status      *models.ProjectStatus `json:"status"`
+	StartDate   *string               `json:"start_date"`
 	Deadline    *string               `json:"deadline"`
 	Color       *string               `json:"color"`
 }
@@ -127,6 +135,18 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 	}
 	if req.Color != nil {
 		updates["color"] = *req.Color
+	}
+
+	if req.StartDate != nil {
+		if startDate, err := time.Parse(time.RFC3339, *req.StartDate); err == nil {
+			updates["start_date"] = &startDate
+		}
+	}
+
+	if req.Deadline != nil {
+		if deadline, err := time.Parse(time.RFC3339, *req.Deadline); err == nil {
+			updates["deadline"] = &deadline
+		}
 	}
 
 	project, err := h.projectService.UpdateProject(id, updates)

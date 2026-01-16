@@ -18,6 +18,8 @@ export interface ApiIssue {
   assigned_to?: string;
   created_by: string;
   project_id?: string;
+  start_date?: string;
+  due_date?: string;
   created_at: string;
   updated_at: string;
   comments?: ApiComment[];
@@ -41,6 +43,8 @@ export interface CreateIssueRequest {
   priority?: 'low' | 'medium' | 'high';
   assigned_to?: string;
   project_id?: string;
+  start_date?: string;
+  due_date?: string;
 }
 
 class ApiService {
@@ -250,6 +254,7 @@ export interface ApiProject {
   description: string;
   progress: number;
   status: string;
+  start_date?: string;
   deadline?: string;
   color?: string;
   created_by: string;
@@ -267,6 +272,7 @@ export interface CreateProjectRequest {
   description?: string;
   progress?: number;
   status?: string;
+  start_date?: string;
   deadline?: string;
   color?: string;
 }

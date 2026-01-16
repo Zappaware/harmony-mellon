@@ -1,13 +1,25 @@
 'use client'
 
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { CheckCircle2, Clock, AlertCircle, TrendingUp, FolderKanban, Users } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import Link from 'next/link';
 import { StatCard } from '@/components/StatCard';
 import { IssueCardList } from '@/components/IssueCardList';
+import { Loading } from '@/components/Loading';
+
+// Lazy load heavy chart components
+const BarChart = lazy(() => import('recharts').then(module => ({ default: module.BarChart })));
+const Bar = lazy(() => import('recharts').then(module => ({ default: module.Bar })));
+const XAxis = lazy(() => import('recharts').then(module => ({ default: module.XAxis })));
+const YAxis = lazy(() => import('recharts').then(module => ({ default: module.YAxis })));
+const CartesianGrid = lazy(() => import('recharts').then(module => ({ default: module.CartesianGrid })));
+const Tooltip = lazy(() => import('recharts').then(module => ({ default: module.Tooltip })));
+const ResponsiveContainer = lazy(() => import('recharts').then(module => ({ default: module.ResponsiveContainer })));
+const PieChart = lazy(() => import('recharts').then(module => ({ default: module.PieChart })));
+const Pie = lazy(() => import('recharts').then(module => ({ default: module.Pie })));
+const Cell = lazy(() => import('recharts').then(module => ({ default: module.Cell })));
 
 function DashboardUsuario() {
   const { issues, user, users } = useApp();
@@ -201,6 +213,7 @@ function DashboardAdmin() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <div className="bg-white rounded-lg shadow p-4 md:p-6">
           <h2 className="text-lg md:text-xl text-gray-800 mb-4">Issues por Estado</h2>
+          <Suspense fallback={<div className="h-[300px] flex items-center justify-center text-gray-500">Cargando gráfico...</div>}>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={statusData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -210,10 +223,12 @@ function DashboardAdmin() {
                 <Bar dataKey="value" fill="#3b82f6" />
               </BarChart>
             </ResponsiveContainer>
-          </div>
+          </Suspense>
+        </div>
 
         <div className="bg-white rounded-lg shadow p-4 md:p-6">
           <h2 className="text-lg md:text-xl text-gray-800 mb-4">Distribución por Prioridad</h2>
+          <Suspense fallback={<div className="h-[300px] flex items-center justify-center text-gray-500">Cargando gráfico...</div>}>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -233,8 +248,9 @@ function DashboardAdmin() {
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
-          </div>
+          </Suspense>
         </div>
+      </div>
       </div>
     </div>
   );

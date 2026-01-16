@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 
@@ -8,18 +8,28 @@ interface CreateIssueModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  initialStartDate?: string;
 }
 
-export function CreateIssueModal({ isOpen, onClose, onSuccess }: CreateIssueModalProps) {
+export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate }: CreateIssueModalProps) {
   const { users, createIssue } = useApp();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     priority: 'medium' as 'low' | 'medium' | 'high',
     assignedTo: '',
+    startDate: initialStartDate || '',
+    dueDate: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Update startDate when initialStartDate changes
+  useEffect(() => {
+    if (initialStartDate) {
+      setFormData(prev => ({ ...prev, startDate: initialStartDate }));
+    }
+  }, [initialStartDate]);
 
   if (!isOpen) return null;
 
@@ -34,6 +44,8 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess }: CreateIssueModa
         description: formData.description,
         priority: formData.priority,
         assignedTo: formData.assignedTo || undefined,
+        startDate: formData.startDate || undefined,
+        dueDate: formData.dueDate || undefined,
       });
 
       // Reset form
@@ -42,6 +54,8 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess }: CreateIssueModa
         description: '',
         priority: 'medium',
         assignedTo: '',
+        startDate: initialStartDate || '',
+        dueDate: '',
       });
 
       onSuccess?.();
@@ -150,6 +164,36 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess }: CreateIssueModa
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
+                Fecha de Inicio
+              </label>
+              <input
+                type="date"
+                id="startDate"
+                name="startDate"
+                value={formData.startDate}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-2">
+                Fecha de Vencimiento
+              </label>
+              <input
+                type="date"
+                id="dueDate"
+                name="dueDate"
+                value={formData.dueDate}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
             </div>
           </div>
 

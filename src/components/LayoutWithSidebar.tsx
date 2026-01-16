@@ -1,28 +1,38 @@
 'use client'
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
-import { Sidebar } from './Sidebar';
-import { NotificationBadge } from './NotificationBadge';
+import { Loading } from './Loading';
 import { Menu } from 'lucide-react';
 
+// Lazy load heavy components
+const Sidebar = lazy(() => import('./Sidebar').then(module => ({ default: module.Sidebar })));
+const NotificationBadge = lazy(() => import('./NotificationBadge').then(module => ({ default: module.NotificationBadge })));
+
 export function LayoutWithSidebar({ children }: { children: React.ReactNode }) {
-  const { user } = useApp();
+  const { user, isLoading } = useApp();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    if (!user) {
+    if (!isLoading && !user) {
       router.push('/');
     }
-  }, [user, router]);
+  }, [user, isLoading, router]);
+
+  // Show loading screen while restoring session
+  if (isLoading) {
+    return <Loading fullScreen message="Cargando..." />;
+  }
 
   if (!user) return null;
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Suspense fallback={<div className="w-64 bg-gray-900"></div>}>
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      </Suspense>
       
       {/* Mobile Menu Button */}
       <button
@@ -35,11 +45,15 @@ export function LayoutWithSidebar({ children }: { children: React.ReactNode }) {
 
       {/* Notification Badge - Fixed top right */}
       <div className="fixed top-4 right-4 md:top-6 md:right-6 z-50">
-        <NotificationBadge />
+        <Suspense fallback={<div className="w-10 h-10 bg-white rounded-full shadow-lg"></div>}>
+          <NotificationBadge />
+        </Suspense>
       </div>
 
       <div className="flex-1 overflow-auto md:ml-0 pt-16 md:pt-0">
-        {children}
+        <Suspense fallback={<Loading message="Cargando..." />}>
+          {children}
+        </Suspense>
       </div>
     </div>
   );

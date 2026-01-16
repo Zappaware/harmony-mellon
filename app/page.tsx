@@ -3,20 +3,26 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
+import { Loading } from '@/components/Loading';
 import { LogIn } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login, user } = useApp();
+  const { login, user, isLoading } = useApp();
   const router = useRouter();
 
   useEffect(() => {
-    if (user) {
+    if (!isLoading && user) {
       router.push('/dashboard');
     }
-  }, [user, router]);
+  }, [user, isLoading, router]);
+
+  // Show loading screen while checking session
+  if (isLoading) {
+    return <Loading fullScreen message="Cargando..." />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

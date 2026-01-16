@@ -1,13 +1,16 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { useApp } from '@/context/AppContext';
 import { CheckSquare, Filter } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { IssueCardList } from '@/components/IssueCardList';
 import { EmptyState } from '@/components/EmptyState';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
-import { CreateIssueModal } from '@/components/CreateIssueModal';
+import { Loading } from '@/components/Loading';
+
+// Lazy load modal
+const CreateIssueModal = lazy(() => import('@/components/CreateIssueModal').then(module => ({ default: module.CreateIssueModal })));
 
 export default function MisTareas() {
   const { issues, user, users } = useApp();
@@ -125,13 +128,15 @@ export default function MisTareas() {
           )}
         </div>
       </div>
-      <CreateIssueModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={() => {
-          // Issues will be reloaded automatically via useEffect in AppContext
-        }}
-      />
+      <Suspense fallback={null}>
+        <CreateIssueModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onSuccess={() => {
+            // Issues will be reloaded automatically via useEffect in AppContext
+          }}
+        />
+      </Suspense>
     </LayoutWithSidebar>
   );
 }

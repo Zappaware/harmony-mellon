@@ -1,35 +1,86 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import { useApp } from '@/context/AppContext';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
-import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, Plus, CheckSquare, FolderKanban, X } from 'lucide-react';
 import { format, isSameDay, parseISO, startOfMonth, endOfMonth, getDaysInMonth, getDay, addDays, subDays } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { useRouter } from 'next/navigation';
+import { Loading } from '@/components/Loading';
+
+// Lazy load heavy components
+const Calendar = lazy(() => import('@/components/ui/calendar').then(module => ({ default: module.Calendar })));
+const CreateIssueModal = lazy(() => import('@/components/CreateIssueModal').then(module => ({ default: module.CreateIssueModal })));
+const CreateProjectModal = lazy(() => import('@/components/CreateProjectModal').then(module => ({ default: module.CreateProjectModal })));
 
 export default function CalendarioPage() {
   const { issues } = useApp();
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [month, setMonth] = useState<Date>(new Date());
+  const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const [isCreateIssueModalOpen, setIsCreateIssueModalOpen] = useState(false);
+  const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // Get issues for selected date
   const getIssuesForDate = (date: Date) => {
     if (!date) return [];
     return issues.filter(issue => {
-      const issueDate = parseISO(issue.createdAt);
+      // Use start_date if available, otherwise due_date, otherwise createdAt
+      const issueDateStr = issue.startDate || issue.dueDate || issue.createdAt;
+      if (!issueDateStr) return false;
+      const issueDate = parseISO(issueDateStr);
       return isSameDay(issueDate, date);
     });
   };
 
   // Get all dates that have issues
   const getDatesWithIssues = () => {
-    return issues.map(issue => parseISO(issue.createdAt));
+    return issues
+      .map(issue => {
+        // Use start_date if available, otherwise due_date, otherwise createdAt
+        const dateStr = issue.startDate || issue.dueDate || issue.createdAt;
+        return dateStr ? parseISO(dateStr) : null;
+      })
+      .filter((date): date is Date => date !== null);
   };
 
   const selectedDateIssues = selectedDate ? getIssuesForDate(selectedDate) : [];
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowCreateMenu(false);
+      }
+    };
+
+    if (showCreateMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCreateMenu]);
+
+  const handleCreateIssue = () => {
+    setShowCreateMenu(false);
+    setIsCreateIssueModalOpen(true);
+  };
+
+  const handleCreateProject = () => {
+    setShowCreateMenu(false);
+    setIsCreateProjectModalOpen(true);
+  };
+
+  // Format date for input fields (YYYY-MM-DD)
+  const formatDateForInput = (date: Date | undefined): string => {
+    if (!date) return '';
+    return format(date, 'yyyy-MM-dd');
+  };
 
   // Get all days in the month view (including previous/next month days)
   const getDaysInMonthView = () => {
@@ -108,28 +159,30 @@ export default function CalendarioPage() {
         {/* Mobile View: Calendar + List */}
         <div className="block md:hidden">
           <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '1rem', width: '100%' }}>
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              month={month}
-              onMonthChange={setMonth}
-              className="rounded-md border-0 w-full"
-              classNames={{
-                table: 'w-full',
-                row: 'flex w-full mt-2 justify-between',
-                cell: 'flex-1 flex justify-center',
-                head_row: 'flex w-full justify-between',
-                head_cell: 'flex-1 text-center'
-              }}
-              modifiers={{
-                hasIssues: getDatesWithIssues(),
-              }}
-              modifiersClassNames={{
-                hasIssues: 'bg-indigo-50',
-              }}
-              locale={es}
-            />
+            <Suspense fallback={<Loading message="Cargando calendario..." />}>
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                month={month}
+                onMonthChange={setMonth}
+                className="rounded-md border-0 w-full"
+                classNames={{
+                  table: 'w-full',
+                  row: 'flex w-full mt-2 justify-between',
+                  cell: 'flex-1 flex justify-center',
+                  head_row: 'flex w-full justify-between',
+                  head_cell: 'flex-1 text-center'
+                }}
+                modifiers={{
+                  hasIssues: getDatesWithIssues(),
+                }}
+                modifiersClassNames={{
+                  hasIssues: 'bg-indigo-50',
+                }}
+                locale={es}
+              />
+            </Suspense>
           </div>
 
           <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '1rem', marginTop: '1.5rem' }}>
@@ -526,6 +579,131 @@ export default function CalendarioPage() {
           </div>
         </div>
       </div>
+
+      {/* Floating Action Button */}
+      <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 50 }} ref={menuRef}>
+        {showCreateMenu && (
+          <div style={{
+            position: 'absolute',
+            bottom: '4rem',
+            right: '0',
+            backgroundColor: 'white',
+            borderRadius: '0.5rem',
+            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
+            padding: '0.5rem',
+            minWidth: '200px',
+            marginBottom: '0.5rem'
+          }}>
+            <button
+              onClick={handleCreateIssue}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '0.75rem 1rem',
+                borderRadius: '0.375rem',
+                border: 'none',
+                backgroundColor: 'transparent',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+                textAlign: 'left'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              <CheckSquare style={{ width: '1.25rem', height: '1.25rem', color: '#4f46e5' }} />
+              <span style={{ color: '#1f2937', fontWeight: '500' }}>Crear Tarea</span>
+            </button>
+            <button
+              onClick={handleCreateProject}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '0.75rem 1rem',
+                borderRadius: '0.375rem',
+                border: 'none',
+                backgroundColor: 'transparent',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+                textAlign: 'left'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              <FolderKanban style={{ width: '1.25rem', height: '1.25rem', color: '#4f46e5' }} />
+              <span style={{ color: '#1f2937', fontWeight: '500' }}>Crear Proyecto</span>
+            </button>
+          </div>
+        )}
+        <button
+          onClick={() => setShowCreateMenu(!showCreateMenu)}
+          style={{
+            width: '3.5rem',
+            height: '3.5rem',
+            borderRadius: '50%',
+            backgroundColor: '#4f46e5',
+            border: 'none',
+            color: 'white',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
+            transition: 'background-color 0.2s, transform 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#4338ca';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#4f46e5';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+          aria-label="Crear tarea o proyecto"
+        >
+          {showCreateMenu ? (
+            <X style={{ width: '1.5rem', height: '1.5rem' }} />
+          ) : (
+            <Plus style={{ width: '1.5rem', height: '1.5rem' }} />
+          )}
+        </button>
+      </div>
+
+      {/* Modals */}
+      <Suspense fallback={null}>
+        <CreateIssueModal
+          isOpen={isCreateIssueModalOpen}
+          onClose={() => {
+            setIsCreateIssueModalOpen(false);
+          }}
+          onSuccess={() => {
+            setIsCreateIssueModalOpen(false);
+            // Reload issues after successful creation
+            if (globalThis.window !== undefined) {
+              globalThis.window.location.reload();
+            }
+          }}
+          initialStartDate={selectedDate ? formatDateForInput(selectedDate) : undefined}
+        />
+
+        <CreateProjectModal
+          isOpen={isCreateProjectModalOpen}
+          onClose={() => {
+            setIsCreateProjectModalOpen(false);
+          }}
+          onSuccess={() => {
+            setIsCreateProjectModalOpen(false);
+            // Reload projects after successful creation
+            if (globalThis.window !== undefined) {
+              globalThis.window.location.reload();
+            }
+          }}
+          initialStartDate={selectedDate ? formatDateForInput(selectedDate) : undefined}
+        />
+      </Suspense>
     </LayoutWithSidebar>
   );
 }

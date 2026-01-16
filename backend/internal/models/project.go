@@ -23,6 +23,7 @@ type Project struct {
 	Description string    `gorm:"type:text" json:"description"`
 	Progress    int       `gorm:"default:0;check:progress >= 0 AND progress <= 100" json:"progress"`
 	Status      ProjectStatus `gorm:"type:varchar(50);default:'planning'" json:"status"`
+	StartDate   *time.Time `json:"start_date,omitempty"`
 	Deadline    *time.Time `json:"deadline,omitempty"`
 	Color       string    `gorm:"type:varchar(20)" json:"color"`
 	CreatedBy   uuid.UUID `gorm:"type:uuid;not null" json:"created_by"`

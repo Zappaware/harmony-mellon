@@ -33,6 +33,8 @@ type Issue struct {
 	AssignedTo  *uuid.UUID   `gorm:"type:uuid" json:"assigned_to,omitempty"`
 	CreatedBy   uuid.UUID    `gorm:"type:uuid;not null" json:"created_by"`
 	ProjectID   *uuid.UUID   `gorm:"type:uuid" json:"project_id,omitempty"`
+	StartDate   *time.Time   `json:"start_date,omitempty"`
+	DueDate     *time.Time   `json:"due_date,omitempty"`
 	CreatedAt   time.Time    `json:"created_at"`
 	UpdatedAt   time.Time    `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`

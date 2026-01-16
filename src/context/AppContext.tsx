@@ -19,6 +19,8 @@ export interface Issue {
   priority: 'low' | 'medium' | 'high';
   assignedTo?: string;
   createdBy: string;
+  startDate?: string;
+  dueDate?: string;
   createdAt: string;
   comments: Comment[];
 }
@@ -37,6 +39,8 @@ interface CreateIssueData {
   priority?: 'low' | 'medium' | 'high';
   assignedTo?: string;
   projectId?: string;
+  startDate?: string;
+  dueDate?: string;
 }
 
 interface CreateProjectData {
@@ -44,6 +48,7 @@ interface CreateProjectData {
   description?: string;
   progress?: number;
   status?: string;
+  startDate?: string;
   deadline?: string;
   color?: string;
 }
@@ -57,6 +62,7 @@ interface CreateUserData {
 
 interface AppContextType {
   user: User | null;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   issues: Issue[];
@@ -204,6 +210,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [issues, setIssues] = useState<Issue[]>(mockIssues);
   const [users, setUsers] = useState<User[]>(mockUsers);
   const [useApi, setUseApi] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Convert API issue to app issue format
   const convertApiIssue = (apiIssue: ApiIssue, userList: User[]): Issue => {
@@ -215,6 +222,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       priority: apiIssue.priority,
       assignedTo: apiIssue.assigned_to,
       createdBy: apiIssue.created_by,
+      startDate: apiIssue.start_date,
+      dueDate: apiIssue.due_date,
       createdAt: apiIssue.created_at,
       comments: (apiIssue.comments || []).map(comment => ({
         id: comment.id,
@@ -226,10 +235,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   };
 
+  // Restore user session on page load
+  useEffect(() => {
+    const restoreSession = async () => {
+      setIsLoading(true);
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (token && !user) {
+        try {
+          // Try to get user info from API
+          const apiUser = await api.getMe();
+          setUser({
+            id: apiUser.id,
+            name: apiUser.name,
+            email: apiUser.email,
+            role: apiUser.role === 'team_lead' ? 'admin' : apiUser.role,
+            avatar: apiUser.avatar,
+          });
+          setUseApi(true);
+        } catch (error) {
+          // If token is invalid, clear it
+          console.error('Failed to restore session:', error);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('token');
+          }
+          setUser(null);
+          setUseApi(false);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    restoreSession();
+  }, []); // Only run on mount
+
   // Load issues from API
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    if (token && useApi) {
+    if (token && useApi && user) {
       api.getIssues()
         .then(apiIssues => {
           const convertedIssues = apiIssues.map(issue => convertApiIssue(issue, users));
@@ -240,7 +282,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setUseApi(false);
         });
     }
-  }, [useApi, users]);
+  }, [useApi, users, user]);
+
+  // Restore user session on page load
+  useEffect(() => {
+    const restoreSession = async () => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (token) {
+        try {
+          // Try to get user info from API
+          const apiUser = await api.getMe();
+          setUser({
+            id: apiUser.id,
+            name: apiUser.name,
+            email: apiUser.email,
+            role: apiUser.role === 'team_lead' ? 'admin' : apiUser.role,
+            avatar: apiUser.avatar,
+          });
+          setUseApi(true);
+        } catch (error) {
+          // If token is invalid, clear it
+          console.error('Failed to restore session:', error);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('token');
+          }
+          setUser(null);
+          setUseApi(false);
+        }
+      }
+    };
+
+    restoreSession();
+  }, []);
 
   // Load users from API
   useEffect(() => {
@@ -360,12 +433,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const createIssue = async (data: CreateIssueData): Promise<void> => {
     if (useApi) {
       try {
+        // Format dates to RFC3339 if provided
+        const startDate = data.startDate ? new Date(data.startDate).toISOString() : undefined;
+        const dueDate = data.dueDate ? new Date(data.dueDate).toISOString() : undefined;
+        
         const newIssue = await api.createIssue({
           title: data.title,
           description: data.description,
           priority: data.priority || 'medium',
           assigned_to: data.assignedTo,
           project_id: data.projectId,
+          start_date: startDate,
+          due_date: dueDate,
         });
         const convertedIssue = convertApiIssue(newIssue, users);
         setIssues((prev) => [convertedIssue, ...prev]);
@@ -382,6 +461,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         priority: data.priority || 'medium',
         assignedTo: data.assignedTo,
         createdBy: user?.id || '1',
+        startDate: data.startDate,
+        dueDate: data.dueDate,
         createdAt: new Date().toISOString(),
         comments: [],
       };
@@ -392,12 +473,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const createProject = async (data: CreateProjectData): Promise<void> => {
     if (useApi) {
       try {
+        // Format dates to RFC3339 if provided
+        const startDate = data.startDate ? new Date(data.startDate).toISOString() : undefined;
+        const deadline = data.deadline ? new Date(data.deadline).toISOString() : undefined;
+        
         await api.createProject({
           name: data.name,
           description: data.description,
           progress: data.progress || 0,
           status: data.status || 'planning',
-          deadline: data.deadline,
+          start_date: startDate,
+          deadline: deadline,
           color: data.color,
         });
         // Projects are not stored in context, they will be loaded from API when needed
@@ -443,6 +529,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider
       value={{
         user,
+        isLoading,
         login,
         logout,
         issues,
