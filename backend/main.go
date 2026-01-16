@@ -28,6 +28,11 @@ func main() {
 		log.Fatal("Failed to run migrations:", err)
 	}
 
+	// Seed initial users
+	if err := database.SeedUsers(db); err != nil {
+		log.Printf("Warning: Failed to seed users: %v", err)
+	}
+
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	issueRepo := repository.NewIssueRepository(db)
