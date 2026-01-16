@@ -1,0 +1,191 @@
+'use client'
+
+import React from 'react';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { useApp, Issue } from '@/context/AppContext';
+import { AlertCircle, Clock } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { PageHeader } from '@/components/PageHeader';
+import { Badge } from '@/components/Badge';
+import { Avatar } from '@/components/Avatar';
+import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+
+interface IssueCardProps {
+  issue: Issue;
+}
+
+function IssueCard({ issue }: IssueCardProps) {
+  const { users } = useApp();
+  const router = useRouter();
+  const assignedUser = users.find((u) => u.id === issue.assignedTo);
+
+  const [{ isDragging }, drag] = useDrag(() => ({
+    type: 'issue',
+    item: { id: issue.id, status: issue.status },
+    collect: (monitor) => ({
+      isDragging: !!monitor.isDragging(),
+    }),
+  }));
+
+  const handleClick = () => {
+    router.push(`/issue/${issue.id}`);
+  };
+
+  return (
+    <div
+      ref={drag}
+      onClick={handleClick}
+      className={`bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-all ${
+        isDragging ? 'opacity-50 rotate-2' : ''
+      }`}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <h3 className="text-sm text-gray-800 pr-2 flex-1">{issue.title}</h3>
+        <Badge variant="priority" value={issue.priority} className="flex-shrink-0" />
+      </div>
+      
+      <p className="text-xs text-gray-600 mb-3 line-clamp-2">{issue.description}</p>
+      
+      <div className="flex items-center justify-between">
+        {assignedUser ? (
+          <div className="flex items-center gap-2">
+            <Avatar name={assignedUser.name} size="sm" />
+            <span className="text-xs text-gray-600">{assignedUser.name.split(' ')[0]}</span>
+          </div>
+        ) : (
+          <span className="text-xs text-gray-400">Sin asignar</span>
+        )}
+        
+        {issue.comments.length > 0 && (
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <span>💬</span>
+            <span>{issue.comments.length}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface ColumnProps {
+  title: string;
+  status: Issue['status'];
+  issues: Issue[];
+  count: number;
+  color: string;
+}
+
+function Column({ title, status, issues, count, color }: ColumnProps) {
+  const { updateIssueStatus } = useApp();
+
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: 'issue',
+    drop: (item: { id: string; status: string }) => {
+      if (item.status !== status) {
+        updateIssueStatus(item.id, status);
+      }
+    },
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver(),
+    }),
+  }));
+
+  return (
+    <div
+      ref={drop}
+      className={`flex-1 min-w-[300px] rounded-lg transition-all ${
+        isOver ? 'bg-indigo-50 ring-2 ring-indigo-300' : 'bg-gray-50'
+      }`}
+    >
+      <div className={`${color} rounded-t-lg p-4`}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-white">{title}</h2>
+          <span className="bg-white bg-opacity-30 text-white px-3 py-1 rounded-full text-sm">
+            {count}
+          </span>
+        </div>
+      </div>
+      
+      <div className="p-4 space-y-3 min-h-[500px]">
+        {issues.map((issue) => (
+          <IssueCard key={issue.id} issue={issue} />
+        ))}
+        {issues.length === 0 && (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Clock className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-gray-400 text-sm">Arrastra tarjetas aquí</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Kanban() {
+  const { issues } = useApp();
+
+  const columns = [
+    { 
+      title: 'Por Hacer', 
+      status: 'todo' as const, 
+      color: 'bg-gray-600',
+      icon: Clock 
+    },
+    { 
+      title: 'En Progreso', 
+      status: 'in-progress' as const, 
+      color: 'bg-blue-600',
+      icon: Clock 
+    },
+    { 
+      title: 'En Revisión', 
+      status: 'review' as const, 
+      color: 'bg-purple-600',
+      icon: AlertCircle 
+    },
+    { 
+      title: 'Completadas', 
+      status: 'done' as const, 
+      color: 'bg-green-600',
+      icon: Clock 
+    },
+  ];
+
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <div className="p-8 h-screen overflow-x-auto">
+        <PageHeader
+          title="Tablero Kanban"
+          subtitle="Arrastra las tarjetas para cambiar su estado"
+        />
+
+        <div className="flex gap-4 pb-8">
+          {columns.map((column) => {
+            const columnIssues = issues.filter((issue) => issue.status === column.status);
+            return (
+              <Column
+                key={column.status}
+                title={column.title}
+                status={column.status}
+                issues={columnIssues}
+                count={columnIssues.length}
+                color={column.color}
+              />
+            );
+          })}
+        </div>
+      </div>
+    </DndProvider>
+  );
+}
+
+export default function KanbanPage() {
+  return (
+    <LayoutWithSidebar>
+      <Kanban />
+    </LayoutWithSidebar>
+  );
+}
