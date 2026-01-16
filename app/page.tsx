@@ -120,9 +120,18 @@ export default function Login() {
           </button>
         </form>
 
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            ¿No tienes una cuenta?{' '}
+            <Link href="/registro" className="text-indigo-600 hover:text-indigo-700 font-medium">
+              Regístrate aquí
+            </Link>
+          </p>
+        </div>
+
         <div className="mt-6 space-y-3">
           <div className="text-sm text-gray-600 bg-gray-50 p-4 rounded-lg">
-            <p className="mb-3">Acceso rápido:</p>
+            <p className="mb-3">Acceso rápido (solo desarrollo):</p>
             <div className="space-y-2">
               <button
                 onClick={() => handleQuickLogin('admin@example.com')}
