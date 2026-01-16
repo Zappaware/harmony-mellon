@@ -14,7 +14,8 @@ import {
   Settings, 
   LogOut,
   X,
-  UserCircle
+  UserCircle,
+  Calendar
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -40,6 +41,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const userLinks = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Resumen' },
     { to: '/mis-tareas', icon: CheckSquare, label: 'Mis Tareas' },
+    { to: '/calendario', icon: Calendar, label: 'Calendario' },
     { to: '/proyectos', icon: FolderKanban, label: 'Proyectos' },
     { to: '/notificaciones', icon: Bell, label: 'Notificaciones' },
     { to: '/perfil', icon: Users, label: 'Mi Perfil' },
@@ -49,6 +51,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     { to: '/dashboard', icon: BarChart3, label: 'Métricas' },
     { to: '/proyectos', icon: FolderKanban, label: 'Proyectos' },
     { to: '/kanban', icon: FolderKanban, label: 'Kanban' },
+    { to: '/calendario', icon: Calendar, label: 'Calendario' },
     { to: '/usuarios', icon: Users, label: 'Equipo' },
     { to: '/notificaciones', icon: Bell, label: 'Notificaciones' },
     { to: '/configuracion', icon: Settings, label: 'Configuración' },
