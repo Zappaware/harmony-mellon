@@ -155,10 +155,17 @@ export default function Proyectos() {
                   <Users className="w-4 h-4" />
                   <span>{proyecto.miembros} miembros</span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
-                  <DateDisplay date={proyecto.fechaLimite} format="date" />
-                </div>
+                {proyecto.fechaLimite ? (
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4" />
+                    <DateDisplay date={proyecto.fechaLimite} format="date" />
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-gray-400">
+                    <Calendar className="w-4 h-4" />
+                    <span>Sin fecha límite</span>
+                  </div>
+                )}
               </div>
             </Link>
           ))}
