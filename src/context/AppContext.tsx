@@ -206,9 +206,14 @@ const mockIssues: Issue[] = [
 ];
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  // Check if we're in development mode
+  const isDevelopment = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  
   const [user, setUser] = useState<User | null>(null);
-  const [issues, setIssues] = useState<Issue[]>(mockIssues);
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  // Only initialize with mock data in development, otherwise use empty arrays
+  const [issues, setIssues] = useState<Issue[]>(isDevelopment ? mockIssues : []);
+  const [users, setUsers] = useState<User[]>(isDevelopment ? mockUsers : []);
   const [useApi, setUseApi] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -388,7 +393,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setUsers(convertedUsers);
         })
         .catch(() => {
-          // Fallback to mock data if API fails
+          // Don't fallback to mock data in production - keep empty array
+          if (isDevelopment) {
+            // Only use mock data in development if API fails
+            setUsers(mockUsers);
+          }
         });
     }
   }, [useApi]);

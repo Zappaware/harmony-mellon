@@ -40,6 +40,7 @@ export default function Login() {
       }
     } catch (err) {
       setError('Error al iniciar sesión. Intenta nuevamente.');
+      console.error('Login error:', err);
     }
   };
 
