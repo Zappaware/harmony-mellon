@@ -294,19 +294,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Load issues from API
   useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    if (token && useApi && user) {
-      api.getIssues()
-        .then(apiIssues => {
+    const loadIssues = async () => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (token && useApi && user) {
+        try {
+          const apiIssues = await api.getIssues();
+          // Convert issues with current users list
           const convertedIssues = apiIssues.map(issue => convertApiIssue(issue, users));
           setIssues(convertedIssues);
-        })
-        .catch(() => {
-          // Fallback to mock data if API fails
-          setUseApi(false);
-        });
-    }
-  }, [useApi, users, user]);
+        } catch (error) {
+          console.error('Error loading issues:', error);
+          // Don't fallback to mock data immediately - might be temporary network issue
+        }
+      }
+    };
+    
+    loadIssues();
+  }, [useApi, user]); // Remove users dependency to avoid circular loading
+
+  // Reload issues when users are loaded (to update user names in comments)
+  useEffect(() => {
+    const reloadIssuesWithUsers = async () => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (token && useApi && user && users.length > 0 && issues.length > 0) {
+        // Only reload if we have existing issues and users just loaded
+        try {
+          const apiIssues = await api.getIssues();
+          const convertedIssues = apiIssues.map(issue => convertApiIssue(issue, users));
+          setIssues(convertedIssues);
+        } catch (error) {
+          console.error('Error reloading issues with users:', error);
+        }
+      }
+    };
+    
+    reloadIssuesWithUsers();
+  }, [users.length]); // Reload when users array changes
 
   // Restore user session on page load
   useEffect(() => {
@@ -520,7 +543,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           deadline: deadline,
           color: data.color,
         });
-        // Projects are not stored in context, they will be loaded from API when needed
+        // Project created successfully - the page will reload projects via onSuccess callback
       } catch (error) {
         throw error;
       }

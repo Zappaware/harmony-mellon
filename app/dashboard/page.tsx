@@ -34,7 +34,11 @@ import {
 } from 'recharts';
 
 function DashboardUsuario() {
-  const { issues, user, users } = useApp();
+  const { issues, user, users, isLoading } = useApp();
+
+  if (isLoading) {
+    return <Loading fullScreen message="Cargando datos..." />;
+  }
 
   const myIssues = issues.filter((issue) => issue.assignedTo === user?.id);
   const todoCount = myIssues.filter((i) => i.status === 'todo').length;
@@ -172,7 +176,11 @@ function DashboardUsuario() {
 }
 
 function DashboardAdmin() {
-  const { issues, users } = useApp();
+  const { issues, users, isLoading } = useApp();
+
+  if (isLoading) {
+    return <Loading fullScreen message="Cargando métricas..." />;
+  }
 
   const stats = [
     { label: 'Total Issues', value: issues.length, icon: FolderKanban, color: 'bg-blue-500' },

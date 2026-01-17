@@ -1,57 +1,74 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FolderKanban, Users, Calendar, TrendingUp, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { PageHeader } from '@/components/PageHeader';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { DateDisplay } from '@/components/DateDisplay';
 import { CreateProjectModal } from '@/components/CreateProjectModal';
+import { api } from '@/services/api';
+import { useApp } from '@/context/AppContext';
+import { Loading } from '@/components/Loading';
+
+interface Project {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  progreso: number;
+  miembros: number;
+  fechaLimite: string | null;
+  estado: string;
+  color: string;
+}
 
 export default function Proyectos() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const proyectos = [
-    {
-      id: '1',
-      nombre: 'Plataforma Web',
-      descripcion: 'Desarrollo de nueva plataforma web corporativa con dashboard interactivo',
-      progreso: 65,
-      miembros: 5,
-      fechaLimite: '2025-01-15',
-      estado: 'En Progreso',
-      color: 'bg-blue-500',
-    },
-    {
-      id: '2',
-      nombre: 'App Móvil',
-      descripcion: 'Aplicación móvil multiplataforma para iOS y Android',
-      progreso: 30,
-      miembros: 3,
-      fechaLimite: '2025-02-20',
-      estado: 'En Progreso',
-      color: 'bg-purple-500',
-    },
-    {
-      id: '3',
-      nombre: 'Sistema de Reportes',
-      descripcion: 'Dashboard analítico empresarial con métricas en tiempo real',
-      progreso: 90,
-      miembros: 4,
-      fechaLimite: '2024-12-30',
-      estado: 'Finalizando',
-      color: 'bg-green-500',
-    },
-    {
-      id: '4',
-      nombre: 'API REST',
-      descripcion: 'Backend escalable con microservicios',
-      progreso: 45,
-      miembros: 6,
-      fechaLimite: '2025-01-30',
-      estado: 'En Progreso',
-      color: 'bg-yellow-500',
-    },
-  ];
+  const [proyectos, setProyectos] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useApp();
+
+  // Load projects from API
+  useEffect(() => {
+    const loadProjects = async () => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (!token || !user) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const apiProjects = await api.getProjects();
+        const convertedProjects: Project[] = apiProjects.map(project => ({
+          id: project.id,
+          nombre: project.name,
+          descripcion: project.description || '',
+          progreso: project.progress || 0,
+          miembros: project.members?.length || 0,
+          fechaLimite: project.deadline || null,
+          estado: project.status || 'planning',
+          color: project.color || 'bg-blue-500',
+        }));
+        setProyectos(convertedProjects);
+      } catch (error) {
+        console.error('Error loading projects:', error);
+        // Keep empty array on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProjects();
+  }, [user]);
+
+  if (isLoading) {
+    return (
+      <LayoutWithSidebar>
+        <Loading fullScreen message="Cargando proyectos..." />
+      </LayoutWithSidebar>
+    );
+  }
+
 
   return (
     <LayoutWithSidebar>
@@ -90,7 +107,9 @@ export default function Proyectos() {
               <span className="text-sm text-gray-500">%</span>
             </div>
             <p className="text-3xl text-gray-800">
-              {Math.round(proyectos.reduce((sum, p) => sum + p.progreso, 0) / proyectos.length)}%
+              {proyectos.length > 0 
+                ? Math.round(proyectos.reduce((sum, p) => sum + p.progreso, 0) / proyectos.length)
+                : 0}%
             </p>
           </div>
         </div>
@@ -158,9 +177,24 @@ export default function Proyectos() {
       <CreateProjectModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={() => {
-          // Projects will be reloaded when page refreshes or when needed
-          window.location.reload();
+        onSuccess={async () => {
+          // Reload projects after successful creation
+          try {
+            const apiProjects = await api.getProjects();
+            const convertedProjects: Project[] = apiProjects.map(project => ({
+              id: project.id,
+              nombre: project.name,
+              descripcion: project.description || '',
+              progreso: project.progress || 0,
+              miembros: project.members?.length || 0,
+              fechaLimite: project.deadline || null,
+              estado: project.status || 'planning',
+              color: project.color || 'bg-blue-500',
+            }));
+            setProyectos(convertedProjects);
+          } catch (error) {
+            console.error('Error reloading projects:', error);
+          }
         }}
       />
     </LayoutWithSidebar>

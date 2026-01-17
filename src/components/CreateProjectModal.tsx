@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
 
 interface CreateProjectModalProps {
@@ -50,6 +51,11 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
         color: formData.color,
       });
 
+      // Show success toast
+      toast.success('Proyecto creado exitosamente', {
+        description: `El proyecto "${formData.name}" ha sido creado.`,
+      });
+
       // Reset form
       setFormData({
         name: '',
@@ -64,7 +70,11 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
       onSuccess?.();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear el proyecto');
+      const errorMessage = err instanceof Error ? err.message : 'Error al crear el proyecto';
+      setError(errorMessage);
+      toast.error('Error al crear el proyecto', {
+        description: errorMessage,
+      });
     } finally {
       setIsSubmitting(false);
     }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
 
 interface CreateIssueModalProps {
@@ -48,6 +49,11 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate 
         dueDate: formData.dueDate || undefined,
       });
 
+      // Show success toast
+      toast.success('Tarea creada exitosamente', {
+        description: `La tarea "${formData.title}" ha sido creada.`,
+      });
+
       // Reset form
       setFormData({
         title: '',
@@ -61,7 +67,11 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate 
       onSuccess?.();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear la tarea');
+      const errorMessage = err instanceof Error ? err.message : 'Error al crear la tarea';
+      setError(errorMessage);
+      toast.error('Error al crear la tarea', {
+        description: errorMessage,
+      });
     } finally {
       setIsSubmitting(false);
     }
