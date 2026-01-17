@@ -94,58 +94,96 @@ function DashboardUsuario() {
         <div className="bg-white rounded-lg shadow p-4 md:p-6">
           <h3 className="text-base md:text-lg text-gray-800 mb-3 md:mb-4">Actividad Reciente</h3>
           <div className="space-y-3 md:space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-              <div>
-                <p className="text-sm text-gray-800">Completaste "Documentación API"</p>
-                <p className="text-xs text-gray-500">Hace 2 horas</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-              <div>
-                <p className="text-sm text-gray-800">Comenzaste "Optimizar rendimiento"</p>
-                <p className="text-xs text-gray-500">Hace 5 horas</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
-              <div>
-                <p className="text-sm text-gray-800">Comentaste en "Implementar autenticación"</p>
-                <p className="text-xs text-gray-500">Ayer</p>
-              </div>
-            </div>
+            {issues.length === 0 ? (
+              <p className="text-sm text-gray-500">No hay actividad reciente</p>
+            ) : (
+              // Sort by date (most recent first) and take first 3
+              [...issues]
+                .sort((a, b) => {
+                  const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                  const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                  return dateB - dateA; // Most recent first
+                })
+                .slice(0, 3)
+                .map((issue) => (
+                  <div key={issue.id} className="flex items-start gap-3">
+                    <div className={`w-2 h-2 rounded-full mt-2 ${
+                      issue.status === 'done' ? 'bg-green-500' :
+                      issue.status === 'in-progress' ? 'bg-blue-500' :
+                      issue.status === 'review' ? 'bg-purple-500' :
+                      'bg-gray-500'
+                    }`}></div>
+                    <div>
+                      <p className="text-sm text-gray-800">
+                        {issue.status === 'done' && 'Completaste '}
+                        {issue.status === 'in-progress' && 'Comenzaste '}
+                        {issue.status === 'review' && 'En revisión: '}
+                        {issue.status === 'todo' && 'Tarea: '}
+                        &quot;{issue.title}&quot;
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {issue.createdAt ? new Date(issue.createdAt).toLocaleDateString('es-ES', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric'
+                        }) : 'Fecha no disponible'}
+                      </p>
+                    </div>
+                  </div>
+                ))
+            )}
           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow p-4 md:p-6">
-          <h3 className="text-base md:text-lg text-gray-800 mb-3 md:mb-4">Progreso Semanal</h3>
+          <h3 className="text-base md:text-lg text-gray-800 mb-3 md:mb-4">Progreso</h3>
           <div className="space-y-3">
             <div>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm text-gray-600">Tareas Completadas</span>
-                <span className="text-sm text-gray-800">7/12</span>
+                <span className="text-sm text-gray-800">
+                  {myIssues.filter(i => i.status === 'done').length}/{myIssues.length || 1}
+                </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-green-500 h-2 rounded-full" style={{ width: '58%' }}></div>
+                <div 
+                  className="bg-green-500 h-2 rounded-full" 
+                  style={{ 
+                    width: `${myIssues.length > 0 ? (myIssues.filter(i => i.status === 'done').length / myIssues.length) * 100 : 0}%` 
+                  }}
+                ></div>
               </div>
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-gray-600">Horas Registradas</span>
-                <span className="text-sm text-gray-800">32/40</span>
+                <span className="text-sm text-gray-600">Tareas en Progreso</span>
+                <span className="text-sm text-gray-800">
+                  {myIssues.filter(i => i.status === 'in-progress').length}/{myIssues.length || 1}
+                </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-blue-500 h-2 rounded-full" style={{ width: '80%' }}></div>
+                <div 
+                  className="bg-blue-500 h-2 rounded-full" 
+                  style={{ 
+                    width: `${myIssues.length > 0 ? (myIssues.filter(i => i.status === 'in-progress').length / myIssues.length) * 100 : 0}%` 
+                  }}
+                ></div>
               </div>
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-gray-600">Objetivos del Mes</span>
-                <span className="text-sm text-gray-800">15/20</span>
+                <span className="text-sm text-gray-600">Tareas Pendientes</span>
+                <span className="text-sm text-gray-800">
+                  {myIssues.filter(i => i.status === 'todo').length}/{myIssues.length || 1}
+                </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-purple-500 h-2 rounded-full" style={{ width: '75%' }}></div>
+                <div 
+                  className="bg-purple-500 h-2 rounded-full" 
+                  style={{ 
+                    width: `${myIssues.length > 0 ? (myIssues.filter(i => i.status === 'todo').length / myIssues.length) * 100 : 0}%` 
+                  }}
+                ></div>
               </div>
             </div>
           </div>
