@@ -1,0 +1,13 @@
+# Files to ignore during Railway deployment
+node_modules/
+.next/
+.git/
+*.md
+mdFiles/
+scripts/
+docker-compose.yml
+.env
+.env.local
+.env*.local
+*.log
+.DS_Store
