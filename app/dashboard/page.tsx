@@ -369,7 +369,7 @@ export default function DashboardPage() {
 
   return (
     <LayoutWithSidebar>
-      {user?.role === 'admin' ? <DashboardAdmin /> : <DashboardUsuario />}
+      {(user?.role === 'admin' || user?.role === 'team_lead') ? <DashboardAdmin /> : <DashboardUsuario />}
     </LayoutWithSidebar>
   );
 }

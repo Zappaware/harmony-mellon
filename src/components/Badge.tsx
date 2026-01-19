@@ -29,6 +29,7 @@ export function Badge({ variant, value, className = '' }: BadgeProps) {
   const getRoleColor = (role: string) => {
     const roleMap: Record<string, string> = {
       'admin': 'bg-purple-100 text-purple-700',
+      'team_lead': 'bg-orange-100 text-orange-700',
       'user': 'bg-blue-100 text-blue-700',
     };
     return roleMap[role] || 'bg-gray-100 text-gray-700';
@@ -57,6 +58,7 @@ export function Badge({ variant, value, className = '' }: BadgeProps) {
       'medium': 'Media',
       'high': 'Alta',
       'admin': 'Administrador',
+      'team_lead': 'Líder de Equipo',
       'user': 'Usuario',
     };
     return textMap[value] || value;

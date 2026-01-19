@@ -58,7 +58,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     { to: '/perfil', icon: UserCircle, label: 'Mi Perfil' },
   ];
 
-  const links = user?.role === 'admin' ? adminLinks : userLinks;
+  // Team leads and admins get admin links
+  const links = (user?.role === 'admin' || user?.role === 'team_lead') ? adminLinks : userLinks;
 
   const sidebarContent = (
     <>
@@ -66,7 +67,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div>
           <h2 className="text-xl">Harmony Mellon</h2>
           <p className="text-sm text-gray-400 mt-1">{user?.name}</p>
-          <p className="text-xs text-gray-500">{user?.role === 'admin' ? 'Administrador' : 'Usuario'}</p>
+          <p className="text-xs text-gray-500">
+            {user?.role === 'admin' ? 'Administrador' : 
+             user?.role === 'team_lead' ? 'Líder de Equipo' : 
+             'Usuario'}
+          </p>
         </div>
         {onClose && (
           <button

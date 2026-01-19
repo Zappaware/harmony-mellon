@@ -263,6 +263,8 @@ export default function PerfilPage() {
                         className={`px-3 py-1 rounded-full text-sm flex items-center gap-1 ${
                           user.role === 'admin'
                             ? 'bg-purple-100 text-purple-700'
+                            : user.role === 'team_lead'
+                            ? 'bg-orange-100 text-orange-700'
                             : 'bg-blue-100 text-blue-700'
                         }`}
                       >
@@ -270,6 +272,11 @@ export default function PerfilPage() {
                           <>
                             <Shield className="w-4 h-4" />
                             Administrador
+                          </>
+                        ) : user.role === 'team_lead' ? (
+                          <>
+                            <Shield className="w-4 h-4" />
+                            Líder de Equipo
                           </>
                         ) : (
                           <>
@@ -351,7 +358,9 @@ export default function PerfilPage() {
                   <div>
                     <p className="text-xs text-gray-500">Rol</p>
                     <p className="text-sm text-gray-800">
-                      {user.role === 'admin' ? 'Administrador' : 'Usuario'}
+                      {user.role === 'admin' ? 'Administrador' : 
+                       user.role === 'team_lead' ? 'Líder de Equipo' : 
+                       'Usuario'}
                     </p>
                   </div>
                 </div>
@@ -377,11 +386,11 @@ export default function PerfilPage() {
                 <h3 className="text-lg font-semibold text-gray-800">Permisos</h3>
               </div>
               <div className="space-y-2">
-                {user.role === 'admin' ? (
+                {(user.role === 'admin' || user.role === 'team_lead') ? (
                   <>
                     <div className="flex items-center gap-2 text-sm text-gray-700">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span>Gestión completa de usuarios</span>
+                      <span>{user.role === 'admin' ? 'Gestión completa de usuarios' : 'Gestión de equipo'}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-700">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>

@@ -40,7 +40,7 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'user' as 'user' | 'admin',
+    role: 'user' as 'user' | 'admin' | 'team_lead',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -272,6 +272,7 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="user">Usuario</option>
+              <option value="team_lead">Líder de Equipo</option>
               <option value="admin">Administrador</option>
             </select>
             <p className="text-xs text-gray-500 mt-1">

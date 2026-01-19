@@ -7,7 +7,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'team_lead';
   avatar?: string;
 }
 
@@ -57,7 +57,7 @@ interface CreateUserData {
   name: string;
   email: string;
   password: string;
-  role?: 'user' | 'admin';
+  role?: 'user' | 'admin' | 'team_lead';
 }
 
 interface AppContextType {
@@ -267,7 +267,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           id: apiUser.id,
           name: apiUser.name,
           email: apiUser.email,
-          role: apiUser.role === 'team_lead' ? 'admin' : apiUser.role,
+          role: apiUser.role,
           avatar: apiUser.avatar,
         });
         setUseApi(true);
@@ -361,7 +361,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             id: u.id,
             name: u.name,
             email: u.email,
-            role: u.role === 'team_lead' ? 'admin' : u.role,
+            role: u.role,
             avatar: u.avatar,
           }));
           setUsers(convertedUsers);
@@ -546,7 +546,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           id: u.id,
           name: u.name,
           email: u.email,
-          role: u.role === 'team_lead' ? 'admin' : u.role,
+          role: u.role,
           avatar: u.avatar,
         }));
         setUsers(convertedUsers);

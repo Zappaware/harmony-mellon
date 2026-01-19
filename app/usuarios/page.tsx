@@ -96,6 +96,8 @@ export default function GestionUsuarios() {
                     className={`px-2 py-1 rounded-full text-xs flex items-center gap-1 ${
                       user.role === 'admin'
                         ? 'bg-purple-100 text-purple-700'
+                        : user.role === 'team_lead'
+                        ? 'bg-orange-100 text-orange-700'
                         : 'bg-blue-100 text-blue-700'
                     }`}
                   >
@@ -103,6 +105,11 @@ export default function GestionUsuarios() {
                       <>
                         <Shield className="w-3 h-3" />
                         Administrador
+                      </>
+                    ) : user.role === 'team_lead' ? (
+                      <>
+                        <Shield className="w-3 h-3" />
+                        Líder de Equipo
                       </>
                     ) : (
                       <>
@@ -182,6 +189,8 @@ export default function GestionUsuarios() {
                         className={`px-3 py-1 rounded-full text-xs flex items-center gap-1 inline-flex ${
                           user.role === 'admin'
                             ? 'bg-purple-100 text-purple-700'
+                            : user.role === 'team_lead'
+                            ? 'bg-orange-100 text-orange-700'
                             : 'bg-blue-100 text-blue-700'
                         }`}
                       >
@@ -189,6 +198,11 @@ export default function GestionUsuarios() {
                           <>
                             <Shield className="w-3 h-3" />
                             Administrador
+                          </>
+                        ) : user.role === 'team_lead' ? (
+                          <>
+                            <Shield className="w-3 h-3" />
+                            Líder de Equipo
                           </>
                         ) : (
                           <>
@@ -224,7 +238,7 @@ export default function GestionUsuarios() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mt-6 md:mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-6 md:mt-8">
           <div className="bg-white rounded-lg shadow p-4 md:p-6">
             <div className="flex items-center justify-between mb-3 md:mb-4">
               <Users className="w-6 h-6 md:w-8 md:h-8 text-indigo-600" />
@@ -241,6 +255,16 @@ export default function GestionUsuarios() {
               </span>
             </div>
             <p className="text-sm md:text-base text-gray-600">Administradores</p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-4 md:p-6">
+            <div className="flex items-center justify-between mb-3 md:mb-4">
+              <Shield className="w-6 h-6 md:w-8 md:h-8 text-orange-600" />
+              <span className="text-xl md:text-2xl text-gray-800 font-semibold">
+                {users.filter((u) => u.role === 'team_lead').length}
+              </span>
+            </div>
+            <p className="text-sm md:text-base text-gray-600">Líderes de Equipo</p>
           </div>
 
           <div className="bg-white rounded-lg shadow p-4 md:p-6">
