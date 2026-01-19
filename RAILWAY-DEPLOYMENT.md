@@ -63,8 +63,11 @@ This matches your docker-compose setup with 3 services.
    - **Variables** tab - Add:
      ```
      NEXT_PUBLIC_API_URL=https://harmony-mellon-backend.up.railway.app/api/v1
+     NEXT_TELEMETRY_DISABLED=1
      ```
      (Use your actual backend service URL from Step 2)
+     
+     **⚠️ IMPORTANT**: `NEXT_PUBLIC_API_URL` must be set in Railway Variables **before building**. Railway automatically passes all environment variables as build arguments (`ARG`) to the Dockerfile during the build process. The Dockerfile uses `ARG` and `ENV` to make these available at build time for Next.js.
 
 ### Step 4: Link PostgreSQL to Backend
 
@@ -90,6 +93,77 @@ See the combined Dockerfile approach (separate file/documentation).
 - Can't scale frontend/backend independently
 - Both share resources
 - More complex Dockerfile
+
+---
+
+## 🔧 Build Arguments and Environment Variables in Railway
+
+### How Railway Handles Docker Build Arguments
+
+Railway automatically passes all environment variables from the **Variables** tab as build arguments to your Dockerfile during the build process. This is crucial for Next.js applications that need `NEXT_PUBLIC_*` variables at build time.
+
+### Frontend Dockerfile (Next.js)
+
+The frontend Dockerfile uses `ARG` and `ENV` to accept build-time variables:
+
+```dockerfile
+# Accept build arguments for NEXT_PUBLIC_* variables
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_TELEMETRY_DISABLED=1
+
+# Set environment variables for build
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_TELEMETRY_DISABLED=$NEXT_TELEMETRY_DISABLED
+
+# Build Next.js
+RUN npm run build
+```
+
+**How it works:**
+1. Railway reads variables from the **Variables** tab
+2. Railway automatically passes them as `--build-arg` to `docker build`
+3. The Dockerfile `ARG` statements receive these values
+4. `ENV` statements make them available during the build process
+5. Next.js can access `NEXT_PUBLIC_*` variables during `npm run build`
+
+### Setting Variables in Railway
+
+1. Go to your **Frontend Service** → **Variables** tab
+2. Add variables (Railway will automatically pass them as build args):
+   ```
+   NEXT_PUBLIC_API_URL=https://your-backend.up.railway.app/api/v1
+   NEXT_TELEMETRY_DISABLED=1
+   ```
+3. **Important**: Set these variables **before** the first deployment
+4. If you change `NEXT_PUBLIC_API_URL`, Railway will automatically rebuild with the new value
+
+### Backend Dockerfile (Go)
+
+The backend Dockerfile doesn't need build arguments - it uses runtime environment variables:
+- Variables are read at runtime when the Go application starts
+- No `ARG` statements needed in the Dockerfile
+- Just set variables in Railway's **Variables** tab
+
+### Key Differences
+
+| Type | When Used | How Set in Railway | Dockerfile Syntax |
+|------|-----------|-------------------|-------------------|
+| **Build-time** (Next.js) | During `npm run build` | Variables tab (auto-passed as ARG) | `ARG` + `ENV` |
+| **Runtime** (Go/Node) | When app starts | Variables tab | Just `ENV` or read from env |
+
+### Common Issues
+
+**❌ Problem**: `NEXT_PUBLIC_API_URL` is undefined in production
+- **Cause**: Variable not set in Railway before build
+- **Fix**: Add variable in Railway Variables tab, then redeploy
+
+**❌ Problem**: Build succeeds but app uses wrong API URL
+- **Cause**: Variable changed after build
+- **Fix**: Change variable in Railway, which triggers automatic rebuild
+
+**❌ Problem**: Build fails with "NEXT_PUBLIC_API_URL is not set"
+- **Cause**: Variable missing from Railway Variables
+- **Fix**: Add `NEXT_PUBLIC_API_URL` to Variables tab before deploying
 
 ---
 
@@ -134,7 +208,8 @@ These help Railway understand how to build and deploy your services.
 - `ENVIRONMENT=production`
 
 **Frontend Service:**
-- `NEXT_PUBLIC_API_URL=<backend-public-url>/api/v1`
+- `NEXT_PUBLIC_API_URL=<backend-public-url>/api/v1` (⚠️ Required at build time - must be set before first deployment)
+- `NEXT_TELEMETRY_DISABLED=1` (optional, disables Next.js telemetry)
 
 ---
 
@@ -174,8 +249,10 @@ These help Railway understand how to build and deploy your services.
 
 **Frontend can't connect to backend?**
 - Verify `NEXT_PUBLIC_API_URL` matches backend's public domain
+- **Check if variable was set before build**: If you added `NEXT_PUBLIC_API_URL` after the first build, you need to redeploy (Railway will auto-rebuild)
 - Check CORS settings in backend (`FRONTEND_URL` must match frontend domain)
 - Ensure backend has public domain generated
+- Check browser console for errors about `NEXT_PUBLIC_API_URL` being undefined
 
 **Database connection issues?**
 - PostgreSQL service must be created first
