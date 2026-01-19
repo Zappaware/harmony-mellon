@@ -15,7 +15,7 @@ import { CreateIssueModal } from '@/components/CreateIssueModal';
 // Create a singleton backend instance to prevent "Cannot have two HTML5 backends" error
 // This ensures only one HTML5Backend instance exists, even if the component remounts
 // (which can happen in React StrictMode or during navigation)
-let backendInstance: InstanceType<typeof HTML5Backend> | null = null;
+let backendInstance: any = null;
 
 const getBackend = () => {
   if (typeof window === 'undefined') {
