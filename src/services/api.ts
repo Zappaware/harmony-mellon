@@ -5,11 +5,21 @@ const getApiBaseUrl = () => {
   
   // In browser (production), warn if using localhost fallback
   if (typeof window !== 'undefined' && !apiUrl) {
-    console.error(
-      '❌ NEXT_PUBLIC_API_URL is not set! ' +
-      'The app will try to connect to localhost:8080 which will fail in production. ' +
-      'Please set NEXT_PUBLIC_API_URL environment variable in Railway/Vercel.'
-    );
+    const isProduction = window.location.hostname !== 'localhost' && 
+                         window.location.hostname !== '127.0.0.1';
+    
+    if (isProduction) {
+      console.error(
+        '❌ NEXT_PUBLIC_API_URL is not set in production! ' +
+        'The app will try to connect to localhost:8080 which will fail. ' +
+        'Please set NEXT_PUBLIC_API_URL environment variable in Railway/Vercel and redeploy. ' +
+        'Format: https://your-backend.railway.app/api/v1'
+      );
+    } else {
+      console.warn(
+        '⚠️ NEXT_PUBLIC_API_URL is not set. Using localhost:8080 for development.'
+      );
+    }
     return 'http://localhost:8080/api/v1';
   }
   

@@ -278,6 +278,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
                            errorMessage.includes('Unauthorized') ||
                            errorMessage.includes('401');
         
+        // Check if it's a connection error (likely API URL misconfiguration)
+        const isConnectionError = errorMessage.includes('ERR_CONNECTION_REFUSED') ||
+                                 errorMessage.includes('Failed to fetch') ||
+                                 errorMessage.includes('Network error') ||
+                                 errorMessage.includes('Cannot connect to backend');
+        
         if (isAuthError) {
           // Token is invalid, clear it
           console.error('Invalid token, clearing session:', error);
@@ -286,8 +292,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
           setUser(null);
           setUseApi(false);
+        } else if (isConnectionError) {
+          // Connection error - likely API URL misconfiguration
+          // Keep the token but warn the user
+          console.warn('Failed to restore session - connection error. This might be due to NEXT_PUBLIC_API_URL not being set correctly in production.', error);
+          // Don't clear token or set user - let them try to login again which will show the error
+          // The token will be used once the API URL is fixed
         } else {
-          // Network or other error - don't clear token, might be temporary
+          // Other network or error - don't clear token, might be temporary
           console.error('Failed to restore session (network error?):', error);
           // Keep the token, might be a temporary network issue
           // Don't set user to null, let the user try again
@@ -338,47 +350,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     
     reloadIssuesWithUsers();
   }, [users.length]); // Reload when users array changes
-
-  // Restore user session on page load
-  useEffect(() => {
-    const restoreSession = async () => {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      if (token) {
-        try {
-          // Try to get user info from API
-          const apiUser = await api.getMe();
-          setUser({
-            id: apiUser.id,
-            name: apiUser.name,
-            email: apiUser.email,
-            role: apiUser.role === 'team_lead' ? 'admin' : apiUser.role,
-            avatar: apiUser.avatar,
-          });
-          setUseApi(true);
-        } catch (error) {
-          // Only clear token if it's an authentication error (401), not network errors
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          
-          // If it's an authentication error, clear the token
-          if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
-            console.error('Failed to restore session: Invalid token', error);
-            if (typeof window !== 'undefined') {
-              localStorage.removeItem('token');
-            }
-            setUser(null);
-            setUseApi(false);
-          } else {
-            // For network errors, keep the token but log the error
-            // This prevents clearing session on temporary network issues
-            console.warn('Failed to restore session (network error):', errorMessage);
-            // Don't clear token on network errors - might be temporary
-          }
-        }
-      }
-    };
-
-    restoreSession();
-  }, []);
 
   // Load users from API
   useEffect(() => {
