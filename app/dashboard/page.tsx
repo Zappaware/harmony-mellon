@@ -1,12 +1,20 @@
 'use client'
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { CheckCircle2, Clock, AlertCircle, TrendingUp, FolderKanban, Users } from 'lucide-react';
+import { CheckCircle2, Clock, AlertCircle, TrendingUp, FolderKanban, Users, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { StatCard } from '@/components/StatCard';
 import { IssueCardList } from '@/components/IssueCardList';
 import { Loading } from '@/components/Loading';
+import { Avatar } from '@/components/Avatar';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import dynamic from 'next/dynamic';
 
 // Dynamic wrapper to prevent SSR issues with Recharts
@@ -266,10 +274,23 @@ function DashboardUsuario() {
 
 function DashboardAdmin() {
   const { issues, users, isLoading } = useApp();
+  const [showUsersModal, setShowUsersModal] = useState(false);
 
   if (isLoading) {
     return <Loading fullScreen message="Cargando métricas..." />;
   }
+
+  const getRoleLabel = (role: string) => {
+    if (role === 'admin') return 'Administrador';
+    if (role === 'team_lead') return 'Líder';
+    return 'Usuario';
+  };
+
+  const getRoleColor = (role: string) => {
+    if (role === 'admin') return 'text-red-600 bg-red-50';
+    if (role === 'team_lead') return 'text-blue-600 bg-blue-50';
+    return 'text-gray-600 bg-gray-50';
+  };
 
   const stats = [
     { label: 'Total Issues', value: issues.length, icon: FolderKanban, color: 'bg-blue-500' },
@@ -291,7 +312,6 @@ function DashboardAdmin() {
     { name: 'Baja', value: issues.filter((i) => i.priority === 'low').length },
   ];
 
-  const COLORS = ['#3b82f6', '#eab308', '#a855f7', '#22c55e'];
   const PRIORITY_COLORS = ['#ef4444', '#f59e0b', '#10b981'];
 
   return (
@@ -305,10 +325,11 @@ function DashboardAdmin() {
         {stats.map((stat) => {
           const Icon = stat.icon;
           let href = '/tareas';
+          let onClick: (() => void) | undefined = undefined;
           
-          // Set the correct href based on the stat label
+          // Set the correct href/onClick based on the stat label
           if (stat.label === 'Total Usuarios') {
-            href = '/usuarios';
+            onClick = () => setShowUsersModal(true);
           } else if (stat.label === 'Prioridad Alta') {
             href = '/tareas?priority=high';
           } else if (stat.label === 'En Progreso') {
@@ -317,17 +338,34 @@ function DashboardAdmin() {
             href = '/tareas';
           }
           
+          const CardContent = (
+            <div className="bg-white rounded-lg shadow p-4 md:p-6 cursor-pointer hover:shadow-lg transition-shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center`}>
+                  <Icon className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-3xl text-gray-800">{stat.value}</span>
+              </div>
+              <p className="text-gray-600">{stat.label}</p>
+            </div>
+          );
+          
+          if (onClick) {
+            return (
+              <button
+                key={stat.label}
+                onClick={onClick}
+                className="w-full text-left"
+                type="button"
+              >
+                {CardContent}
+              </button>
+            );
+          }
+          
           return (
             <Link key={stat.label} href={href}>
-              <div className="bg-white rounded-lg shadow p-4 md:p-6 cursor-pointer hover:shadow-lg transition-shadow">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center`}>
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                  <span className="text-3xl text-gray-800">{stat.value}</span>
-                </div>
-                <p className="text-gray-600">{stat.label}</p>
-              </div>
+              {CardContent}
             </Link>
           );
         })}
@@ -376,6 +414,46 @@ function DashboardAdmin() {
         </div>
       </div>
       </div>
+
+      {/* Users List Modal */}
+      <Dialog open={showUsersModal} onOpenChange={setShowUsersModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Lista de Usuarios ({users.length})</DialogTitle>
+            <DialogDescription>
+              Todos los usuarios registrados en el sistema
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-4">
+            {users.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">No hay usuarios registrados</p>
+            ) : (
+              users.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Avatar name={user.name} size="md" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{user.name}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Mail className="w-3.5 h-3.5 text-gray-400" />
+                        <span className="text-sm text-gray-600 truncate">{user.email}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
+                      {getRoleLabel(user.role)}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

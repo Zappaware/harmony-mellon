@@ -15,7 +15,7 @@ import {
   TableRow, 
   TableCell 
 } from '@/components/ui/table';
-import { X, Calendar, User, FolderKanban, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Calendar, User, FolderKanban, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
 import { parseISO, isAfter, isBefore, isSameDay, format } from 'date-fns';
 import { Loading } from '@/components/Loading';
 import Link from 'next/link';
@@ -174,6 +174,15 @@ function TareasPageContent() {
   return (
     <LayoutWithSidebar>
       <div className="p-4 md:p-8">
+        <div className="mb-4">
+          <Link 
+            href="/dashboard"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Volver a métricas</span>
+          </Link>
+        </div>
         <PageHeader 
           title="Tareas" 
           subtitle={isAdminOrTeamLead ? "Todas las tareas del sistema" : "Mis tareas asignadas"}
