@@ -69,6 +69,7 @@ interface AppContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   issues: Issue[];
+  projects: ApiProject[];
   updateIssueStatus: (issueId: string, newStatus: Issue['status']) => Promise<void>;
   addComment: (issueId: string, text: string) => Promise<void>;
   createIssue: (data: CreateIssueData) => Promise<void>;
@@ -220,6 +221,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Only initialize with mock data in development, otherwise use empty arrays
   const [issues, setIssues] = useState<Issue[]>(isDevelopment ? mockIssues : []);
   const [users, setUsers] = useState<User[]>(isDevelopment ? mockUsers : []);
+  const [projects, setProjects] = useState<ApiProject[]>([]);
   const [useApi, setUseApi] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -335,6 +337,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     
     loadIssues();
   }, [useApi, user]); // Remove users dependency to avoid circular loading
+
+  // Load projects from API
+  useEffect(() => {
+    const loadProjects = async () => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (token && useApi && user) {
+        try {
+          const apiProjects = await api.getProjects();
+          setProjects(apiProjects);
+        } catch (error) {
+          console.error('Error loading projects:', error);
+        }
+      }
+    };
+    
+    loadProjects();
+  }, [useApi, user]);
 
   // Reload issues when users are loaded (to update user names in comments)
   useEffect(() => {
@@ -634,6 +653,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         issues,
+        projects,
         updateIssueStatus,
         addComment,
         createIssue,
