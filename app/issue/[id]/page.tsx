@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useApp } from '@/context/AppContext';
+import { useApp, Issue } from '@/context/AppContext';
 import { User, Calendar, MessageSquare, Send, Clock, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/Badge';
 import { Avatar } from '@/components/Avatar';
