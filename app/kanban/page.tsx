@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useApp, Issue } from '@/context/AppContext';
@@ -11,6 +11,25 @@ import { Badge } from '@/components/Badge';
 import { Avatar } from '@/components/Avatar';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { CreateIssueModal } from '@/components/CreateIssueModal';
+
+// Create a singleton backend instance to prevent "Cannot have two HTML5 backends" error
+// This ensures only one HTML5Backend instance exists, even if the component remounts
+// (which can happen in React StrictMode or during navigation)
+let backendInstance: HTML5Backend | null = null;
+
+const getBackend = () => {
+  if (typeof window === 'undefined') {
+    // Server-side rendering - return the class
+    return HTML5Backend;
+  }
+  
+  // Create singleton instance only once
+  if (!backendInstance) {
+    backendInstance = new HTML5Backend();
+  }
+  
+  return backendInstance;
+};
 
 interface IssueCardProps {
   issue: Issue;
@@ -156,9 +175,13 @@ function Kanban() {
   ];
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  
+  // Use memoized backend instance to prevent multiple instances
+  // This ensures the same backend instance is reused even if component remounts
+  const backend = useMemo(() => getBackend(), []);
 
   return (
-    <DndProvider backend={HTML5Backend}>
+    <DndProvider backend={backend}>
       <div className="p-4 md:p-8 h-screen overflow-x-auto">
         <PageHeader
           title="Tablero Kanban"
