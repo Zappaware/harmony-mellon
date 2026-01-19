@@ -227,47 +227,48 @@ export default function Configuracion() {
 
       {/* Modal para agregar Estado */}
       <Dialog open={showEstadoModal} onOpenChange={setShowEstadoModal}>
-        <DialogContent className="sm:max-w-xs">
-          <DialogHeader className="pb-3">
-            <DialogTitle className="text-lg">Agregar Nuevo Estado</DialogTitle>
+        <DialogContent className="max-w-[280px] p-4">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-base">Agregar Estado</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Nombre del Estado
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Nombre
               </label>
               <Input
                 type="text"
                 value={newEstado.nombre}
                 onChange={(e) => setNewEstado({ ...newEstado, nombre: e.target.value })}
                 placeholder="Ej: En Espera"
-                className="w-full"
+                className="w-full h-8 text-sm"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 Color
               </label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <input
                   type="color"
                   value={newEstado.color}
                   onChange={(e) => setNewEstado({ ...newEstado, color: e.target.value })}
-                  className="w-12 h-9 rounded border border-gray-300 cursor-pointer"
+                  className="w-10 h-8 rounded border border-gray-300 cursor-pointer"
                 />
                 <Input
                   type="text"
                   value={newEstado.color}
                   onChange={(e) => setNewEstado({ ...newEstado, color: e.target.value })}
                   placeholder="#6b7280"
-                  className="flex-1 text-sm"
+                  className="flex-1 h-8 text-xs"
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-1.5 pt-1.5">
               <Button
                 variant="outline"
                 size="sm"
+                className="h-7 px-3 text-xs"
                 onClick={() => {
                   setShowEstadoModal(false);
                   setNewEstado({ nombre: '', color: '#6b7280' });
@@ -275,7 +276,7 @@ export default function Configuracion() {
               >
                 Cancelar
               </Button>
-              <Button size="sm" onClick={handleAddEstado}>
+              <Button size="sm" className="h-7 px-3 text-xs" onClick={handleAddEstado}>
                 Agregar
               </Button>
             </div>
@@ -285,47 +286,48 @@ export default function Configuracion() {
 
       {/* Modal para agregar Prioridad */}
       <Dialog open={showPrioridadModal} onOpenChange={setShowPrioridadModal}>
-        <DialogContent className="sm:max-w-xs">
-          <DialogHeader className="pb-3">
-            <DialogTitle className="text-lg">Agregar Nueva Prioridad</DialogTitle>
+        <DialogContent className="max-w-[280px] p-4">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-base">Agregar Prioridad</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Nombre de la Prioridad
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Nombre
               </label>
               <Input
                 type="text"
                 value={newPrioridad.nombre}
                 onChange={(e) => setNewPrioridad({ ...newPrioridad, nombre: e.target.value })}
                 placeholder="Ej: Crítica"
-                className="w-full"
+                className="w-full h-8 text-sm"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 Color
               </label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <input
                   type="color"
                   value={newPrioridad.color}
                   onChange={(e) => setNewPrioridad({ ...newPrioridad, color: e.target.value })}
-                  className="w-12 h-9 rounded border border-gray-300 cursor-pointer"
+                  className="w-10 h-8 rounded border border-gray-300 cursor-pointer"
                 />
                 <Input
                   type="text"
                   value={newPrioridad.color}
                   onChange={(e) => setNewPrioridad({ ...newPrioridad, color: e.target.value })}
                   placeholder="#10b981"
-                  className="flex-1 text-sm"
+                  className="flex-1 h-8 text-xs"
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-1.5 pt-1.5">
               <Button
                 variant="outline"
                 size="sm"
+                className="h-7 px-3 text-xs"
                 onClick={() => {
                   setShowPrioridadModal(false);
                   setNewPrioridad({ nombre: '', color: '#10b981' });
@@ -333,7 +335,7 @@ export default function Configuracion() {
               >
                 Cancelar
               </Button>
-              <Button size="sm" onClick={handleAddPrioridad}>
+              <Button size="sm" className="h-7 px-3 text-xs" onClick={handleAddPrioridad}>
                 Agregar
               </Button>
             </div>
