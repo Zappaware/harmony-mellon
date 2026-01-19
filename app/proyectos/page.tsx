@@ -25,6 +25,7 @@ interface Project {
   id: string;
   nombre: string;
   descripcion: string;
+  tipo?: 'Campaña' | 'Planner' | 'Producciones';
   progreso: number;
   miembros: number;
   fechaLimite: string | null;
@@ -55,6 +56,7 @@ export default function Proyectos() {
           id: project.id,
           nombre: project.name,
           descripcion: project.description || '',
+          tipo: project.type,
           progreso: project.progress || 0,
           miembros: project.members?.length || 0,
           fechaLimite: project.deadline || null,
@@ -146,7 +148,14 @@ export default function Proyectos() {
                     <h3 className="text-gray-800 group-hover:text-indigo-600 transition-colors">
                       {proyecto.nombre}
                     </h3>
-                    <span className="text-xs text-gray-500">{proyecto.estado}</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      {proyecto.tipo && (
+                        <span className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full font-medium">
+                          {proyecto.tipo}
+                        </span>
+                      )}
+                      <span className="text-xs text-gray-500">{proyecto.estado}</span>
+                    </div>
                   </div>
                 </Link>
                 {(user?.role === 'admin' || user?.role === 'team_lead') && (

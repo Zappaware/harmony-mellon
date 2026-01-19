@@ -382,6 +382,7 @@ export interface ApiProject {
   id: string;
   name: string;
   description: string;
+  type?: 'Campaña' | 'Planner' | 'Producciones';
   progress: number;
   status: string;
   start_date?: string;
@@ -400,6 +401,7 @@ export interface ApiProject {
 export interface CreateProjectRequest {
   name: string;
   description?: string;
+  type?: 'Campaña' | 'Planner' | 'Producciones';
   progress?: number;
   status?: string;
   start_date?: string;

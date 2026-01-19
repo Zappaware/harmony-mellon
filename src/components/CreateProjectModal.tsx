@@ -17,6 +17,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    type: 'Campaña' as 'Campaña' | 'Planner' | 'Producciones',
     progress: 0,
     status: 'planning' as string,
     startDate: initialStartDate || '',
@@ -60,6 +61,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
       setFormData({
         name: '',
         description: '',
+        type: 'Campaña',
         progress: 0,
         status: 'planning',
         startDate: initialStartDate || '',
@@ -147,6 +149,24 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
               placeholder="Describe el proyecto..."
             />
+          </div>
+
+          <div>
+            <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
+              Tipo de Proyecto <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="type"
+              name="type"
+              value={formData.type}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="Campaña">Campaña</option>
+              <option value="Planner">Planner</option>
+              <option value="Producciones">Producciones</option>
+            </select>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

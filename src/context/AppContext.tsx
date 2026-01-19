@@ -48,6 +48,7 @@ interface CreateIssueData {
 interface CreateProjectData {
   name: string;
   description?: string;
+  type?: 'Campaña' | 'Planner' | 'Producciones';
   progress?: number;
   status?: string;
   startDate?: string;
@@ -524,6 +525,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await api.createProject({
           name: data.name,
           description: data.description,
+          type: data.type || 'Campaña',
           progress: data.progress || 0,
           status: data.status || 'planning',
           start_date: startDate,

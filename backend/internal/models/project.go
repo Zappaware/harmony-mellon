@@ -17,10 +17,19 @@ const (
 	ProjectStatusOnHold       ProjectStatus = "on_hold"
 )
 
+type ProjectType string
+
+const (
+	ProjectTypeCampana      ProjectType = "Campaña"
+	ProjectTypePlanner      ProjectType = "Planner"
+	ProjectTypeProducciones ProjectType = "Producciones"
+)
+
 type Project struct {
 	ID          uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
 	Name        string    `gorm:"not null" json:"name"`
 	Description string    `gorm:"type:text" json:"description"`
+	Type        ProjectType `gorm:"type:varchar(50);default:'Campaña'" json:"type"`
 	Progress    int       `gorm:"default:0;check:progress >= 0 AND progress <= 100" json:"progress"`
 	Status      ProjectStatus `gorm:"type:varchar(50);default:'planning'" json:"status"`
 	StartDate   *time.Time `json:"start_date,omitempty"`

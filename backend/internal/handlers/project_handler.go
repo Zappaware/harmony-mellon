@@ -59,6 +59,7 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 type CreateProjectRequest struct {
 	Name        string                `json:"name" binding:"required"`
 	Description string                `json:"description"`
+	Type        models.ProjectType    `json:"type"`
 	Progress    int                   `json:"progress"`
 	Status      models.ProjectStatus  `json:"status"`
 	StartDate   *string               `json:"start_date"`
@@ -87,6 +88,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	project := &models.Project{
 		Name:        req.Name,
 		Description: req.Description,
+		Type:        req.Type,
 		Progress:    req.Progress,
 		Status:      req.Status,
 		Color:       req.Color,
@@ -107,6 +109,10 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 
 	if project.Status == "" {
 		project.Status = models.ProjectStatusPlanning
+	}
+
+	if project.Type == "" {
+		project.Type = models.ProjectTypeCampana
 	}
 
 	if err := h.projectService.CreateProject(project); err != nil {
@@ -132,6 +138,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 type UpdateProjectRequest struct {
 	Name        *string               `json:"name"`
 	Description *string               `json:"description"`
+	Type        *models.ProjectType   `json:"type"`
 	Progress    *int                  `json:"progress"`
 	Status      *models.ProjectStatus `json:"status"`
 	StartDate   *string               `json:"start_date"`
@@ -158,6 +165,9 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 	}
 	if req.Description != nil {
 		updates["description"] = *req.Description
+	}
+	if req.Type != nil {
+		updates["type"] = *req.Type
 	}
 	if req.Progress != nil {
 		updates["progress"] = *req.Progress

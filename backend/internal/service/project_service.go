@@ -53,6 +53,9 @@ func (s *projectService) UpdateProject(id uuid.UUID, updates map[string]interfac
 	if description, ok := updates["description"].(string); ok {
 		project.Description = description
 	}
+	if projectType, ok := updates["type"].(models.ProjectType); ok {
+		project.Type = projectType
+	}
 	if progress, ok := updates["progress"].(int); ok {
 		project.Progress = progress
 	}
