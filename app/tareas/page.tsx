@@ -5,10 +5,20 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { PageHeader } from '@/components/PageHeader';
-import { IssueCardList } from '@/components/IssueCardList';
-import { Filter, X, Calendar, User, FolderKanban } from 'lucide-react';
-import { parseISO, isAfter, isBefore, isSameDay } from 'date-fns';
+import { Badge } from '@/components/Badge';
+import { Avatar } from '@/components/Avatar';
+import { 
+  Table, 
+  TableHeader, 
+  TableBody, 
+  TableHead, 
+  TableRow, 
+  TableCell 
+} from '@/components/ui/table';
+import { X, Calendar, User, FolderKanban, ChevronDown, ChevronUp } from 'lucide-react';
+import { parseISO, isAfter, isBefore, isSameDay, format } from 'date-fns';
 import { Loading } from '@/components/Loading';
+import Link from 'next/link';
 
 function TareasPageContent() {
   const searchParams = useSearchParams();
@@ -16,7 +26,7 @@ function TareasPageContent() {
   const { issues, users, projects, user: currentUser } = useApp();
   const isAdminOrTeamLead = currentUser?.role === 'admin' || currentUser?.role === 'team_lead';
 
-  // Get initial status from URL params
+  // Get initial filters from URL params
   const initialStatus = searchParams.get('status') || 'all';
   const initialUserId = searchParams.get('user') || 'all';
   const initialProjectId = searchParams.get('project') || 'all';
@@ -28,15 +38,16 @@ function TareasPageContent() {
   const [projectFilter, setProjectFilter] = useState<string>(initialProjectId);
   const [dateFromFilter, setDateFromFilter] = useState<string>(initialDateFrom);
   const [dateToFilter, setDateToFilter] = useState<string>(initialDateTo);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showStatusFilter, setShowStatusFilter] = useState(false);
+  const [showUserFilter, setShowUserFilter] = useState(false);
+  const [showProjectFilter, setShowProjectFilter] = useState(false);
+  const [showDateFilter, setShowDateFilter] = useState(false);
 
   // Filter issues based on current user role
   const availableIssues = useMemo(() => {
     if (isAdminOrTeamLead) {
-      // Admin/Team Lead sees all issues
       return issues;
     } else {
-      // Regular users see only their assigned issues
       return issues.filter(issue => issue.assignedTo === currentUser?.id);
     }
   }, [issues, currentUser?.id, isAdminOrTeamLead]);
@@ -45,22 +56,18 @@ function TareasPageContent() {
   const filteredIssues = useMemo(() => {
     let filtered = [...availableIssues];
 
-    // Filter by status
     if (statusFilter !== 'all') {
       filtered = filtered.filter(issue => issue.status === statusFilter);
     }
 
-    // Filter by user (only for admin/team_lead)
     if (isAdminOrTeamLead && userFilter !== 'all') {
       filtered = filtered.filter(issue => issue.assignedTo === userFilter);
     }
 
-    // Filter by project
     if (projectFilter !== 'all') {
       filtered = filtered.filter(issue => issue.projectId === projectFilter);
     }
 
-    // Filter by date range
     if (dateFromFilter) {
       const fromDate = parseISO(dateFromFilter);
       filtered = filtered.filter(issue => {
@@ -112,16 +119,19 @@ function TareasPageContent() {
   const handleStatusChange = (status: string) => {
     setStatusFilter(status);
     updateFilters({ status });
+    setShowStatusFilter(false);
   };
 
   const handleUserChange = (userId: string) => {
     setUserFilter(userId);
     updateFilters({ user: userId });
+    setShowUserFilter(false);
   };
 
   const handleProjectChange = (projectId: string) => {
     setProjectFilter(projectId);
     updateFilters({ project: projectId });
+    setShowProjectFilter(false);
   };
 
   const handleDateFromChange = (date: string) => {
@@ -150,12 +160,16 @@ function TareasPageContent() {
     dateToFilter;
 
   const statusOptions = [
-    { value: 'all', label: 'Todos los estados' },
+    { value: 'all', label: 'Todos' },
     { value: 'todo', label: 'Por Hacer' },
     { value: 'in-progress', label: 'En Progreso' },
     { value: 'review', label: 'En Revisión' },
     { value: 'done', label: 'Completadas' },
   ];
+
+  const getStatusLabel = (status: string) => {
+    return statusOptions.find(opt => opt.value === status)?.label || status;
+  };
 
   return (
     <LayoutWithSidebar>
@@ -165,150 +179,322 @@ function TareasPageContent() {
           subtitle={isAdminOrTeamLead ? "Todas las tareas del sistema" : "Mis tareas asignadas"}
         />
 
-        {/* Filters Section */}
-        <div className="bg-white rounded-lg shadow mb-6">
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-gray-600" />
-              <h3 className="text-lg font-medium text-gray-800">Filtros</h3>
-              {hasActiveFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="ml-2 text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
-                >
-                  <X className="w-4 h-4" />
-                  Limpiar filtros
-                </button>
-              )}
-            </div>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              {showFilters ? 'Ocultar' : 'Mostrar'} filtros
-            </button>
-          </div>
-
-          {showFilters && (
-            <div className="p-4 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Status Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Estado
-                  </label>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => handleStatusChange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    {statusOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* User Filter (only for admin/team_lead) */}
-                {isAdminOrTeamLead && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                      <User className="w-4 h-4" />
-                      Usuario
-                    </label>
-                    <select
-                      value={userFilter}
-                      onChange={(e) => handleUserChange(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value="all">Todos los usuarios</option>
-                      {users.map(user => (
-                        <option key={user.id} value={user.id}>
-                          {user.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Project Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                    <FolderKanban className="w-4 h-4" />
-                    Proyecto
-                  </label>
-                  <select
-                    value={projectFilter}
-                    onChange={(e) => handleProjectChange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="all">Todos los proyectos</option>
-                    {projects.map(project => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Date Range */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    Rango de fechas
-                  </label>
-                  <div className="space-y-2">
-                    <input
-                      type="date"
-                      value={dateFromFilter}
-                      onChange={(e) => handleDateFromChange(e.target.value)}
-                      placeholder="Desde"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                    />
-                    <input
-                      type="date"
-                      value={dateToFilter}
-                      onChange={(e) => handleDateToChange(e.target.value)}
-                      placeholder="Hasta"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Results Summary */}
+        {/* Results Summary and Clear Filters */}
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm text-gray-600">
             Mostrando <span className="font-medium text-gray-800">{filteredIssues.length}</span> de{' '}
             <span className="font-medium text-gray-800">{availableIssues.length}</span> tareas
           </p>
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+            >
+              <X className="w-4 h-4" />
+              Limpiar filtros
+            </button>
+          )}
         </div>
 
-        {/* Issues List */}
-        <div className="bg-white rounded-lg shadow">
+        {/* Issues Table */}
+        <div className="bg-white rounded-lg shadow overflow-hidden">
           {filteredIssues.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               <p className="text-lg mb-2">No se encontraron tareas</p>
               <p className="text-sm">Intenta ajustar los filtros para ver más resultados</p>
             </div>
           ) : (
-            <div>
-              {filteredIssues.map((issue) => {
-                const assignedUser = users.find((u) => u.id === issue.assignedTo);
-                return (
-                  <IssueCardList 
-                    key={issue.id} 
-                    issue={issue} 
-                    assignedUser={assignedUser}
-                    showProject
-                  />
-                );
-              })}
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[300px]">
+                    <div className="flex items-center gap-2">
+                      <span>Título</span>
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-[150px]">
+                    <div className="relative">
+                      <button
+                        onClick={() => {
+                          setShowStatusFilter(!showStatusFilter);
+                          setShowUserFilter(false);
+                          setShowProjectFilter(false);
+                          setShowDateFilter(false);
+                        }}
+                        className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
+                      >
+                        <span>Estado</span>
+                        {statusFilter !== 'all' && (
+                          <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">
+                            {getStatusLabel(statusFilter)}
+                          </span>
+                        )}
+                        {showStatusFilter ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
+                      {showStatusFilter && (
+                        <div className="absolute top-full left-0 mt-1 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[180px]">
+                          {statusOptions.map(option => (
+                            <button
+                              key={option.value}
+                              onClick={() => handleStatusChange(option.value)}
+                              className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors ${
+                                statusFilter === option.value ? 'bg-indigo-50 text-indigo-700 font-medium' : ''
+                              }`}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-[120px]">Prioridad</TableHead>
+                  {isAdminOrTeamLead && (
+                    <TableHead className="w-[180px]">
+                      <div className="relative">
+                        <button
+                          onClick={() => {
+                            setShowUserFilter(!showUserFilter);
+                            setShowStatusFilter(false);
+                            setShowProjectFilter(false);
+                            setShowDateFilter(false);
+                          }}
+                          className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
+                        >
+                          <User className="w-4 h-4" />
+                          <span>Asignado a</span>
+                          {userFilter !== 'all' && (
+                            <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">
+                              {users.find(u => u.id === userFilter)?.name || 'Usuario'}
+                            </span>
+                          )}
+                          {showUserFilter ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )}
+                        </button>
+                        {showUserFilter && (
+                          <div className="absolute top-full left-0 mt-1 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[200px] max-h-[300px] overflow-y-auto">
+                            <button
+                              onClick={() => handleUserChange('all')}
+                              className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors ${
+                                userFilter === 'all' ? 'bg-indigo-50 text-indigo-700 font-medium' : ''
+                              }`}
+                            >
+                              Todos los usuarios
+                            </button>
+                            {users.map(user => (
+                              <button
+                                key={user.id}
+                                onClick={() => handleUserChange(user.id)}
+                                className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors flex items-center gap-2 ${
+                                  userFilter === user.id ? 'bg-indigo-50 text-indigo-700 font-medium' : ''
+                                }`}
+                              >
+                                <Avatar name={user.name} size="sm" />
+                                <span>{user.name}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </TableHead>
+                  )}
+                  {!isAdminOrTeamLead && (
+                    <TableHead className="w-[180px]">Asignado a</TableHead>
+                  )}
+                  <TableHead className="w-[180px]">
+                    <div className="relative">
+                      <button
+                        onClick={() => {
+                          setShowProjectFilter(!showProjectFilter);
+                          setShowStatusFilter(false);
+                          setShowUserFilter(false);
+                          setShowDateFilter(false);
+                        }}
+                        className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
+                      >
+                        <FolderKanban className="w-4 h-4" />
+                        <span>Proyecto</span>
+                        {projectFilter !== 'all' && (
+                          <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">
+                            {projects.find(p => p.id === projectFilter)?.name || 'Proyecto'}
+                          </span>
+                        )}
+                        {showProjectFilter ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
+                      {showProjectFilter && (
+                        <div className="absolute top-full left-0 mt-1 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[200px] max-h-[300px] overflow-y-auto">
+                          <button
+                            onClick={() => handleProjectChange('all')}
+                            className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors ${
+                              projectFilter === 'all' ? 'bg-indigo-50 text-indigo-700 font-medium' : ''
+                            }`}
+                          >
+                            Todos los proyectos
+                          </button>
+                          {projects.map(project => (
+                            <button
+                              key={project.id}
+                              onClick={() => handleProjectChange(project.id)}
+                              className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors ${
+                                projectFilter === project.id ? 'bg-indigo-50 text-indigo-700 font-medium' : ''
+                              }`}
+                            >
+                              {project.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-[180px]">
+                    <div className="relative">
+                      <button
+                        onClick={() => {
+                          setShowDateFilter(!showDateFilter);
+                          setShowStatusFilter(false);
+                          setShowUserFilter(false);
+                          setShowProjectFilter(false);
+                        }}
+                        className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
+                      >
+                        <Calendar className="w-4 h-4" />
+                        <span>Fecha</span>
+                        {(dateFromFilter || dateToFilter) && (
+                          <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">
+                            Filtro
+                          </span>
+                        )}
+                        {showDateFilter ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
+                      {showDateFilter && (
+                        <div className="absolute top-full right-0 mt-1 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-[250px]">
+                          <div className="space-y-2">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Desde
+                              </label>
+                              <input
+                                type="date"
+                                value={dateFromFilter}
+                                onChange={(e) => handleDateFromChange(e.target.value)}
+                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Hasta
+                              </label>
+                              <input
+                                type="date"
+                                value={dateToFilter}
+                                onChange={(e) => handleDateToChange(e.target.value)}
+                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              />
+                            </div>
+                            {(dateFromFilter || dateToFilter) && (
+                              <button
+                                onClick={() => {
+                                  setDateFromFilter('');
+                                  setDateToFilter('');
+                                  updateFilters({ dateFrom: '', dateTo: '' });
+                                }}
+                                className="w-full text-xs text-red-600 hover:text-red-700 py-1"
+                              >
+                                Limpiar fecha
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-[100px]">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredIssues.map((issue) => {
+                  const assignedUser = users.find((u) => u.id === issue.assignedTo);
+                  const project = projects.find((p) => p.id === issue.projectId);
+                  const issueDate = issue.startDate || issue.dueDate || issue.createdAt;
+                  
+                  return (
+                    <TableRow key={issue.id} className="hover:bg-gray-50">
+                      <TableCell>
+                        <Link 
+                          href={`/issue/${issue.id}`}
+                          className="hover:text-indigo-600 transition-colors"
+                        >
+                          <div>
+                            <div className="font-medium text-gray-900">{issue.title}</div>
+                            <div className="text-sm text-gray-500 line-clamp-1 mt-1">
+                              {issue.description}
+                            </div>
+                          </div>
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="status" value={issue.status} />
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="priority" value={issue.priority} />
+                      </TableCell>
+                      <TableCell>
+                        {assignedUser ? (
+                          <div className="flex items-center gap-2">
+                            <Avatar name={assignedUser.name} size="sm" />
+                            <span className="text-sm text-gray-700">{assignedUser.name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-400">Sin asignar</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {project ? (
+                          <div className="flex items-center gap-2">
+                            <FolderKanban className="w-4 h-4 text-gray-400" />
+                            <span className="text-sm text-gray-700">{project.name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-400">Sin proyecto</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {issueDate ? (
+                          <span className="text-sm text-gray-600">
+                            {format(parseISO(issueDate), 'dd/MM/yyyy')}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Link
+                          href={`/issue/${issue.id}`}
+                          className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+                        >
+                          Ver →
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           )}
         </div>
       </div>
