@@ -132,6 +132,31 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 		}()
 	}
 
+	// Notify all admins and team leads about new project (except creator)
+	if h.notificationService != nil {
+		go func() {
+			allUsers, err := h.userRepo.GetAll()
+			if err == nil {
+				creator, _ := h.userRepo.GetByID(userID)
+				creatorName := "Sistema"
+				if creator != nil {
+					creatorName = creator.Name
+				}
+				projectID := &project.ID
+				title := "Nuevo proyecto creado: " + project.Name
+				message := creatorName + " ha creado un nuevo proyecto: \"" + project.Name + "\""
+				for _, user := range allUsers {
+					// Notify admins and team leads, but not the creator
+					if (user.Role == models.RoleAdmin || user.Role == models.RoleTeamLead) && user.ID != userID {
+						if err := h.notificationService.CreateNotification(user.ID, models.NotificationTypeStatus, title, message, projectID); err != nil {
+							log.Printf("Failed to notify admin/team lead %s about new project: %v", user.ID, err)
+						}
+					}
+				}
+			}
+		}()
+	}
+
 	c.JSON(http.StatusCreated, project)
 }
 
@@ -258,6 +283,19 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 						if member.UserID != currentUserID && member.UserID != updatedProject.CreatedBy {
 							if err := h.notificationService.CreateNotification(member.UserID, models.NotificationTypeStatus, title, message, projectID); err != nil {
 								log.Printf("Failed to notify project member %s: %v", member.UserID, err)
+							}
+						}
+					}
+				}
+
+				// Notify all admins and team leads about project update (except updater)
+				allUsers, err := h.userRepo.GetAll()
+				if err == nil {
+					for _, user := range allUsers {
+						// Notify admins and team leads, but not the updater
+						if (user.Role == models.RoleAdmin || user.Role == models.RoleTeamLead) && user.ID != currentUserID {
+							if err := h.notificationService.CreateNotification(user.ID, models.NotificationTypeStatus, title, message, projectID); err != nil {
+								log.Printf("Failed to notify admin/team lead %s about project update: %v", user.ID, err)
 							}
 						}
 					}
