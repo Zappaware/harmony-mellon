@@ -67,16 +67,19 @@ export default function Notificaciones() {
 
   const handleMarkAllAsRead = async () => {
     try {
+      setError(null);
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       if (!token) {
         setError('No estás autenticado. Por favor, inicia sesión.');
         return;
       }
       await api.markAllNotificationsAsRead();
+      // Reload notifications to show updated read status
       await loadNotifications();
     } catch (err) {
       console.error('Failed to mark all as read:', err);
-      setError('Error al marcar las notificaciones como leídas');
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      setError(`Error al marcar las notificaciones como leídas: ${errorMessage}`);
     }
   };
 

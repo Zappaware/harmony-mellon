@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import { X, Link as LinkIcon, Image, File, Plus, Trash2 } from 'lucide-react';
+import { X, Link as LinkIcon, Image, File, Plus, Trash2, FolderKanban } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, ApiAttachment } from '@/services/api';
 import { Issue, useApp } from '@/context/AppContext';
@@ -40,6 +40,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
         description: issue.description,
         priority: issue.priority,
         assignedTo: issue.assignedTo || '',
+        projectId: issue.projectId || '',
         startDate: issue.startDate || '',
         dueDate: issue.dueDate || '',
       });
@@ -214,6 +215,27 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
                   ))}
                 </select>
             </div>
+          </div>
+
+          <div>
+            <label htmlFor="projectId" className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+              <FolderKanban className="w-4 h-4" />
+              Proyecto
+            </label>
+            <select
+              id="projectId"
+              name="projectId"
+              value={formData.projectId}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">Sin proyecto</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -507,7 +507,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           description: data.description,
           priority: data.priority || 'medium',
           assigned_to: data.assignedTo,
-          project_id: data.projectId,
+          project_id: data.projectId || undefined,
           start_date: startDate,
           due_date: dueDate,
           attachments: data.attachments,

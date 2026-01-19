@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import { X, Link as LinkIcon, Image, File, Plus, Trash2 } from 'lucide-react';
+import { X, Link as LinkIcon, Image, File, Plus, Trash2, FolderKanban } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
 import { ApiAttachment } from '@/services/api';
@@ -14,12 +14,13 @@ interface CreateIssueModalProps {
 }
 
 export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate }: CreateIssueModalProps) {
-  const { users, createIssue } = useApp();
+  const { users, projects, createIssue } = useApp();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     priority: 'medium' as 'low' | 'medium' | 'high',
     assignedTo: '',
+    projectId: '',
     startDate: initialStartDate || '',
     dueDate: '',
   });
@@ -52,6 +53,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate 
         description: formData.description,
         priority: formData.priority,
         assignedTo: formData.assignedTo || undefined,
+        projectId: formData.projectId || undefined,
         startDate: formData.startDate || undefined,
         dueDate: formData.dueDate || undefined,
         attachments: attachments.length > 0 ? attachments : undefined,
@@ -68,6 +70,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate 
         description: '',
         priority: 'medium',
         assignedTo: '',
+        projectId: '',
         startDate: initialStartDate || '',
         dueDate: '',
       });
@@ -207,6 +210,27 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate 
             </div>
           </div>
 
+          <div>
+            <label htmlFor="projectId" className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+              <FolderKanban className="w-4 h-4" />
+              Proyecto
+            </label>
+            <select
+              id="projectId"
+              name="projectId"
+              value={formData.projectId}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">Sin proyecto</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
@@ -245,45 +269,85 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate 
               <div className="flex flex-col sm:flex-row gap-2">
                 <select
                   value={newAttachment.type}
-                  onChange={(e) => setNewAttachment(prev => ({ ...prev, type: e.target.value as 'link' | 'image' | 'file' }))}
+                  onChange={(e) => setNewAttachment(prev => ({ ...prev, type: e.target.value as 'link' | 'image' | 'file', url: '', name: '' }))}
                   className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
                 >
                   <option value="link">Enlace</option>
                   <option value="image">Imagen</option>
                   <option value="file">Archivo</option>
                 </select>
-                <input
-                  type="text"
-                  placeholder="URL"
-                  value={newAttachment.url}
-                  onChange={(e) => setNewAttachment(prev => ({ ...prev, url: e.target.value }))}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddAttachment();
-                    }
-                  }}
-                  className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
-                />
-                <input
-                  type="text"
-                  placeholder="Nombre (opcional)"
-                  value={newAttachment.name}
-                  onChange={(e) => setNewAttachment(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full sm:w-32 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
-                />
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleAddAttachment();
-                  }}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span className="sm:hidden">Agregar</span>
-                </button>
+                {newAttachment.type === 'link' ? (
+                  <>
+                    <input
+                      type="text"
+                      placeholder="URL"
+                      value={newAttachment.url}
+                      onChange={(e) => setNewAttachment(prev => ({ ...prev, url: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddAttachment();
+                        }
+                      }}
+                      className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Nombre (opcional)"
+                      value={newAttachment.name}
+                      onChange={(e) => setNewAttachment(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full sm:w-32 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleAddAttachment();
+                      }}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span className="sm:hidden">Agregar</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      type="file"
+                      id="file-upload"
+                      accept={newAttachment.type === 'image' ? 'image/*' : '*'}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          // Convert file to data URL for storage
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            const dataUrl = event.target?.result as string;
+                            const attachment: ApiAttachment = {
+                              type: newAttachment.type,
+                              url: dataUrl,
+                              name: file.name,
+                            };
+                            setAttachments(prev => [...prev, attachment]);
+                            setNewAttachment({ type: 'link', url: '', name: '' });
+                            // Reset file input
+                            e.target.value = '';
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="file-upload"
+                      className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>{newAttachment.type === 'image' ? 'Seleccionar Imagen' : 'Seleccionar Archivo'}</span>
+                    </label>
+                  </>
+                )}
               </div>
               
               {attachments.length > 0 && (
