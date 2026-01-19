@@ -20,10 +20,13 @@ export function NotificationBadge() {
       try {
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
         if (!token) {
+          console.log('NotificationBadge: No token found');
           setLoading(false);
           return;
         }
+        console.log('NotificationBadge: Loading notifications...');
         const allNotifications = await api.getNotifications();
+        console.log('NotificationBadge: Loaded', allNotifications.length, 'notifications');
         const unread = allNotifications.filter(n => !n.read);
         setNotifications(allNotifications.slice(0, 10)); // Show last 10
         setUnreadCount(unread.length);
@@ -101,17 +104,16 @@ export function NotificationBadge() {
     }
   };
 
-  if (loading) return null;
-
   return (
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative inline-flex items-center justify-center w-10 h-10 bg-white rounded-full shadow-lg hover:shadow-xl transition-all hover:bg-gray-50 border border-gray-200"
         aria-label={`Notificaciones${unreadCount > 0 ? ` (${unreadCount} no leídas)` : ''}`}
+        disabled={loading}
       >
-        <Bell className="w-5 h-5 text-gray-700" />
-        {unreadCount > 0 && (
+        <Bell className={`w-5 h-5 text-gray-700 ${loading ? 'opacity-50' : ''}`} />
+        {!loading && unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center border-2 border-white">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
@@ -132,7 +134,12 @@ export function NotificationBadge() {
           </div>
 
           <div className="overflow-y-auto flex-1">
-            {notifications.length === 0 ? (
+            {loading ? (
+              <div className="p-8 text-center text-gray-500">
+                <Bell className="w-12 h-12 mx-auto mb-3 text-gray-400 animate-pulse" />
+                <p>Cargando notificaciones...</p>
+              </div>
+            ) : notifications.length === 0 ? (
               <div className="p-8 text-center text-gray-500">
                 <Bell className="w-12 h-12 mx-auto mb-3 text-gray-400" />
                 <p>No tienes notificaciones</p>
