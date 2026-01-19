@@ -41,6 +41,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const userLinks = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Resumen' },
     { to: '/mis-tareas', icon: CheckSquare, label: 'Mis Tareas' },
+    { to: '/kanban', icon: FolderKanban, label: 'Kanban' },
     { to: '/calendario', icon: Calendar, label: 'Calendario' },
     { to: '/proyectos', icon: FolderKanban, label: 'Proyectos' },
     { to: '/notificaciones', icon: Bell, label: 'Notificaciones' },
