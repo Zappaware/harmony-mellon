@@ -14,12 +14,13 @@ interface EditIssueModalProps {
 }
 
 export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueModalProps) {
-  const { users } = useApp();
+  const { users, projects } = useApp();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     priority: 'medium' as 'low' | 'medium' | 'high',
     assignedTo: '',
+    projectId: '',
     startDate: '',
     dueDate: '',
   });
