@@ -453,7 +453,6 @@ func (h *IssueHandler) UpdateIssueStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, issue)
 }
-}
 
 func (h *IssueHandler) DeleteIssue(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
