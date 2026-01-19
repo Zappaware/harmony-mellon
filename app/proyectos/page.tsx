@@ -149,17 +149,19 @@ export default function Proyectos() {
                     <span className="text-xs text-gray-500">{proyecto.estado}</span>
                   </div>
                 </Link>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setProjectToDelete(proyecto.id);
-                  }}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                  title="Eliminar proyecto"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {(user?.role === 'admin' || user?.role === 'team_lead') && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setProjectToDelete(proyecto.id);
+                    }}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                    title="Eliminar proyecto"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
 
               <Link href="/kanban">

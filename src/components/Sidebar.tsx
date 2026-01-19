@@ -58,8 +58,22 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     { to: '/perfil', icon: UserCircle, label: 'Mi Perfil' },
   ];
 
-  // Team leads and admins get admin links
-  const links = (user?.role === 'admin' || user?.role === 'team_lead') ? adminLinks : userLinks;
+  const teamLeadLinks = [
+    { to: '/dashboard', icon: BarChart3, label: 'Métricas' },
+    { to: '/proyectos', icon: FolderKanban, label: 'Proyectos' },
+    { to: '/kanban', icon: FolderKanban, label: 'Kanban' },
+    { to: '/calendario', icon: Calendar, label: 'Calendario' },
+    { to: '/notificaciones', icon: Bell, label: 'Notificaciones' },
+    { to: '/configuracion', icon: Settings, label: 'Configuración' },
+    { to: '/perfil', icon: UserCircle, label: 'Mi Perfil' },
+  ];
+
+  // Determine which links to show based on user role
+  const links = user?.role === 'admin' 
+    ? adminLinks 
+    : user?.role === 'team_lead' 
+    ? teamLeadLinks 
+    : userLinks;
 
   const sidebarContent = (
     <>
