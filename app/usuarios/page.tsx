@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp, User } from '@/context/AppContext';
 import { Users, Mail, Shield, UserCircle, Edit, Trash2 } from 'lucide-react';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { CreateUserModal } from '@/components/CreateUserModal';
