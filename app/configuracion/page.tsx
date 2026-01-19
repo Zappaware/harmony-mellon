@@ -32,7 +32,8 @@ export default function Configuracion() {
   const [prioridades, setPrioridades] = useState<Prioridad[]>([
     { id: 1, nombre: 'Baja', color: '#10b981', activo: true },
     { id: 2, nombre: 'Media', color: '#f59e0b', activo: true },
-    { id: 3, nombre: 'Alta', color: '#ef4444', activo: true },
+    { id: 3, nombre: 'Alta', color: '#f87171', activo: true },
+    { id: 4, nombre: 'Crítica', color: '#dc2626', activo: true },
   ]);
 
   const [showEstadoModal, setShowEstadoModal] = useState(false);
@@ -148,7 +149,7 @@ export default function Configuracion() {
           <p className="text-sm md:text-base text-gray-600">Gestiona los parámetros del sistema</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           <div className="bg-white rounded-lg shadow">
             <div className="p-6 border-b border-gray-200 flex items-center gap-2">
               <Tag className="w-6 h-6 text-gray-600" />
@@ -231,7 +232,7 @@ export default function Configuracion() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow lg:col-span-2">
+          <div className="bg-white rounded-lg shadow md:col-span-2 lg:col-span-1">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sliders className="w-6 h-6 text-gray-600" />

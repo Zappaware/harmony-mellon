@@ -15,21 +15,25 @@ export function LayoutWithSidebar({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useApp();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  // Load sidebar collapsed state from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('sidebarCollapsed');
-    if (saved !== null) {
-      setSidebarCollapsed(JSON.parse(saved));
+  // Initialize from localStorage immediately to prevent flash
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sidebarCollapsed');
+      return saved ? JSON.parse(saved) : false;
     }
-  }, []);
+    return false;
+  });
 
-  // Save sidebar collapsed state to localStorage
+  // Sync with localStorage on changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidebarCollapsed', JSON.stringify(sidebarCollapsed));
+    }
+  }, [sidebarCollapsed]);
+
+  // Toggle sidebar collapsed state
   const toggleSidebar = () => {
-    const newState = !sidebarCollapsed;
-    setSidebarCollapsed(newState);
-    localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
+    setSidebarCollapsed(prev => !prev);
   };
 
   useEffect(() => {

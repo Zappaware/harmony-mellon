@@ -39,6 +39,8 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
   };
 
   const handleLinkClick = () => {
+    // Close sidebar on mobile (overlay mode) - onClose is only defined for mobile
+    // On desktop/tablet, onClose is undefined, so this does nothing
     onClose?.();
   };
 
@@ -87,12 +89,19 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
     ? teamLeadLinks 
     : userLinks;
 
+  // Mobile should always show full content - collapsed state only applies to desktop/tablet
+  // We check if we're in mobile by checking if the sidebar is in overlay mode (isOpen is used)
+  // For desktop, collapsed can be true/false, but for mobile it should always be false
+  // Since mobile uses a separate div with md:hidden, we can use CSS to ensure it always shows full content
+  // But to be safe, we'll check: if onClose exists but we're not in desktop view, don't collapse
+  const shouldCollapse = collapsed; // Will be overridden by CSS classes for mobile
+
   const sidebarContent = (
     <>
       <div className={`border-b border-gray-800 flex items-center justify-between transition-all duration-300 ${
-        collapsed ? 'p-4' : 'p-6'
+        shouldCollapse ? 'p-4' : 'p-6'
       }`}>
-        {!collapsed ? (
+        {!shouldCollapse ? (
           <div className="flex-1">
             <h2 className="text-xl">Harmony Mellon</h2>
             <p className="text-sm font-bold text-white mt-1">{user?.name}</p>
@@ -106,7 +115,7 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
           </div>
         )}
         <div className="flex items-center gap-2">
-          {onToggle && !collapsed && (
+          {onToggle && !shouldCollapse && (
             <button
               onClick={onToggle}
               className="hidden md:flex text-gray-400 hover:text-white transition-colors p-1.5 rounded hover:bg-gray-800"
@@ -128,7 +137,7 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
       </div>
 
       <nav className={`flex-1 overflow-y-auto transition-all duration-300 ${
-        collapsed ? 'p-2' : 'p-4'
+        shouldCollapse ? 'p-2' : 'p-4'
       }`}>
         <ul className="space-y-2">
           {links.map((link) => {
@@ -141,7 +150,7 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
                   href={link.to}
                   onClick={handleLinkClick}
                   className={`flex items-center rounded-lg transition-colors ${
-                    collapsed 
+                    shouldCollapse 
                       ? 'justify-center px-3 py-3' 
                       : 'gap-3 px-4 py-3'
                   } ${
@@ -149,10 +158,10 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
                       ? 'bg-indigo-600 text-white'
                       : 'text-gray-300 hover:bg-gray-800'
                   }`}
-                  title={collapsed ? link.label : undefined}
+                  title={shouldCollapse ? link.label : undefined}
                 >
                   <Icon className="w-5 h-5 shrink-0" />
-                  {!collapsed && <span>{link.label}</span>}
+                  {!shouldCollapse && <span>{link.label}</span>}
                 </Link>
               </li>
             );
@@ -161,9 +170,9 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
       </nav>
 
       <div className={`border-t border-gray-800 transition-all duration-300 ${
-        collapsed ? 'p-2 space-y-2' : 'p-4'
+        shouldCollapse ? 'p-2 space-y-2' : 'p-4'
       }`}>
-        {onToggle && collapsed && (
+        {onToggle && shouldCollapse && (
           <button
             onClick={onToggle}
             className="hidden md:flex w-full justify-center items-center text-gray-400 hover:text-white transition-colors p-3 rounded-lg hover:bg-gray-800"
@@ -175,14 +184,14 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
         <button
           onClick={handleLogout}
           className={`flex items-center rounded-lg text-gray-300 hover:bg-gray-800 transition-colors w-full ${
-            collapsed 
+            shouldCollapse 
               ? 'justify-center px-3 py-3' 
               : 'gap-3 px-4 py-3'
           }`}
-          title={collapsed ? 'Cerrar Sesión' : undefined}
+          title={shouldCollapse ? 'Cerrar Sesión' : undefined}
         >
           <LogOut className="w-5 h-5 shrink-0" />
-          {!collapsed && <span>Cerrar Sesión</span>}
+          {!shouldCollapse && <span>Cerrar Sesión</span>}
         </button>
       </div>
     </>
@@ -195,6 +204,7 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
         className={`hidden md:flex bg-gray-900 text-white h-screen flex-col transition-all duration-300 ${
           collapsed ? 'w-16' : 'w-64'
         }`}
+        style={{ width: collapsed ? '4rem' : '16rem' }}
       >
         {sidebarContent}
       </div>
@@ -208,14 +218,68 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
         />
       )}
       
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar - Always shows full content, ignores collapsed state */}
       <div
         className={`fixed top-0 left-0 h-full w-64 bg-gray-900 text-white z-50 transform transition-transform duration-300 ease-in-out md:hidden ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="flex flex-col h-full">
-          {sidebarContent}
+          {/* Mobile content - always full, override collapsed styles */}
+          <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+            <div className="flex-1">
+              <h2 className="text-xl">Harmony Mellon</h2>
+              <p className="text-sm font-bold text-white mt-1">{user?.name}</p>
+              <p className="text-xs text-gray-400">
+                {getRoleLabel()}
+              </p>
+            </div>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-white transition-colors p-2"
+                aria-label="Cerrar menú"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+
+          <nav className="flex-1 p-4 overflow-y-auto">
+            <ul className="space-y-2">
+              {links.map((link) => {
+                const Icon = link.icon;
+                const isActive = pathname === link.to;
+                
+                return (
+                  <li key={link.to}>
+                    <Link
+                      href={link.to}
+                      onClick={handleLinkClick}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                        isActive
+                          ? 'bg-indigo-600 text-white'
+                          : 'text-gray-300 hover:bg-gray-800'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5 shrink-0" />
+                      <span>{link.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          <div className="p-4 border-t border-gray-800">
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 transition-colors w-full"
+            >
+              <LogOut className="w-5 h-5 shrink-0" />
+              <span>Cerrar Sesión</span>
+            </button>
+          </div>
         </div>
       </div>
     </>
