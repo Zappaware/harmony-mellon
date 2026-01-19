@@ -287,7 +287,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
                 <input
                   type="text"
                   placeholder="URL"
-                  value={newAttachment.url}
+                  value={newAttachment.url || ''}
                   onChange={(e) => setNewAttachment(prev => ({ ...prev, url: e.target.value }))}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -300,7 +300,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
                 <input
                   type="text"
                   placeholder="Nombre (opcional)"
-                  value={newAttachment.name}
+                  value={newAttachment.name || ''}
                   onChange={(e) => setNewAttachment(prev => ({ ...prev, name: e.target.value }))}
                   className="w-full sm:w-32 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
                 />
