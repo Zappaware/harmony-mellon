@@ -252,7 +252,7 @@ export default function GestionUsuarios() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-6 md:mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-8 md:mt-12">
           <div className="bg-white rounded-lg shadow p-4 md:p-6">
             <div className="flex items-center justify-between mb-3 md:mb-4">
               <Users className="w-6 h-6 md:w-8 md:h-8 text-indigo-600" />

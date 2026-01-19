@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useApp, Issue } from '@/context/AppContext';
-import { User, Calendar, MessageSquare, Send, Clock, Trash2 } from 'lucide-react';
+import { api } from '@/services/api';
+import { User, Calendar, MessageSquare, Send, Clock, Trash2, FolderKanban } from 'lucide-react';
 import { Badge } from '@/components/Badge';
 import { Avatar } from '@/components/Avatar';
 import { PageHeader } from '@/components/PageHeader';
@@ -23,12 +24,13 @@ import {
 export default function DetalleIssue() {
   const params = useParams();
   const id = params.id as string;
-  const { issues, addComment, users, user: currentUser, deleteIssue, updateIssueStatus } = useApp();
+  const { issues, addComment, users, projects, user: currentUser, deleteIssue, updateIssueStatus } = useApp();
   const router = useRouter();
   const [newComment, setNewComment] = useState('');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isUpdatingProject, setIsUpdatingProject] = useState(false);
 
   const issue = issues.find((i) => i.id === id);
 
@@ -140,7 +142,7 @@ export default function DetalleIssue() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="flex items-center gap-3 mb-2">
                 <User className="w-5 h-5 text-gray-400" />
@@ -177,6 +179,41 @@ export default function DetalleIssue() {
               <p className="text-gray-800">
                 <DateDisplay date={issue.createdAt} format="date" />
               </p>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="flex items-center gap-3 mb-2">
+                <FolderKanban className="w-5 h-5 text-gray-400" />
+                <span className="text-sm text-gray-500">Proyecto</span>
+              </div>
+              <select
+                value={issue.projectId || ''}
+                onChange={async (e) => {
+                  const newProjectId = e.target.value;
+                  setIsUpdatingProject(true);
+                  try {
+                    await api.updateIssue(issue.id, {
+                      project_id: newProjectId || undefined,
+                    });
+                    // Reload page to show updated project
+                    window.location.reload();
+                  } catch (error) {
+                    console.error('Error updating project:', error);
+                    alert('Error al actualizar el proyecto. Por favor, intenta de nuevo.');
+                  } finally {
+                    setIsUpdatingProject(false);
+                  }
+                }}
+                disabled={isUpdatingProject}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">Sin proyecto</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
