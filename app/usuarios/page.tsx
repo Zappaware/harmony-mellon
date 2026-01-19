@@ -19,6 +19,7 @@ import {
 
 export default function GestionUsuarios() {
   const { users, deleteUser, user: currentUser } = useApp();
+  const isAdmin = currentUser?.role === 'admin';
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
@@ -64,12 +65,14 @@ export default function GestionUsuarios() {
               <Users className="w-5 h-5 md:w-6 md:h-6 text-gray-600" />
               <h2 className="text-lg md:text-xl text-gray-800">Usuarios del Sistema</h2>
             </div>
-            <button 
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm md:text-base w-full md:w-auto"
-            >
-              Agregar Usuario
-            </button>
+            {isAdmin && (
+              <button 
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm md:text-base w-full md:w-auto"
+              >
+                Agregar Usuario
+              </button>
+            )}
           </div>
 
           {/* Mobile: Card View */}
@@ -125,23 +128,25 @@ export default function GestionUsuarios() {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                  <button 
-                    onClick={() => setUserToEdit(user)}
-                    className="flex-1 flex items-center justify-center gap-2 p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors text-sm"
-                  >
-                    <Edit className="w-4 h-4" />
-                    <span>Editar</span>
-                  </button>
-                  <button 
-                    onClick={() => handleDeleteClick(user.id)}
-                    disabled={user.id === currentUser?.id}
-                    className="flex-1 flex items-center justify-center gap-2 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span>Eliminar</span>
-                  </button>
-                </div>
+                {isAdmin && (
+                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                    <button 
+                      onClick={() => setUserToEdit(user)}
+                      className="flex-1 flex items-center justify-center gap-2 p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors text-sm"
+                    >
+                      <Edit className="w-4 h-4" />
+                      <span>Editar</span>
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteClick(user.id)}
+                      disabled={user.id === currentUser?.id}
+                      className="flex-1 flex items-center justify-center gap-2 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Eliminar</span>
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -224,7 +229,11 @@ export default function GestionUsuarios() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <button className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+                        <button 
+                          onClick={() => setUserToEdit(user)}
+                          className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          title="Editar usuario"
+                        >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button 

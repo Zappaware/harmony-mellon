@@ -59,6 +59,14 @@ type UpdateUserRequest struct {
 }
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {
+	// Check if user is admin
+	userRole, _ := c.Get("user_role")
+	role, ok := userRole.(string)
+	if !ok || role != string(models.RoleAdmin) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Solo los administradores pueden actualizar usuarios"})
+		return
+	}
+
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
