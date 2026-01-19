@@ -23,6 +23,7 @@ export default function CalendarioPage() {
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [isCreateIssueModalOpen, setIsCreateIssueModalOpen] = useState(false);
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
+  const [issueToEdit, setIssueToEdit] = useState<Issue | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Get issues for selected date
