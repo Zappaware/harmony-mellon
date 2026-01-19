@@ -12,24 +12,9 @@ import { Avatar } from '@/components/Avatar';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { CreateIssueModal } from '@/components/CreateIssueModal';
 
-// Create a singleton backend instance to prevent "Cannot have two HTML5 backends" error
-// This ensures only one HTML5Backend instance exists, even if the component remounts
-// (which can happen in React StrictMode or during navigation)
-let backendInstance: any = null;
-
-const getBackend = () => {
-  if (typeof window === 'undefined') {
-    // Server-side rendering - return the class
-    return HTML5Backend;
-  }
-  
-  // Create singleton instance only once
-  if (!backendInstance) {
-    backendInstance = new HTML5Backend();
-  }
-  
-  return backendInstance;
-};
+// Use a memoized backend to prevent "Cannot have two HTML5 backends" error
+// HTML5Backend should be passed directly to DndProvider, not instantiated
+// The memoization ensures the same reference is used even if component remounts
 
 interface IssueCardProps {
   issue: Issue;
@@ -176,9 +161,9 @@ function Kanban() {
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   
-  // Use memoized backend instance to prevent multiple instances
-  // This ensures the same backend instance is reused even if component remounts
-  const backend = useMemo(() => getBackend(), []);
+  // Use memoized backend to prevent multiple instances
+  // This ensures the same backend reference is reused even if component remounts
+  const backend = useMemo(() => HTML5Backend, []);
 
   return (
     <DndProvider backend={backend}>
