@@ -66,10 +66,9 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	// Default role to user if not provided
-	if req.Role == "" {
-		req.Role = models.RoleUser
-	}
+	// Force role to 'user' for public registration - only admins can change roles later
+	// This prevents users from registering as admin or team_lead
+	req.Role = models.RoleUser
 
 	user, err := h.authService.Register(req.Name, req.Email, req.Password, req.Role)
 	if err != nil {
