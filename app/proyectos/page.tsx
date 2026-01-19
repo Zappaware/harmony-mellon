@@ -37,7 +37,7 @@ export default function Proyectos() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [proyectos, setProyectos] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { user, deleteProject } = useApp();
+  const { user, deleteProject, issues } = useApp();
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -52,17 +52,26 @@ export default function Proyectos() {
 
       try {
         const apiProjects = await api.getProjects();
-        const convertedProjects: Project[] = apiProjects.map(project => ({
-          id: project.id,
-          nombre: project.name,
-          descripcion: project.description || '',
-          tipo: project.type,
-          progreso: project.progress || 0,
-          miembros: project.members?.length || 0,
-          fechaLimite: project.deadline || null,
-          estado: project.status || 'planning',
-          color: project.color || 'bg-blue-500',
-        }));
+        // Calculate progress based on completed issues
+        const convertedProjects: Project[] = apiProjects.map(project => {
+          const projectIssues = issues.filter(issue => issue.projectId === project.id);
+          const completedIssues = projectIssues.filter(issue => issue.status === 'done');
+          const progress = projectIssues.length > 0 
+            ? Math.round((completedIssues.length / projectIssues.length) * 100)
+            : (project.progress || 0);
+          
+          return {
+            id: project.id,
+            nombre: project.name,
+            descripcion: project.description || '',
+            tipo: project.type,
+            progreso: progress,
+            miembros: project.members?.length || 0,
+            fechaLimite: project.deadline || null,
+            estado: project.status || 'planning',
+            color: project.color || 'bg-blue-500',
+          };
+        });
         setProyectos(convertedProjects);
       } catch (error) {
         console.error('Error loading projects:', error);
@@ -179,7 +188,15 @@ export default function Proyectos() {
                 <div className="mb-4">
                   <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
                     <span>Progreso</span>
-                    <span className="font-medium">{proyecto.progreso}%</span>
+                    <span className="font-medium">
+                      {(() => {
+                        const projectIssues = issues.filter(issue => issue.projectId === proyecto.id);
+                        const completed = projectIssues.filter(issue => issue.status === 'done').length;
+                        return projectIssues.length > 0 
+                          ? `${completed}/${projectIssues.length} completadas`
+                          : `${proyecto.progreso}%`;
+                      })()}
+                    </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                     <div

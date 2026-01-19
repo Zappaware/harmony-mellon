@@ -18,14 +18,16 @@ type IssueHandler struct {
 	emailService        service.EmailService
 	userRepo            repository.UserRepository
 	notificationService service.NotificationService
+	projectRepo         repository.ProjectRepository
 }
 
-func NewIssueHandler(issueService service.IssueService, emailService service.EmailService, userRepo repository.UserRepository, notificationService service.NotificationService) *IssueHandler {
+func NewIssueHandler(issueService service.IssueService, emailService service.EmailService, userRepo repository.UserRepository, notificationService service.NotificationService, projectRepo repository.ProjectRepository) *IssueHandler {
 	return &IssueHandler{
 		issueService:        issueService,
 		emailService:        emailService,
 		userRepo:            userRepo,
 		notificationService: notificationService,
+		projectRepo:         projectRepo,
 	}
 }
 
@@ -146,11 +148,59 @@ func (h *IssueHandler) CreateIssue(c *gin.Context) {
 		return
 	}
 
+	// Get creator info
+	creator, _ := h.userRepo.GetByID(userID)
+	issueID := &issue.ID
+
+	// Create notifications (non-blocking)
+	if h.notificationService != nil {
+		// Notify assignee if assigned
+		if issue.AssignedTo != nil && *issue.AssignedTo != userID {
+			go func() {
+				assignee, err := h.userRepo.GetByID(*issue.AssignedTo)
+				if err == nil && assignee != nil {
+					assignerName := "Sistema"
+					if creator != nil {
+						assignerName = creator.Name
+					}
+					title := "Nueva tarea asignada: " + issue.Title
+					message := assignerName + " te ha asignado la tarea \"" + issue.Title + "\""
+					if err := h.notificationService.CreateNotification(*issue.AssignedTo, models.NotificationTypeAssignment, title, message, issueID); err != nil {
+						log.Printf("Failed to create assignment notification: %v", err)
+					}
+				}
+			}()
+		}
+
+		// Notify project members if issue is part of a project
+		if issue.ProjectID != nil && h.projectRepo != nil {
+			go func() {
+				project, err := h.projectRepo.GetByID(*issue.ProjectID)
+				if err == nil && project != nil {
+					members, err := h.projectRepo.GetMembers(*issue.ProjectID)
+					if err == nil {
+						creatorName := "Sistema"
+						if creator != nil {
+							creatorName = creator.Name
+						}
+						title := "Nueva tarea en proyecto: " + issue.Title
+						message := creatorName + " ha creado una nueva tarea en el proyecto"
+						for _, member := range members {
+							// Don't notify the creator
+							if member.UserID != userID {
+								if err := h.notificationService.CreateNotification(member.UserID, models.NotificationTypeStatus, title, message, issueID); err != nil {
+									log.Printf("Failed to notify project member %s: %v", member.UserID, err)
+								}
+							}
+						}
+					}
+				}
+			}()
+		}
+	}
+
 	// Send emails (non-blocking)
 	if h.emailService != nil {
-		// Get creator info
-		creator, _ := h.userRepo.GetByID(userID)
-		
 		// Email to creator
 		go func() {
 			if creator != nil {
@@ -165,8 +215,10 @@ func (h *IssueHandler) CreateIssue(c *gin.Context) {
 			go func() {
 				assignee, err := h.userRepo.GetByID(*issue.AssignedTo)
 				if err == nil && assignee != nil && assignee.ID != userID {
-					if err := h.emailService.SendIssueAssignedEmail(assignee.Email, issue.Title, issue.ID.String(), creator.Name); err != nil {
-						log.Printf("Failed to send issue assigned email to %s: %v", assignee.Email, err)
+					if creator != nil {
+						if err := h.emailService.SendIssueAssignedEmail(assignee.Email, issue.Title, issue.ID.String(), creator.Name); err != nil {
+							log.Printf("Failed to send issue assigned email to %s: %v", assignee.Email, err)
+						}
 					}
 				}
 			}()

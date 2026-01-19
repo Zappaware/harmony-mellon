@@ -23,11 +23,12 @@ import {
 export default function DetalleIssue() {
   const params = useParams();
   const id = params.id as string;
-  const { issues, addComment, users, user: currentUser, deleteIssue } = useApp();
+  const { issues, addComment, users, user: currentUser, deleteIssue, updateIssueStatus } = useApp();
   const router = useRouter();
   const [newComment, setNewComment] = useState('');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const issue = issues.find((i) => i.id === id);
 
@@ -84,9 +85,40 @@ export default function DetalleIssue() {
                 <span className="text-xs md:text-sm text-gray-500">Issue #{issue.id}</span>
               </div>
               <h1 className="text-xl md:text-3xl text-gray-800 mb-3 md:mb-4 pr-12 md:pr-16">{issue.title}</h1>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <Badge variant="priority" value={issue.priority} />
-                <Badge variant="status" value={issue.status} />
+                <div className="relative">
+                  <select
+                    value={issue.status}
+                    onChange={async (e) => {
+                      const newStatus = e.target.value as Issue['status'];
+                      setIsUpdatingStatus(true);
+                      try {
+                        await updateIssueStatus(issue.id, newStatus);
+                        // Reload page to show updated status
+                        window.location.reload();
+                      } catch (error) {
+                        console.error('Error updating status:', error);
+                        alert('Error al actualizar el estado. Por favor, intenta de nuevo.');
+                      } finally {
+                        setIsUpdatingStatus(false);
+                      }
+                    }}
+                    disabled={isUpdatingStatus}
+                    className="appearance-none bg-transparent border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      color: issue.status === 'todo' ? '#374151' :
+                             issue.status === 'in-progress' ? '#1e40af' :
+                             issue.status === 'review' ? '#7c3aed' :
+                             '#16a34a'
+                    }}
+                  >
+                    <option value="todo">Por Hacer</option>
+                    <option value="in-progress">En Progreso</option>
+                    <option value="review">En Revisión</option>
+                    <option value="done">Completada</option>
+                  </select>
+                </div>
               </div>
             </div>
             <button

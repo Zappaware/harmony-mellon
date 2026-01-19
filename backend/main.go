@@ -53,7 +53,7 @@ func main() {
 	authHandler := handlers.NewAuthHandlerWithUserService(authService, userService, emailService)
 	userHandler := handlers.NewUserHandler(userService, emailService, userRepo)
 		notificationHandler := handlers.NewNotificationHandler(notificationService)
-	issueHandler := handlers.NewIssueHandler(issueService, emailService, userRepo, notificationService)
+	issueHandler := handlers.NewIssueHandler(issueService, emailService, userRepo, notificationService, projectRepo)
 	commentHandler := handlers.NewCommentHandler(commentService)
 	projectHandler := handlers.NewProjectHandler(projectService, emailService, userRepo, notificationService, projectRepo)
 
