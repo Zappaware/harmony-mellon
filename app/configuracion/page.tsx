@@ -227,13 +227,13 @@ export default function Configuracion() {
 
       {/* Modal para agregar Estado */}
       <Dialog open={showEstadoModal} onOpenChange={setShowEstadoModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Agregar Nuevo Estado</DialogTitle>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader className="pb-3">
+            <DialogTitle className="text-lg">Agregar Nuevo Estado</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Nombre del Estado
               </label>
               <Input
@@ -245,28 +245,29 @@ export default function Configuracion() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Color
               </label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <input
                   type="color"
                   value={newEstado.color}
                   onChange={(e) => setNewEstado({ ...newEstado, color: e.target.value })}
-                  className="w-16 h-10 rounded border border-gray-300 cursor-pointer"
+                  className="w-12 h-9 rounded border border-gray-300 cursor-pointer"
                 />
                 <Input
                   type="text"
                   value={newEstado.color}
                   onChange={(e) => setNewEstado({ ...newEstado, color: e.target.value })}
                   placeholder="#6b7280"
-                  className="flex-1"
+                  className="flex-1 text-sm"
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-4">
+            <div className="flex justify-end gap-2 pt-2">
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => {
                   setShowEstadoModal(false);
                   setNewEstado({ nombre: '', color: '#6b7280' });
@@ -274,7 +275,7 @@ export default function Configuracion() {
               >
                 Cancelar
               </Button>
-              <Button onClick={handleAddEstado}>
+              <Button size="sm" onClick={handleAddEstado}>
                 Agregar
               </Button>
             </div>
@@ -284,13 +285,13 @@ export default function Configuracion() {
 
       {/* Modal para agregar Prioridad */}
       <Dialog open={showPrioridadModal} onOpenChange={setShowPrioridadModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Agregar Nueva Prioridad</DialogTitle>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader className="pb-3">
+            <DialogTitle className="text-lg">Agregar Nueva Prioridad</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Nombre de la Prioridad
               </label>
               <Input
@@ -302,28 +303,29 @@ export default function Configuracion() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Color
               </label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <input
                   type="color"
                   value={newPrioridad.color}
                   onChange={(e) => setNewPrioridad({ ...newPrioridad, color: e.target.value })}
-                  className="w-16 h-10 rounded border border-gray-300 cursor-pointer"
+                  className="w-12 h-9 rounded border border-gray-300 cursor-pointer"
                 />
                 <Input
                   type="text"
                   value={newPrioridad.color}
                   onChange={(e) => setNewPrioridad({ ...newPrioridad, color: e.target.value })}
                   placeholder="#10b981"
-                  className="flex-1"
+                  className="flex-1 text-sm"
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-4">
+            <div className="flex justify-end gap-2 pt-2">
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => {
                   setShowPrioridadModal(false);
                   setNewPrioridad({ nombre: '', color: '#10b981' });
@@ -331,7 +333,7 @@ export default function Configuracion() {
               >
                 Cancelar
               </Button>
-              <Button onClick={handleAddPrioridad}>
+              <Button size="sm" onClick={handleAddPrioridad}>
                 Agregar
               </Button>
             </div>
