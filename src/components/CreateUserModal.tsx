@@ -44,6 +44,14 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [passwordRules, setPasswordRules] = useState<PasswordRules>({
+    minLength: false,
+    hasUpperCase: false,
+    hasLowerCase: false,
+    hasNumber: false,
+    hasSpecialChar: false,
+  });
+  const [showPasswordRules, setShowPasswordRules] = useState(false);
 
   if (!isOpen) return null;
 
