@@ -11,16 +11,17 @@ interface CreateIssueModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   initialStartDate?: string;
+  initialProjectId?: string;
 }
 
-export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate }: CreateIssueModalProps) {
+export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate, initialProjectId }: CreateIssueModalProps) {
   const { users, projects, createIssue } = useApp();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     priority: 'medium' as 'low' | 'medium' | 'high',
     assignedTo: '',
-    projectId: '',
+    projectId: initialProjectId || '',
     startDate: initialStartDate || '',
     dueDate: '',
   });
@@ -39,6 +40,13 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate 
       setFormData(prev => ({ ...prev, startDate: initialStartDate }));
     }
   }, [initialStartDate]);
+
+  // Update projectId when initialProjectId changes
+  useEffect(() => {
+    if (initialProjectId) {
+      setFormData(prev => ({ ...prev, projectId: initialProjectId }));
+    }
+  }, [initialProjectId]);
 
   if (!isOpen) return null;
 

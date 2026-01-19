@@ -204,7 +204,56 @@ function TareasPageContent() {
               <p className="text-sm">Intenta ajustar los filtros para ver más resultados</p>
             </div>
           ) : (
-            <Table>
+            <>
+              {/* Mobile: Card View */}
+              <div className="md:hidden divide-y divide-gray-200">
+                {filteredIssues.map((issue) => {
+                  const assignedUser = users.find((u) => u.id === issue.assignedTo);
+                  const project = projects.find((p) => p.id === issue.projectId);
+                  const issueDate = issue.startDate || issue.dueDate || issue.createdAt;
+                  
+                  return (
+                    <Link key={issue.id} href={`/issue/${issue.id}`}>
+                      <div className="p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-medium text-gray-900 flex-1 pr-2">{issue.title}</h3>
+                          <Badge variant="status" value={issue.status} />
+                        </div>
+                        {issue.description && (
+                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">{issue.description}</p>
+                        )}
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600">
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant="priority" value={issue.priority} />
+                          </div>
+                          {assignedUser && (
+                            <div className="flex items-center gap-1.5">
+                              <User className="w-3.5 h-3.5" />
+                              <span>{assignedUser.name}</span>
+                            </div>
+                          )}
+                          {project && (
+                            <div className="flex items-center gap-1.5">
+                              <FolderKanban className="w-3.5 h-3.5" />
+                              <span className="truncate max-w-[120px]">{project.name}</span>
+                            </div>
+                          )}
+                          {issueDate && (
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5" />
+                              <span>{format(parseISO(issueDate), 'dd/MM/yyyy')}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Desktop: Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[300px]">
@@ -236,12 +285,12 @@ function TareasPageContent() {
                         )}
                       </button>
                       {showStatusFilter && (
-                        <div className="absolute top-full left-0 mt-1 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[180px]">
+                        <div className="absolute top-full left-0 mt-1 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[180px] max-w-[90vw]">
                           {statusOptions.map(option => (
                             <button
                               key={option.value}
                               onClick={() => handleStatusChange(option.value)}
-                              className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors ${
+                              className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors text-sm ${
                                 statusFilter === option.value ? 'bg-indigo-50 text-indigo-700 font-medium' : ''
                               }`}
                             >
@@ -279,10 +328,10 @@ function TareasPageContent() {
                           )}
                         </button>
                         {showUserFilter && (
-                          <div className="absolute top-full left-0 mt-1 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[200px] max-h-[300px] overflow-y-auto">
+                          <div className="absolute top-full left-0 mt-1 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[200px] max-w-[90vw] max-h-[300px] overflow-y-auto">
                             <button
                               onClick={() => handleUserChange('all')}
-                              className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors ${
+                              className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors text-sm ${
                                 userFilter === 'all' ? 'bg-indigo-50 text-indigo-700 font-medium' : ''
                               }`}
                             >
@@ -292,12 +341,12 @@ function TareasPageContent() {
                               <button
                                 key={user.id}
                                 onClick={() => handleUserChange(user.id)}
-                                className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors flex items-center gap-2 ${
+                                className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors flex items-center gap-2 text-sm ${
                                   userFilter === user.id ? 'bg-indigo-50 text-indigo-700 font-medium' : ''
                                 }`}
                               >
                                 <Avatar name={user.name} size="sm" />
-                                <span>{user.name}</span>
+                                <span className="truncate">{user.name}</span>
                               </button>
                             ))}
                           </div>
@@ -333,10 +382,10 @@ function TareasPageContent() {
                         )}
                       </button>
                       {showProjectFilter && (
-                        <div className="absolute top-full left-0 mt-1 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[200px] max-h-[300px] overflow-y-auto">
+                        <div className="absolute top-full left-0 mt-1 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[200px] max-w-[90vw] max-h-[300px] overflow-y-auto">
                           <button
                             onClick={() => handleProjectChange('all')}
-                            className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors ${
+                            className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors text-sm ${
                               projectFilter === 'all' ? 'bg-indigo-50 text-indigo-700 font-medium' : ''
                             }`}
                           >
@@ -346,11 +395,11 @@ function TareasPageContent() {
                             <button
                               key={project.id}
                               onClick={() => handleProjectChange(project.id)}
-                              className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors ${
+                              className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors text-sm ${
                                 projectFilter === project.id ? 'bg-indigo-50 text-indigo-700 font-medium' : ''
                               }`}
                             >
-                              {project.name}
+                              <span className="truncate block">{project.name}</span>
                             </button>
                           ))}
                         </div>
@@ -382,7 +431,7 @@ function TareasPageContent() {
                         )}
                       </button>
                       {showDateFilter && (
-                        <div className="absolute top-full right-0 mt-1 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-[250px]">
+                        <div className="absolute top-full right-0 mt-1 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-[250px] max-w-[90vw]">
                           <div className="space-y-2">
                             <div>
                               <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -494,7 +543,9 @@ function TareasPageContent() {
                   );
                 })}
               </TableBody>
-            </Table>
+                </Table>
+              </div>
+            </>
           )}
         </div>
       </div>

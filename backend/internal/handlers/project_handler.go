@@ -288,14 +288,17 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 					}
 				}
 
-				// Notify all admins and team leads about project update (except updater)
-				allUsers, err := h.userRepo.GetAll()
-				if err == nil {
-					for _, user := range allUsers {
-						// Notify admins and team leads, but not the updater
-						if (user.Role == models.RoleAdmin || user.Role == models.RoleTeamLead) && user.ID != currentUserID {
-							if err := h.notificationService.CreateNotification(user.ID, models.NotificationTypeStatus, title, message, projectID); err != nil {
-								log.Printf("Failed to notify admin/team lead %s about project update: %v", user.ID, err)
+				// Notify all admins and team leads about project update ONLY if the updater is a regular user
+				// If admin/team lead makes the change, only notify people involved (not other admins/team leads)
+				if currentUser != nil && currentUser.Role == models.RoleUser {
+					allUsers, err := h.userRepo.GetAll()
+					if err == nil {
+						for _, user := range allUsers {
+							// Notify admins and team leads, but not the updater
+							if (user.Role == models.RoleAdmin || user.Role == models.RoleTeamLead) && user.ID != currentUserID {
+								if err := h.notificationService.CreateNotification(user.ID, models.NotificationTypeStatus, title, message, projectID); err != nil {
+									log.Printf("Failed to notify admin/team lead %s about project update: %v", user.ID, err)
+								}
 							}
 						}
 					}

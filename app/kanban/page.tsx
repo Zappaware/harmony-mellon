@@ -1,17 +1,28 @@
 'use client'
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, Suspense } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useApp, Issue } from '@/context/AppContext';
 import { AlertCircle, Clock, Edit } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/Badge';
 import { Avatar } from '@/components/Avatar';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { CreateIssueModal } from '@/components/CreateIssueModal';
 import { EditIssueModal } from '@/components/EditIssueModal';
+import { Loading } from '@/components/Loading';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // Use a memoized backend to prevent "Cannot have two HTML5 backends" error
 // HTML5Backend should be passed directly to DndProvider, not instantiated
@@ -94,6 +105,7 @@ function IssueCard({ issue, onEdit }: IssueCardProps & { onEdit?: (issue: Issue)
   );
 }
 
+
 interface ColumnProps {
   title: string;
   status: Issue['status'];
@@ -101,16 +113,15 @@ interface ColumnProps {
   count: number;
   color: string;
   onEditIssue?: (issue: Issue) => void;
+  onStatusChangeRequest?: (issueId: string, oldStatus: Issue['status'], newStatus: Issue['status']) => void;
 }
 
-function Column({ title, status, issues, count, color, onEditIssue }: ColumnProps) {
-  const { updateIssueStatus } = useApp();
-
+function Column({ title, status, issues, count, color, onEditIssue, onStatusChangeRequest }: ColumnProps) {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'issue',
     drop: (item: { id: string; status: string }) => {
-      if (item.status !== status) {
-        updateIssueStatus(item.id, status);
+      if (item.status !== status && onStatusChangeRequest) {
+        onStatusChangeRequest(item.id, item.status as Issue['status'], status);
       }
     },
     collect: (monitor) => ({
@@ -151,8 +162,20 @@ function Column({ title, status, issues, count, color, onEditIssue }: ColumnProp
   );
 }
 
-function Kanban() {
-  const { issues } = useApp();
+function KanbanContent() {
+  const { issues, projects } = useApp();
+  const searchParams = useSearchParams();
+  const projectId = searchParams.get('project');
+
+  // Filter issues by project if projectId is provided
+  const filteredIssues = useMemo(() => {
+    if (projectId) {
+      return issues.filter(issue => issue.projectId === projectId);
+    }
+    return issues;
+  }, [issues, projectId]);
+
+  const project = projectId ? projects.find(p => p.id === projectId) : null;
 
   const columns = [
     { 
@@ -183,6 +206,49 @@ function Kanban() {
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [issueToEdit, setIssueToEdit] = useState<Issue | null>(null);
+  const [showStatusConfirmDialog, setShowStatusConfirmDialog] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<{
+    issueId: string;
+    oldStatus: Issue['status'];
+    newStatus: Issue['status'];
+    issueTitle: string;
+  } | null>(null);
+  const { updateIssueStatus } = useApp();
+  
+  const getStatusLabel = (status: Issue['status']) => {
+    const labels: Record<Issue['status'], string> = {
+      'todo': 'Por Hacer',
+      'in-progress': 'En Progreso',
+      'review': 'En Revisión',
+      'done': 'Completada',
+    };
+    return labels[status] || status;
+  };
+
+  const handleStatusChangeRequest = (issueId: string, oldStatus: Issue['status'], newStatus: Issue['status']) => {
+    const issue = filteredIssues.find(i => i.id === issueId);
+    if (issue) {
+      setPendingStatusChange({
+        issueId,
+        oldStatus,
+        newStatus,
+        issueTitle: issue.title,
+      });
+      setShowStatusConfirmDialog(true);
+    }
+  };
+
+  const handleStatusChangeConfirm = async () => {
+    if (!pendingStatusChange) return;
+    try {
+      await updateIssueStatus(pendingStatusChange.issueId, pendingStatusChange.newStatus);
+      setShowStatusConfirmDialog(false);
+      setPendingStatusChange(null);
+    } catch (error) {
+      console.error('Error updating issue status:', error);
+      alert('Error al actualizar el estado. Por favor, intenta de nuevo.');
+    }
+  };
   
   // Use memoized backend to prevent multiple instances
   // This ensures the same backend reference is reused even if component remounts
@@ -192,8 +258,8 @@ function Kanban() {
     <DndProvider backend={backend}>
       <div className="p-4 md:p-8 h-screen overflow-x-auto">
         <PageHeader
-          title="Tablero Kanban"
-          subtitle="Arrastra las tarjetas para cambiar su estado"
+          title={project ? `Kanban - ${project.name}` : "Tablero Kanban"}
+          subtitle={project ? `Tareas del proyecto: ${project.name}` : "Arrastra las tarjetas para cambiar su estado"}
           action={{
             label: 'Nueva Tarea',
             onClick: () => setIsCreateModalOpen(true),
@@ -202,7 +268,7 @@ function Kanban() {
 
         <div className="flex flex-col md:flex-row gap-3 md:gap-4 pb-6 md:pb-8 overflow-x-auto md:overflow-x-auto">
           {columns.map((column) => {
-            const columnIssues = issues.filter((issue) => issue.status === column.status);
+            const columnIssues = filteredIssues.filter((issue) => issue.status === column.status);
             return (
               <Column
                 key={column.status}
@@ -212,6 +278,7 @@ function Kanban() {
                 count={columnIssues.length}
                 color={column.color}
                 onEditIssue={setIssueToEdit}
+                onStatusChangeRequest={handleStatusChangeRequest}
               />
             );
           })}
@@ -223,6 +290,7 @@ function Kanban() {
         onSuccess={() => {
           // Issues will be reloaded automatically via useEffect in AppContext
         }}
+        initialProjectId={projectId || undefined}
       />
       <EditIssueModal
         isOpen={issueToEdit !== null}
@@ -233,14 +301,44 @@ function Kanban() {
         }}
         issue={issueToEdit}
       />
+      <AlertDialog open={showStatusConfirmDialog} onOpenChange={setShowStatusConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar cambio de estado</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas cambiar el estado de la tarea{' '}
+              <strong>{pendingStatusChange?.issueTitle}</strong> de{' '}
+              <strong>{pendingStatusChange ? getStatusLabel(pendingStatusChange.oldStatus) : ''}</strong> a{' '}
+              <strong>{pendingStatusChange ? getStatusLabel(pendingStatusChange.newStatus) : ''}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingStatusChange(null)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleStatusChangeConfirm}
+              className="bg-indigo-600 hover:bg-indigo-700"
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DndProvider>
   );
 }
 
-export default function KanbanPage() {
+function Kanban() {
   return (
     <LayoutWithSidebar>
-      <Kanban />
+      <Suspense fallback={<Loading fullScreen message="Cargando kanban..." />}>
+        <KanbanContent />
+      </Suspense>
     </LayoutWithSidebar>
   );
+}
+
+export default function KanbanPage() {
+  return <Kanban />;
 }

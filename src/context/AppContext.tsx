@@ -75,6 +75,7 @@ interface AppContextType {
   addComment: (issueId: string, text: string) => Promise<void>;
   createIssue: (data: CreateIssueData) => Promise<void>;
   createProject: (data: CreateProjectData) => Promise<void>;
+  updateProject: (projectId: string, data: Partial<CreateProjectData>) => Promise<void>;
   createUser: (data: CreateUserData) => Promise<void>;
   deleteIssue: (issueId: string) => Promise<void>;
   deleteUser: (userId: string) => Promise<void>;
@@ -563,6 +564,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateProject = async (projectId: string, data: Partial<CreateProjectData>): Promise<void> => {
+    if (useApi) {
+      try {
+        const updateData: any = {};
+        if (data.name !== undefined) updateData.name = data.name;
+        if (data.description !== undefined) updateData.description = data.description;
+        if (data.type !== undefined) updateData.type = data.type;
+        if (data.progress !== undefined) updateData.progress = data.progress;
+        if (data.status !== undefined) updateData.status = data.status;
+        if (data.startDate !== undefined) {
+          updateData.start_date = data.startDate ? new Date(data.startDate).toISOString() : null;
+        }
+        if (data.deadline !== undefined) {
+          updateData.deadline = data.deadline ? new Date(data.deadline).toISOString() : null;
+        }
+        if (data.color !== undefined) updateData.color = data.color;
+        
+        await api.updateProject(projectId, updateData);
+        // Reload projects to get updated data
+        const apiProjects = await api.getProjects();
+        setProjects(apiProjects);
+      } catch (error) {
+        console.error('Error updating project:', error);
+        throw error;
+      }
+    } else {
+      // Mock implementation
+      console.log('Project updated (mock):', projectId, data);
+    }
+  };
+
   const createUser = async (data: CreateUserData): Promise<void> => {
     if (useApi) {
       try {
@@ -660,6 +692,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addComment,
         createIssue,
         createProject,
+        updateProject,
         createUser,
         deleteIssue,
         deleteUser,

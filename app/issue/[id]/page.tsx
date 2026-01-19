@@ -31,8 +31,36 @@ export default function DetalleIssue() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isUpdatingProject, setIsUpdatingProject] = useState(false);
+  const [showStatusConfirmDialog, setShowStatusConfirmDialog] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<Issue['status'] | null>(null);
 
   const issue = issues.find((i) => i.id === id);
+
+  const getStatusLabel = (status: Issue['status']) => {
+    const labels: Record<Issue['status'], string> = {
+      'todo': 'Por Hacer',
+      'in-progress': 'En Progreso',
+      'review': 'En Revisión',
+      'done': 'Completada',
+    };
+    return labels[status] || status;
+  };
+
+  const handleStatusChange = async () => {
+    if (!pendingStatus || !issue) return;
+    setIsUpdatingStatus(true);
+    try {
+      await updateIssueStatus(issue.id, pendingStatus);
+      setShowStatusConfirmDialog(false);
+      setPendingStatus(null);
+      // Reload page to show updated status
+      window.location.reload();
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('Error al actualizar el estado. Por favor, intenta de nuevo.');
+      setIsUpdatingStatus(false);
+    }
+  };
 
   if (!issue) {
     return (
@@ -92,18 +120,13 @@ export default function DetalleIssue() {
                 <div className="relative">
                   <select
                     value={issue.status}
-                    onChange={async (e) => {
+                    onChange={(e) => {
                       const newStatus = e.target.value as Issue['status'];
-                      setIsUpdatingStatus(true);
-                      try {
-                        await updateIssueStatus(issue.id, newStatus);
-                        // Reload page to show updated status
-                        window.location.reload();
-                      } catch (error) {
-                        console.error('Error updating status:', error);
-                        alert('Error al actualizar el estado. Por favor, intenta de nuevo.');
-                      } finally {
-                        setIsUpdatingStatus(false);
+                      if (newStatus !== issue.status) {
+                        setPendingStatus(newStatus);
+                        setShowStatusConfirmDialog(true);
+                        // Reset select to current value until confirmed
+                        e.target.value = issue.status;
                       }
                     }}
                     disabled={isUpdatingStatus}
@@ -288,6 +311,32 @@ export default function DetalleIssue() {
                 className="bg-red-600 hover:bg-red-700"
               >
                 {isDeleting ? 'Eliminando...' : 'Eliminar'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={showStatusConfirmDialog} onOpenChange={setShowStatusConfirmDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar cambio de estado</AlertDialogTitle>
+              <AlertDialogDescription>
+                ¿Estás seguro de que deseas cambiar el estado de la tarea{' '}
+                <strong>{issue.title}</strong> de{' '}
+                <strong>{getStatusLabel(issue.status)}</strong> a{' '}
+                <strong>{pendingStatus ? getStatusLabel(pendingStatus) : ''}</strong>?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isUpdatingStatus} onClick={() => setPendingStatus(null)}>
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleStatusChange}
+                disabled={isUpdatingStatus}
+                className="bg-indigo-600 hover:bg-indigo-700"
+              >
+                {isUpdatingStatus ? 'Actualizando...' : 'Confirmar'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
