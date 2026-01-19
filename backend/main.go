@@ -53,9 +53,9 @@ func main() {
 	authHandler := handlers.NewAuthHandlerWithUserService(authService, userService, emailService)
 	userHandler := handlers.NewUserHandler(userService, emailService, userRepo)
 		notificationHandler := handlers.NewNotificationHandler(notificationService)
-	issueHandler := handlers.NewIssueHandler(issueService, emailService, userRepo)
+	issueHandler := handlers.NewIssueHandler(issueService, emailService, userRepo, notificationService)
 	commentHandler := handlers.NewCommentHandler(commentService)
-	projectHandler := handlers.NewProjectHandler(projectService, emailService, userRepo)
+	projectHandler := handlers.NewProjectHandler(projectService, emailService, userRepo, notificationService, projectRepo)
 
 	// Setup router
 	router := gin.Default()

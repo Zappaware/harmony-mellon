@@ -13,16 +13,20 @@ import (
 )
 
 type ProjectHandler struct {
-	projectService service.ProjectService
-	emailService   service.EmailService
-	userRepo       repository.UserRepository
+	projectService      service.ProjectService
+	emailService        service.EmailService
+	userRepo            repository.UserRepository
+	notificationService service.NotificationService
+	projectRepo         repository.ProjectRepository
 }
 
-func NewProjectHandler(projectService service.ProjectService, emailService service.EmailService, userRepo repository.UserRepository) *ProjectHandler {
+func NewProjectHandler(projectService service.ProjectService, emailService service.EmailService, userRepo repository.UserRepository, notificationService service.NotificationService, projectRepo repository.ProjectRepository) *ProjectHandler {
 	return &ProjectHandler{
-		projectService: projectService,
-		emailService:   emailService,
-		userRepo:       userRepo,
+		projectService:      projectService,
+		emailService:        emailService,
+		userRepo:            userRepo,
+		notificationService: notificationService,
+		projectRepo:         projectRepo,
 	}
 }
 
@@ -65,6 +69,14 @@ type CreateProjectRequest struct {
 func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	userIDStr, _ := c.Get("user_id")
 	userID, _ := uuid.Parse(userIDStr.(string))
+	userRole, _ := c.Get("user_role")
+
+	// Check if user is admin or team_lead
+	role, ok := userRole.(string)
+	if !ok || (role != string(models.RoleAdmin) && role != string(models.RoleTeamLead)) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y líderes de equipo pueden crear proyectos"})
+		return
+	}
 
 	var req CreateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -199,16 +211,61 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 		changes = append(changes, "Fecha límite actualizada")
 	}
 
-	// Send email to creator if there are changes (non-blocking)
-	if len(changes) > 0 && h.emailService != nil {
-		go func() {
-			creator, err := h.userRepo.GetByID(project.CreatedBy)
-			if err == nil && creator != nil {
-				if err := h.emailService.SendProjectUpdatedEmail(creator.Email, project.Name, project.ID.String(), changes); err != nil {
-					log.Printf("Failed to send project updated email to %s: %v", creator.Email, err)
+	// Notify all project members about the update
+	if len(changes) > 0 {
+		// Get updated project with members (reload to get fresh data with members)
+		updatedProject, _ := h.projectService.GetProject(id)
+		
+		// Get current user who made the update
+		currentUserIDStr, _ := c.Get("user_id")
+		currentUserID, _ := uuid.Parse(currentUserIDStr.(string))
+		currentUser, _ := h.userRepo.GetByID(currentUserID)
+
+		if updatedProject != nil && h.notificationService != nil && currentUser != nil {
+			go func() {
+				projectID := &updatedProject.ID
+				changesText := ""
+				for i, change := range changes {
+					if i > 0 {
+						changesText += ", "
+					}
+					changesText += change
 				}
-			}
-		}()
+				title := "Proyecto actualizado: " + updatedProject.Name
+				message := currentUser.Name + " ha actualizado el proyecto: " + changesText
+
+				// Notify creator (if not the one making the update)
+				if updatedProject.CreatedBy != currentUserID {
+					if err := h.notificationService.CreateNotification(updatedProject.CreatedBy, models.NotificationTypeStatus, title, message, projectID); err != nil {
+						log.Printf("Failed to notify project creator: %v", err)
+					}
+				}
+
+				// Notify all project members
+				if updatedProject.Members != nil {
+					for _, member := range updatedProject.Members {
+						// Don't notify the person who made the update
+						if member.UserID != currentUserID && member.UserID != updatedProject.CreatedBy {
+							if err := h.notificationService.CreateNotification(member.UserID, models.NotificationTypeStatus, title, message, projectID); err != nil {
+								log.Printf("Failed to notify project member %s: %v", member.UserID, err)
+							}
+						}
+					}
+				}
+			}()
+		}
+
+		// Send email to creator if there are changes (non-blocking)
+		if h.emailService != nil {
+			go func() {
+				creator, err := h.userRepo.GetByID(project.CreatedBy)
+				if err == nil && creator != nil {
+					if err := h.emailService.SendProjectUpdatedEmail(creator.Email, project.Name, project.ID.String(), changes); err != nil {
+						log.Printf("Failed to send project updated email to %s: %v", creator.Email, err)
+					}
+				}
+			}()
+		}
 	}
 
 	c.JSON(http.StatusOK, project)
@@ -261,6 +318,24 @@ func (h *ProjectHandler) AddProjectMember(c *gin.Context) {
 	if err := h.projectService.AddMember(projectID, userID, role); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Get project and current user info for notification
+	project, _ := h.projectService.GetProject(projectID)
+	currentUserIDStr, _ := c.Get("user_id")
+	currentUserID, _ := uuid.Parse(currentUserIDStr.(string))
+	currentUser, _ := h.userRepo.GetByID(currentUserID)
+
+	// Notify the new member that they were added to the project
+	if h.notificationService != nil && project != nil && currentUser != nil {
+		go func() {
+			projectID := &project.ID
+			title := "Has sido agregado a un proyecto"
+			message := currentUser.Name + " te ha agregado al proyecto \"" + project.Name + "\""
+			if err := h.notificationService.CreateNotification(userID, models.NotificationTypeUser, title, message, projectID); err != nil {
+				log.Printf("Failed to create notification for project member: %v", err)
+			}
+		}()
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Member added successfully"})

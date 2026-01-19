@@ -88,10 +88,12 @@ export default function Proyectos() {
         <PageHeader
           title="Proyectos"
           subtitle="Gestiona todos tus proyectos activos"
-          action={{
-            label: 'Nuevo Proyecto',
-            onClick: () => setIsCreateModalOpen(true),
-          }}
+          action={
+            (user?.role === 'admin' || user?.role === 'team_lead') ? {
+              label: 'Nuevo Proyecto',
+              onClick: () => setIsCreateModalOpen(true),
+            } : undefined
+          }
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
@@ -197,15 +199,17 @@ export default function Proyectos() {
             </div>
           ))}
           
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6 hover:bg-gray-100 hover:border-indigo-400 transition-all flex flex-col items-center justify-center min-h-[280px] group"
-          >
-            <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-indigo-200 transition-colors">
-              <Plus className="w-6 h-6 text-indigo-600" />
-            </div>
-            <p className="text-gray-600 group-hover:text-gray-800">Crear Nuevo Proyecto</p>
-          </button>
+          {(user?.role === 'admin' || user?.role === 'team_lead') && (
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6 hover:bg-gray-100 hover:border-indigo-400 transition-all flex flex-col items-center justify-center min-h-[280px] group"
+            >
+              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-indigo-200 transition-colors">
+                <Plus className="w-6 h-6 text-indigo-600" />
+              </div>
+              <p className="text-gray-600 group-hover:text-gray-800">Crear Nuevo Proyecto</p>
+            </button>
+          )}
         </div>
       </div>
       <CreateProjectModal

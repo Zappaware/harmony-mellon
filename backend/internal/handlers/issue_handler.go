@@ -13,16 +13,18 @@ import (
 )
 
 type IssueHandler struct {
-	issueService service.IssueService
-	emailService service.EmailService
-	userRepo     repository.UserRepository
+	issueService        service.IssueService
+	emailService        service.EmailService
+	userRepo            repository.UserRepository
+	notificationService service.NotificationService
 }
 
-func NewIssueHandler(issueService service.IssueService, emailService service.EmailService, userRepo repository.UserRepository) *IssueHandler {
+func NewIssueHandler(issueService service.IssueService, emailService service.EmailService, userRepo repository.UserRepository, notificationService service.NotificationService) *IssueHandler {
 	return &IssueHandler{
-		issueService: issueService,
-		emailService: emailService,
-		userRepo:     userRepo,
+		issueService:        issueService,
+		emailService:        emailService,
+		userRepo:            userRepo,
+		notificationService: notificationService,
 	}
 }
 
@@ -254,33 +256,55 @@ func (h *IssueHandler) UpdateIssue(c *gin.Context) {
 		changes = append(changes, "Fecha de vencimiento actualizada")
 	}
 
-	// Send emails (non-blocking)
-	if len(changes) > 0 && h.emailService != nil {
+	// Get current user who made the update
+	currentUserIDStr, _ := c.Get("user_id")
+	currentUserID, _ := uuid.Parse(currentUserIDStr.(string))
+	currentUser, _ := h.userRepo.GetByID(currentUserID)
+
+	// Send notifications and emails (non-blocking)
+	if len(changes) > 0 {
 		// Get users
 		creator, _ := h.userRepo.GetByID(issue.CreatedBy)
 		
-		// Email to creator
-		go func() {
-			if creator != nil {
-				if err := h.emailService.SendIssueUpdatedEmail(creator.Email, issue.Title, issue.ID.String(), changes); err != nil {
-					log.Printf("Failed to send issue updated email to creator %s: %v", creator.Email, err)
-				}
+		changesText := ""
+		for i, change := range changes {
+			if i > 0 {
+				changesText += ", "
 			}
-		}()
+			changesText += change
+		}
+		
+		issueID := &issue.ID
+		title := "Tarea actualizada: " + issue.Title
+		message := ""
+		if currentUser != nil {
+			message = currentUser.Name + " ha actualizado la tarea: " + changesText
+		} else {
+			message = "La tarea ha sido actualizada: " + changesText
+		}
 
-		// Email to assignee if assigned
-		if issue.AssignedTo != nil {
+		// Notify creator (if not the one making the update)
+		if h.notificationService != nil && creator != nil && issue.CreatedBy != currentUserID {
+			go func() {
+				if err := h.notificationService.CreateNotification(issue.CreatedBy, models.NotificationTypeStatus, title, message, issueID); err != nil {
+					log.Printf("Failed to notify issue creator: %v", err)
+				}
+			}()
+		}
+
+		// Notify assignee if assigned (and not the creator)
+		if issue.AssignedTo != nil && h.notificationService != nil {
 			go func() {
 				assignee, err := h.userRepo.GetByID(*issue.AssignedTo)
-				if err == nil && assignee != nil {
-					if err := h.emailService.SendIssueUpdatedEmail(assignee.Email, issue.Title, issue.ID.String(), changes); err != nil {
-						log.Printf("Failed to send issue updated email to assignee %s: %v", assignee.Email, err)
+				if err == nil && assignee != nil && *issue.AssignedTo != currentUserID && *issue.AssignedTo != issue.CreatedBy {
+					if err := h.notificationService.CreateNotification(*issue.AssignedTo, models.NotificationTypeStatus, title, message, issueID); err != nil {
+						log.Printf("Failed to notify issue assignee: %v", err)
 					}
 				}
 			}()
 		}
 
-		// If assignment changed, send assignment email
+		// If assignment changed, send assignment notification
 		if req.AssignedTo != nil {
 			oldAssignedID := ""
 			if oldIssue.AssignedTo != nil {
@@ -289,16 +313,64 @@ func (h *IssueHandler) UpdateIssue(c *gin.Context) {
 			if *req.AssignedTo != oldAssignedID && *req.AssignedTo != "" {
 				go func() {
 					assignee, err := h.userRepo.GetByID(*issue.AssignedTo)
-					if err == nil && assignee != nil {
+					if err == nil && assignee != nil && h.notificationService != nil {
 						assignerName := "Sistema"
-						if creator != nil {
-							assignerName = creator.Name
+						if currentUser != nil {
+							assignerName = currentUser.Name
 						}
-						if err := h.emailService.SendIssueAssignedEmail(assignee.Email, issue.Title, issue.ID.String(), assignerName); err != nil {
-							log.Printf("Failed to send issue assigned email to %s: %v", assignee.Email, err)
+						assignmentTitle := "Tarea asignada: " + issue.Title
+						assignmentMessage := assignerName + " te ha asignado la tarea \"" + issue.Title + "\""
+						if err := h.notificationService.CreateNotification(*issue.AssignedTo, models.NotificationTypeAssignment, assignmentTitle, assignmentMessage, issueID); err != nil {
+							log.Printf("Failed to create assignment notification: %v", err)
 						}
 					}
 				}()
+			}
+		}
+
+		// Send emails (non-blocking)
+		if h.emailService != nil {
+			// Email to creator
+			go func() {
+				if creator != nil {
+					if err := h.emailService.SendIssueUpdatedEmail(creator.Email, issue.Title, issue.ID.String(), changes); err != nil {
+						log.Printf("Failed to send issue updated email to creator %s: %v", creator.Email, err)
+					}
+				}
+			}()
+
+			// Email to assignee if assigned
+			if issue.AssignedTo != nil {
+				go func() {
+					assignee, err := h.userRepo.GetByID(*issue.AssignedTo)
+					if err == nil && assignee != nil {
+						if err := h.emailService.SendIssueUpdatedEmail(assignee.Email, issue.Title, issue.ID.String(), changes); err != nil {
+							log.Printf("Failed to send issue updated email to assignee %s: %v", assignee.Email, err)
+						}
+					}
+				}()
+			}
+
+			// If assignment changed, send assignment email
+			if req.AssignedTo != nil {
+				oldAssignedID := ""
+				if oldIssue.AssignedTo != nil {
+					oldAssignedID = oldIssue.AssignedTo.String()
+				}
+				if *req.AssignedTo != oldAssignedID && *req.AssignedTo != "" {
+					go func() {
+						assignee, err := h.userRepo.GetByID(*issue.AssignedTo)
+						if err == nil && assignee != nil {
+							assignerName := "Sistema"
+							if creator != nil {
+								assignerName = creator.Name
+							}
+							if err := h.emailService.SendIssueAssignedEmail(assignee.Email, issue.Title, issue.ID.String(), assignerName); err != nil {
+								log.Printf("Failed to send issue assigned email to %s: %v", assignee.Email, err)
+							}
+						}
+					}()
+				}
 			}
 		}
 	}
@@ -323,13 +395,64 @@ func (h *IssueHandler) UpdateIssueStatus(c *gin.Context) {
 		return
 	}
 
+	// Get old issue to compare status
+	oldIssue, _ := h.issueService.GetIssue(id)
+
 	issue, err := h.issueService.UpdateIssueStatus(id, req.Status)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
+	// Get current user who made the update
+	currentUserIDStr, _ := c.Get("user_id")
+	currentUserID, _ := uuid.Parse(currentUserIDStr.(string))
+	currentUser, _ := h.userRepo.GetByID(currentUserID)
+
+	// Notify users if status changed
+	if oldIssue != nil && oldIssue.Status != req.Status && h.notificationService != nil {
+		go func() {
+			issueID := &issue.ID
+			statusText := ""
+			switch req.Status {
+			case models.StatusTodo:
+				statusText = "Por Hacer"
+			case models.StatusInProgress:
+				statusText = "En Progreso"
+			case models.StatusReview:
+				statusText = "En Revisión"
+			case models.StatusDone:
+				statusText = "Completada"
+			default:
+				statusText = string(req.Status)
+			}
+
+			title := "Estado de tarea actualizado: " + issue.Title
+			message := ""
+			if currentUser != nil {
+				message = currentUser.Name + " ha cambiado el estado de la tarea a: " + statusText
+			} else {
+				message = "El estado de la tarea ha sido cambiado a: " + statusText
+			}
+
+			// Notify creator (if not the one making the update)
+			if issue.CreatedBy != currentUserID {
+				if err := h.notificationService.CreateNotification(issue.CreatedBy, models.NotificationTypeStatus, title, message, issueID); err != nil {
+					log.Printf("Failed to notify issue creator about status change: %v", err)
+				}
+			}
+
+			// Notify assignee if assigned (and not the one making the update)
+			if issue.AssignedTo != nil && *issue.AssignedTo != currentUserID && *issue.AssignedTo != issue.CreatedBy {
+				if err := h.notificationService.CreateNotification(*issue.AssignedTo, models.NotificationTypeStatus, title, message, issueID); err != nil {
+					log.Printf("Failed to notify issue assignee about status change: %v", err)
+				}
+			}
+		}()
+	}
+
 	c.JSON(http.StatusOK, issue)
+}
 }
 
 func (h *IssueHandler) DeleteIssue(c *gin.Context) {
