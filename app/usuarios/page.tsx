@@ -5,10 +5,48 @@ import { useApp } from '@/context/AppContext';
 import { Users, Mail, Shield, UserCircle, Edit, Trash2 } from 'lucide-react';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { CreateUserModal } from '@/components/CreateUserModal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function GestionUsuarios() {
-  const { users } = useApp();
+  const { users, deleteUser, user: currentUser } = useApp();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteClick = (userId: string) => {
+    // Prevent deleting yourself
+    if (userId === currentUser?.id) {
+      alert('No puedes eliminar tu propio usuario');
+      return;
+    }
+    setUserToDelete(userId);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteUser(userToDelete);
+      setUserToDelete(null);
+      // Reload page to refresh users list
+      window.location.reload();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Error al eliminar el usuario. Por favor, intenta de nuevo.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <LayoutWithSidebar>
@@ -83,7 +121,11 @@ export default function GestionUsuarios() {
                     <Edit className="w-4 h-4" />
                     <span>Editar</span>
                   </button>
-                  <button className="flex-1 flex items-center justify-center gap-2 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm">
+                  <button 
+                    onClick={() => handleDeleteClick(user.id)}
+                    disabled={user.id === currentUser?.id}
+                    className="flex-1 flex items-center justify-center gap-2 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <Trash2 className="w-4 h-4" />
                     <span>Eliminar</span>
                   </button>
@@ -166,7 +208,11 @@ export default function GestionUsuarios() {
                         <button className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                        <button 
+                          onClick={() => handleDeleteClick(user.id)}
+                          disabled={user.id === currentUser?.id}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -216,6 +262,28 @@ export default function GestionUsuarios() {
           window.location.reload();
         }}
       />
+
+      <AlertDialog open={userToDelete !== null} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Esto eliminará permanentemente el usuario{' '}
+              <strong>{users.find(u => u.id === userToDelete)?.name}</strong> y todas sus asignaciones.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? 'Eliminando...' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </LayoutWithSidebar>
   );
 }

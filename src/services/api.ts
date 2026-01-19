@@ -206,6 +206,12 @@ class ApiService {
     });
   }
 
+  async deleteIssue(id: string): Promise<void> {
+    return this.request<void>(`/issues/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   async getUsers(): Promise<ApiUser[]> {
     return this.request<ApiUser[]>('/users');
   }
@@ -218,6 +224,12 @@ class ApiService {
     return this.request<ApiUser>(`/users/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
+    });
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    return this.request<void>(`/users/${id}`, {
+      method: 'DELETE',
     });
   }
 

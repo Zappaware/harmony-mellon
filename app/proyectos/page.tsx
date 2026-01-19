@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import { FolderKanban, Users, Calendar, TrendingUp, Plus } from 'lucide-react';
+import { FolderKanban, Users, Calendar, TrendingUp, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { PageHeader } from '@/components/PageHeader';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
@@ -10,6 +10,16 @@ import { CreateProjectModal } from '@/components/CreateProjectModal';
 import { api } from '@/services/api';
 import { useApp } from '@/context/AppContext';
 import { Loading } from '@/components/Loading';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Project {
   id: string;
@@ -26,7 +36,9 @@ export default function Proyectos() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [proyectos, setProyectos] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useApp();
+  const { user, deleteProject } = useApp();
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Load projects from API
   useEffect(() => {
@@ -116,13 +128,15 @@ export default function Proyectos() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {proyectos.map((proyecto) => (
-            <Link
+            <div
               key={proyecto.id}
-              href="/kanban"
-              className="bg-white rounded-lg shadow hover:shadow-lg transition-all p-6 block group"
+              className="bg-white rounded-lg shadow hover:shadow-lg transition-all p-6 group relative"
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
+                <Link
+                  href="/kanban"
+                  className="flex items-center gap-3 flex-1"
+                >
                   <div className={`w-12 h-12 ${proyecto.color} rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform`}>
                     <FolderKanban className="w-6 h-6 text-white" />
                   </div>
@@ -132,42 +146,55 @@ export default function Proyectos() {
                     </h3>
                     <span className="text-xs text-gray-500">{proyecto.estado}</span>
                   </div>
-                </div>
+                </Link>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setProjectToDelete(proyecto.id);
+                  }}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                  title="Eliminar proyecto"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
 
-              <p className="text-sm text-gray-600 mb-4 line-clamp-2">{proyecto.descripcion}</p>
+              <Link href="/kanban">
+                <p className="text-sm text-gray-600 mb-4 line-clamp-2">{proyecto.descripcion}</p>
 
-              <div className="mb-4">
-                <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                  <span>Progreso</span>
-                  <span className="font-medium">{proyecto.progreso}%</span>
+                <div className="mb-4">
+                  <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+                    <span>Progreso</span>
+                    <span className="font-medium">{proyecto.progreso}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${proyecto.progreso}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${proyecto.progreso}%` }}
-                  />
-                </div>
-              </div>
 
-              <div className="flex items-center justify-between text-sm text-gray-600 pt-4 border-t border-gray-100">
-                <div className="flex items-center gap-1">
-                  <Users className="w-4 h-4" />
-                  <span>{proyecto.miembros} miembros</span>
-                </div>
-                {proyecto.fechaLimite ? (
+                <div className="flex items-center justify-between text-sm text-gray-600 pt-4 border-t border-gray-100">
                   <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    <DateDisplay date={proyecto.fechaLimite} format="date" />
+                    <Users className="w-4 h-4" />
+                    <span>{proyecto.miembros} miembros</span>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-1 text-gray-400">
-                    <Calendar className="w-4 h-4" />
-                    <span>Sin fecha límite</span>
-                  </div>
-                )}
-              </div>
-            </Link>
+                  {proyecto.fechaLimite ? (
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      <DateDisplay date={proyecto.fechaLimite} format="date" />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 text-gray-400">
+                      <Calendar className="w-4 h-4" />
+                      <span>Sin fecha límite</span>
+                    </div>
+                  )}
+                </div>
+              </Link>
+            </div>
           ))}
           
           <button
@@ -204,6 +231,53 @@ export default function Proyectos() {
           }
         }}
       />
+
+      <AlertDialog open={projectToDelete !== null} onOpenChange={(open) => !open && setProjectToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Esto eliminará permanentemente el proyecto{' '}
+              <strong>{proyectos.find(p => p.id === projectToDelete)?.nombre}</strong> y todas sus tareas asociadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!projectToDelete) return;
+                setIsDeleting(true);
+                try {
+                  await deleteProject(projectToDelete);
+                  setProjectToDelete(null);
+                  // Reload projects
+                  const apiProjects = await api.getProjects();
+                  const convertedProjects: Project[] = apiProjects.map(project => ({
+                    id: project.id,
+                    nombre: project.name,
+                    descripcion: project.description || '',
+                    progreso: project.progress || 0,
+                    miembros: project.members?.length || 0,
+                    fechaLimite: project.deadline || null,
+                    estado: project.status || 'planning',
+                    color: project.color || 'bg-blue-500',
+                  }));
+                  setProyectos(convertedProjects);
+                } catch (error) {
+                  console.error('Error deleting project:', error);
+                  alert('Error al eliminar el proyecto. Por favor, intenta de nuevo.');
+                } finally {
+                  setIsDeleting(false);
+                }
+              }}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? 'Eliminando...' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </LayoutWithSidebar>
   );
 }

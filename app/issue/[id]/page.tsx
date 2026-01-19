@@ -3,19 +3,31 @@
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
-import { User, Calendar, MessageSquare, Send, Clock } from 'lucide-react';
+import { User, Calendar, MessageSquare, Send, Clock, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/Badge';
 import { Avatar } from '@/components/Avatar';
 import { PageHeader } from '@/components/PageHeader';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { DateDisplay } from '@/components/DateDisplay';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function DetalleIssue() {
   const params = useParams();
   const id = params.id as string;
-  const { issues, addComment, users, user: currentUser } = useApp();
+  const { issues, addComment, users, user: currentUser, deleteIssue } = useApp();
   const router = useRouter();
   const [newComment, setNewComment] = useState('');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const issue = issues.find((i) => i.id === id);
 
@@ -48,6 +60,18 @@ export default function DetalleIssue() {
     }
   };
 
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteIssue(issue.id);
+      router.push('/mis-tareas');
+    } catch (error) {
+      console.error('Error deleting issue:', error);
+      alert('Error al eliminar la tarea. Por favor, intenta de nuevo.');
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <LayoutWithSidebar>
       <div className="p-4 md:p-8 max-w-5xl mx-auto">
@@ -65,6 +89,13 @@ export default function DetalleIssue() {
                 <Badge variant="status" value={issue.status} />
               </div>
             </div>
+            <button
+              onClick={() => setShowDeleteDialog(true)}
+              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="Eliminar tarea"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
           </div>
 
           <div className="mb-6">
@@ -170,6 +201,28 @@ export default function DetalleIssue() {
             </div>
           </form>
         </div>
+
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción no se puede deshacer. Esto eliminará permanentemente la tarea{' '}
+                <strong>{issue.title}</strong> y todos sus comentarios.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {isDeleting ? 'Eliminando...' : 'Eliminar'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </LayoutWithSidebar>
   );

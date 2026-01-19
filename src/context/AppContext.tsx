@@ -71,6 +71,9 @@ interface AppContextType {
   createIssue: (data: CreateIssueData) => Promise<void>;
   createProject: (data: CreateProjectData) => Promise<void>;
   createUser: (data: CreateUserData) => Promise<void>;
+  deleteIssue: (issueId: string) => Promise<void>;
+  deleteUser: (userId: string) => Promise<void>;
+  deleteProject: (projectId: string) => Promise<void>;
   users: User[];
 }
 
@@ -591,6 +594,61 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const deleteIssue = async (issueId: string): Promise<void> => {
+    if (useApi) {
+      try {
+        await api.deleteIssue(issueId);
+        // Remove issue from state
+        setIssues((prev) => prev.filter((issue) => issue.id !== issueId));
+      } catch (error) {
+        console.error('Error deleting issue:', error);
+        throw error;
+      }
+    } else {
+      // Mock implementation
+      setIssues((prev) => prev.filter((issue) => issue.id !== issueId));
+    }
+  };
+
+  const deleteUser = async (userId: string): Promise<void> => {
+    if (useApi) {
+      try {
+        await api.deleteUser(userId);
+        // Remove user from state
+        setUsers((prev) => prev.filter((u) => u.id !== userId));
+        // Also remove from issues assigned to this user
+        setIssues((prev) => prev.map(issue => 
+          issue.assignedTo === userId ? { ...issue, assignedTo: undefined } : issue
+        ));
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        throw error;
+      }
+    } else {
+      // Mock implementation
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      setIssues((prev) => prev.map(issue => 
+        issue.assignedTo === userId ? { ...issue, assignedTo: undefined } : issue
+      ));
+    }
+  };
+
+  const deleteProject = async (projectId: string): Promise<void> => {
+    if (useApi) {
+      try {
+        await api.deleteProject(projectId);
+        // Note: Projects are managed locally in the projects page, so we don't need to update state here
+        // The page will reload projects via useEffect
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        throw error;
+      }
+    } else {
+      // Mock implementation - just log
+      console.log('Project deleted (mock):', projectId);
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -604,6 +662,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         createIssue,
         createProject,
         createUser,
+        deleteIssue,
+        deleteUser,
+        deleteProject,
         users,
       }}
     >

@@ -33,6 +33,34 @@ import {
   Cell,
 } from 'recharts';
 
+// Helper function to calculate trend percentage
+function calculateTrend(currentCount: number, previousCount: number): { value: number; isPositive: boolean } {
+  if (previousCount === 0) {
+    // If there were no issues in previous period, any current issues is 100% increase
+    return currentCount > 0 ? { value: 100, isPositive: true } : { value: 0, isPositive: true };
+  }
+  
+  const change = ((currentCount - previousCount) / previousCount) * 100;
+  const roundedChange = Math.round(change * 10) / 10; // Round to 1 decimal place
+  
+  return {
+    value: Math.abs(roundedChange),
+    isPositive: roundedChange >= 0
+  };
+}
+
+// Helper function to get issues created before a specific month
+function getIssuesBeforeMonth(issues: any[], monthOffset: number = 0): any[] {
+  const now = new Date();
+  const targetDate = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1);
+  
+  return issues.filter(issue => {
+    if (!issue.createdAt) return false;
+    const issueDate = new Date(issue.createdAt);
+    return issueDate < targetDate;
+  });
+}
+
 function DashboardUsuario() {
   const { issues, user, users, isLoading } = useApp();
 
@@ -41,10 +69,30 @@ function DashboardUsuario() {
   }
 
   const myIssues = issues.filter((issue) => issue.assignedTo === user?.id);
+  
+  // Current counts (all issues currently in each status)
   const todoCount = myIssues.filter((i) => i.status === 'todo').length;
   const inProgressCount = myIssues.filter((i) => i.status === 'in-progress').length;
   const reviewCount = myIssues.filter((i) => i.status === 'review').length;
   const doneCount = myIssues.filter((i) => i.status === 'done').length;
+  
+  // Previous month: issues that existed before this month (created before current month)
+  // We compare their current status to approximate what the counts were
+  // This is an approximation since we don't have historical status snapshots
+  const previousMonthIssues = getIssuesBeforeMonth(myIssues, 0);
+  
+  // Count issues that existed last month and are currently in each status
+  // This approximates the previous month's status distribution
+  const prevTodoCount = previousMonthIssues.filter((i) => i.status === 'todo').length;
+  const prevInProgressCount = previousMonthIssues.filter((i) => i.status === 'in-progress').length;
+  const prevReviewCount = previousMonthIssues.filter((i) => i.status === 'review').length;
+  const prevDoneCount = previousMonthIssues.filter((i) => i.status === 'done').length;
+  
+  // Calculate trends: compare current total vs previous month's total
+  const todoTrend = calculateTrend(todoCount, prevTodoCount);
+  const inProgressTrend = calculateTrend(inProgressCount, prevInProgressCount);
+  const reviewTrend = calculateTrend(reviewCount, prevReviewCount);
+  const doneTrend = calculateTrend(doneCount, prevDoneCount);
 
   const stats = [
     { 
@@ -52,28 +100,28 @@ function DashboardUsuario() {
       value: todoCount, 
       icon: Clock, 
       color: 'bg-blue-500',
-      trend: { value: 12, isPositive: false }
+      trend: todoTrend
     },
     { 
       label: 'En Progreso', 
       value: inProgressCount, 
       icon: TrendingUp, 
       color: 'bg-yellow-500',
-      trend: { value: 8, isPositive: true }
+      trend: inProgressTrend
     },
     { 
       label: 'En Revisión', 
       value: reviewCount, 
       icon: AlertCircle, 
       color: 'bg-purple-500',
-      trend: { value: 5, isPositive: true }
+      trend: reviewTrend
     },
     { 
       label: 'Completadas', 
       value: doneCount, 
       icon: CheckCircle2, 
       color: 'bg-green-500',
-      trend: { value: 15, isPositive: true }
+      trend: doneTrend
     },
   ];
 
