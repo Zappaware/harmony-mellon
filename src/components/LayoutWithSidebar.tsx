@@ -33,7 +33,7 @@ export function LayoutWithSidebar({ children }: { children: React.ReactNode }) {
 
   // Toggle sidebar collapsed state
   const toggleSidebar = () => {
-    setSidebarCollapsed(prev => !prev);
+    setSidebarCollapsed((prev: boolean) => !prev);
   };
 
   useEffect(() => {
