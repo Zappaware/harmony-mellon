@@ -32,6 +32,12 @@ func SeedUsers(db *gorm.DB) error {
 			password: "user123",
 			role:     models.RoleUser,
 		},
+		{
+			name:     "Team Lead",
+			email:    "teamlead@example.com",
+			password: "teamlead123",
+			role:     models.RoleTeamLead,
+		},
 	}
 
 	for _, u := range users {
