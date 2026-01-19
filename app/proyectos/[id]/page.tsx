@@ -240,10 +240,10 @@ export default function ProjectDetailPage() {
               </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {project.startDate && (
+              {project.start_date && (
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-1">Fecha de Inicio</h3>
-                  <DateDisplay date={project.startDate} format="date" />
+                  <DateDisplay date={project.start_date} format="date" />
                 </div>
               )}
               {project.deadline && (

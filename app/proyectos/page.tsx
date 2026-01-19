@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
-import { FolderKanban, Users, Calendar, TrendingUp, Plus, Trash2, Grid3x3, List } from 'lucide-react';
+import { FolderKanban, Users, Calendar, TrendingUp, Trash2, Grid3x3, List } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
@@ -545,18 +545,6 @@ function ProyectosContent() {
               </Link>
             </div>
           ))}
-          
-          {(user?.role === 'admin' || user?.role === 'team_lead') && (
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6 hover:bg-gray-100 hover:border-indigo-400 transition-all flex flex-col items-center justify-center min-h-[280px] group"
-            >
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-indigo-200 transition-colors">
-                <Plus className="w-6 h-6 text-indigo-600" />
-              </div>
-              <p className="text-gray-600 group-hover:text-gray-800">Crear Nuevo Proyecto</p>
-            </button>
-          )}
           </div>
         )}
       </div>
