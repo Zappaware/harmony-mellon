@@ -4,13 +4,14 @@ import React, { useState, useMemo } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useApp, Issue } from '@/context/AppContext';
-import { AlertCircle, Clock } from 'lucide-react';
+import { AlertCircle, Clock, Edit } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/Badge';
 import { Avatar } from '@/components/Avatar';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { CreateIssueModal } from '@/components/CreateIssueModal';
+import { EditIssueModal } from '@/components/EditIssueModal';
 
 // Use a memoized backend to prevent "Cannot have two HTML5 backends" error
 // HTML5Backend should be passed directly to DndProvider, not instantiated
@@ -20,7 +21,7 @@ interface IssueCardProps {
   issue: Issue;
 }
 
-function IssueCard({ issue }: IssueCardProps) {
+function IssueCard({ issue, onEdit }: IssueCardProps & { onEdit?: (issue: Issue) => void }) {
   const { users } = useApp();
   const router = useRouter();
   const assignedUser = users.find((u) => u.id === issue.assignedTo);
@@ -33,8 +34,17 @@ function IssueCard({ issue }: IssueCardProps) {
     }),
   }));
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on edit button
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
     router.push(`/issue/${issue.id}`);
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit?.(issue);
   };
 
   return (
@@ -62,12 +72,23 @@ function IssueCard({ issue }: IssueCardProps) {
           <span className="text-xs text-gray-400">Sin asignar</span>
         )}
         
-        {issue.comments.length > 0 && (
-          <div className="flex items-center gap-1 text-xs text-gray-500">
-            <span>💬</span>
-            <span>{issue.comments.length}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {issue.comments.length > 0 && (
+            <div className="flex items-center gap-1 text-xs text-gray-500">
+              <span>💬</span>
+              <span>{issue.comments.length}</span>
+            </div>
+          )}
+          {onEdit && (
+            <button
+              onClick={handleEditClick}
+              className="p-1 text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+              title="Editar tarea"
+            >
+              <Edit className="w-3 h-3" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -79,9 +100,10 @@ interface ColumnProps {
   issues: Issue[];
   count: number;
   color: string;
+  onEditIssue?: (issue: Issue) => void;
 }
 
-function Column({ title, status, issues, count, color }: ColumnProps) {
+function Column({ title, status, issues, count, color, onEditIssue }: ColumnProps) {
   const { updateIssueStatus } = useApp();
 
   const [{ isOver }, drop] = useDrop(() => ({
@@ -114,7 +136,7 @@ function Column({ title, status, issues, count, color }: ColumnProps) {
       
       <div className="p-3 md:p-4 space-y-2 md:space-y-3 min-h-[200px] md:min-h-[500px]">
         {issues.map((issue) => (
-          <IssueCard key={issue.id} issue={issue} />
+          <IssueCard key={issue.id} issue={issue} onEdit={onEditIssue} />
         ))}
         {issues.length === 0 && (
           <div className="text-center py-12">
@@ -160,6 +182,7 @@ function Kanban() {
   ];
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [issueToEdit, setIssueToEdit] = useState<Issue | null>(null);
   
   // Use memoized backend to prevent multiple instances
   // This ensures the same backend reference is reused even if component remounts
@@ -188,6 +211,7 @@ function Kanban() {
                 issues={columnIssues}
                 count={columnIssues.length}
                 color={column.color}
+                onEditIssue={setIssueToEdit}
               />
             );
           })}
@@ -199,6 +223,15 @@ function Kanban() {
         onSuccess={() => {
           // Issues will be reloaded automatically via useEffect in AppContext
         }}
+      />
+      <EditIssueModal
+        isOpen={issueToEdit !== null}
+        onClose={() => setIssueToEdit(null)}
+        onSuccess={() => {
+          // Issues will be reloaded automatically via useEffect in AppContext
+          window.location.reload();
+        }}
+        issue={issueToEdit}
       />
     </DndProvider>
   );

@@ -21,6 +21,7 @@ export interface Issue {
   createdBy: string;
   startDate?: string;
   dueDate?: string;
+  attachments?: Array<{ type: 'link' | 'image' | 'file'; url: string; name?: string }>;
   createdAt: string;
   comments: Comment[];
 }
@@ -41,6 +42,7 @@ interface CreateIssueData {
   projectId?: string;
   startDate?: string;
   dueDate?: string;
+  attachments?: Array<{ type: 'link' | 'image' | 'file'; url: string; name?: string }>;
 }
 
 interface CreateProjectData {
@@ -232,6 +234,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       createdBy: apiIssue.created_by,
       startDate: apiIssue.start_date,
       dueDate: apiIssue.due_date,
+      attachments: apiIssue.attachments,
       createdAt: apiIssue.created_at,
       comments: (apiIssue.comments || []).map(comment => ({
         id: comment.id,
@@ -485,6 +488,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           project_id: data.projectId,
           start_date: startDate,
           due_date: dueDate,
+          attachments: data.attachments,
         });
         const convertedIssue = convertApiIssue(newIssue, users);
         setIssues((prev) => [convertedIssue, ...prev]);

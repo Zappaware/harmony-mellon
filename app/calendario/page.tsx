@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp, Issue } from '@/context/AppContext';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
-import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, Plus, CheckSquare, FolderKanban, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, Plus, CheckSquare, FolderKanban, X, Edit } from 'lucide-react';
 import { format, isSameDay, parseISO, startOfMonth, endOfMonth, getDaysInMonth, getDay, addDays, subDays } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { useRouter } from 'next/navigation';
@@ -12,6 +12,7 @@ import { Loading } from '@/components/Loading';
 // Lazy load heavy components
 const Calendar = lazy(() => import('@/components/ui/calendar').then(module => ({ default: module.Calendar })));
 const CreateIssueModal = lazy(() => import('@/components/CreateIssueModal').then(module => ({ default: module.CreateIssueModal })));
+const EditIssueModal = lazy(() => import('@/components/EditIssueModal').then(module => ({ default: module.EditIssueModal })));
 const CreateProjectModal = lazy(() => import('@/components/CreateProjectModal').then(module => ({ default: module.CreateProjectModal })));
 
 export default function CalendarioPage() {
@@ -433,40 +434,68 @@ export default function CalendarioPage() {
                               : issue.title;
 
                             return (
-                              <button
+                              <div
                                 key={issue.id}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  router.push(`/issue/${issue.id}`);
-                                }}
                                 style={{
-                                  width: '100%',
-                                  textAlign: 'left',
-                                  padding: '0.25rem 0.5rem',
-                                  borderRadius: '0.25rem',
-                                  fontSize: '0.75rem',
-                                  fontWeight: '500',
-                                  color: 'white',
-                                  backgroundColor: bgColor,
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  transition: 'opacity 0.2s, box-shadow 0.2s',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap'
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem',
+                                  width: '100%'
                                 }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.opacity = '0.9';
-                                  e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.opacity = '1';
-                                  e.currentTarget.style.boxShadow = 'none';
-                                }}
-                                title={`${issue.title} - ${getStatusText(issue.status)}`}
                               >
-                                {truncatedTitle}
-                              </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/issue/${issue.id}`);
+                                  }}
+                                  style={{
+                                    flex: 1,
+                                    textAlign: 'left',
+                                    padding: '0.25rem 0.5rem',
+                                    borderRadius: '0.25rem',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '500',
+                                    color: 'white',
+                                    backgroundColor: bgColor,
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    transition: 'opacity 0.2s, box-shadow 0.2s',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.opacity = '0.9';
+                                    e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.opacity = '1';
+                                    e.currentTarget.style.boxShadow = 'none';
+                                  }}
+                                  title={`${issue.title} - ${getStatusText(issue.status)}`}
+                                >
+                                  {truncatedTitle}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIssueToEdit(issue);
+                                  }}
+                                  style={{
+                                    padding: '0.25rem',
+                                    borderRadius: '0.25rem',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}
+                                  title="Editar tarea"
+                                >
+                                  <Edit className="w-3 h-3" style={{ color: 'white' }} />
+                                </button>
+                              </div>
                             );
                           })}
                           {dayIssues.length > 4 && (
@@ -688,7 +717,17 @@ export default function CalendarioPage() {
           }}
           initialStartDate={selectedDate ? formatDateForInput(selectedDate) : undefined}
         />
-
+        <EditIssueModal
+          isOpen={issueToEdit !== null}
+          onClose={() => setIssueToEdit(null)}
+          onSuccess={() => {
+            setIssueToEdit(null);
+            if (globalThis.window !== undefined) {
+              globalThis.window.location.reload();
+            }
+          }}
+          issue={issueToEdit}
+        />
         <CreateProjectModal
           isOpen={isCreateProjectModalOpen}
           onClose={() => {

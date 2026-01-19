@@ -3,24 +3,24 @@
 import React, { useState, useEffect } from 'react';
 import { X, Link as LinkIcon, Image, File, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useApp } from '@/context/AppContext';
-import { ApiAttachment } from '@/services/api';
+import { api, ApiAttachment } from '@/services/api';
+import { Issue, useApp } from '@/context/AppContext';
 
-interface CreateIssueModalProps {
+interface EditIssueModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-  initialStartDate?: string;
+  issue: Issue | null;
 }
 
-export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate }: CreateIssueModalProps) {
-  const { users, createIssue } = useApp();
+export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueModalProps) {
+  const { users } = useApp();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     priority: 'medium' as 'low' | 'medium' | 'high',
     assignedTo: '',
-    startDate: initialStartDate || '',
+    startDate: '',
     dueDate: '',
   });
   const [attachments, setAttachments] = useState<ApiAttachment[]>([]);
@@ -32,14 +32,36 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Update startDate when initialStartDate changes
+  // Load issue data when modal opens
   useEffect(() => {
-    if (initialStartDate) {
-      setFormData(prev => ({ ...prev, startDate: initialStartDate }));
+    if (isOpen && issue) {
+      setFormData({
+        title: issue.title,
+        description: issue.description,
+        priority: issue.priority,
+        assignedTo: issue.assignedTo || '',
+        startDate: issue.startDate || '',
+        dueDate: issue.dueDate || '',
+      });
+      // Load attachments from API if available
+      loadIssueDetails();
+      setError(null);
     }
-  }, [initialStartDate]);
+  }, [isOpen, issue]);
 
-  if (!isOpen) return null;
+  const loadIssueDetails = async () => {
+    if (!issue) return;
+    try {
+      const issueDetails = await api.getIssue(issue.id);
+      if (issueDetails.attachments) {
+        setAttachments(issueDetails.attachments);
+      }
+    } catch (err) {
+      console.error('Error loading issue details:', err);
+    }
+  };
+
+  if (!isOpen || !issue) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,39 +69,26 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate 
     setIsSubmitting(true);
 
     try {
-      await createIssue({
+      await api.updateIssue(issue.id, {
         title: formData.title,
         description: formData.description,
         priority: formData.priority,
-        assignedTo: formData.assignedTo || undefined,
-        startDate: formData.startDate || undefined,
-        dueDate: formData.dueDate || undefined,
+        assigned_to: formData.assignedTo || undefined,
+        start_date: formData.startDate || undefined,
+        due_date: formData.dueDate || undefined,
         attachments: attachments.length > 0 ? attachments : undefined,
       });
 
-      // Show success toast
-      toast.success('Tarea creada exitosamente', {
-        description: `La tarea "${formData.title}" ha sido creada.`,
+      toast.success('Tarea actualizada exitosamente', {
+        description: `La tarea "${formData.title}" ha sido actualizada.`,
       });
-
-      // Reset form
-      setFormData({
-        title: '',
-        description: '',
-        priority: 'medium',
-        assignedTo: '',
-        startDate: initialStartDate || '',
-        dueDate: '',
-      });
-      setAttachments([]);
-      setNewAttachment({ type: 'link', url: '', name: '' });
 
       onSuccess?.();
       onClose();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al crear la tarea';
+      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar la tarea';
       setError(errorMessage);
-      toast.error('Error al crear la tarea', {
+      toast.error('Error al actualizar la tarea', {
         description: errorMessage,
       });
     } finally {
@@ -119,7 +128,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate 
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-2xl font-semibold text-gray-800">Crear Nueva Tarea</h2>
+          <h2 className="text-2xl font-semibold text-gray-800">Editar Tarea</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -190,20 +199,20 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate 
               <label htmlFor="assignedTo" className="block text-sm font-medium text-gray-700 mb-2">
                 Asignar a
               </label>
-              <select
-                id="assignedTo"
-                name="assignedTo"
-                value={formData.assignedTo}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">Sin asignar</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name}
-                  </option>
-                ))}
-              </select>
+                <select
+                  id="assignedTo"
+                  name="assignedTo"
+                  value={formData.assignedTo}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">Sin asignar</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
+                    </option>
+                  ))}
+                </select>
             </div>
           </div>
 
@@ -313,7 +322,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate 
               className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Creando...' : 'Crear Tarea'}
+              {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
             </button>
           </div>
         </form>

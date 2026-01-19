@@ -73,6 +73,9 @@ func (s *issueService) UpdateIssue(id uuid.UUID, updates map[string]interface{})
 	if dueDate, ok := updates["due_date"].(*time.Time); ok {
 		issue.DueDate = dueDate
 	}
+	if attachments, ok := updates["attachments"].(string); ok {
+		issue.Attachments = attachments
+	}
 
 	if err := s.issueRepo.Update(issue); err != nil {
 		return nil, err

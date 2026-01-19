@@ -86,6 +86,12 @@ export interface ApiUser {
   created_at: string;
 }
 
+export interface ApiAttachment {
+  type: 'link' | 'image' | 'file';
+  url: string;
+  name?: string;
+}
+
 export interface ApiIssue {
   id: string;
   title: string;
@@ -97,6 +103,7 @@ export interface ApiIssue {
   project_id?: string;
   start_date?: string;
   due_date?: string;
+  attachments?: ApiAttachment[];
   created_at: string;
   updated_at: string;
   comments?: ApiComment[];
@@ -122,6 +129,7 @@ export interface CreateIssueRequest {
   project_id?: string;
   start_date?: string;
   due_date?: string;
+  attachments?: ApiAttachment[];
 }
 
 class ApiService {
@@ -262,7 +270,7 @@ class ApiService {
     });
   }
 
-  async updateIssue(id: string, updates: Partial<CreateIssueRequest>): Promise<ApiIssue> {
+  async updateIssue(id: string, updates: Partial<CreateIssueRequest & { attachments?: ApiAttachment[] }>): Promise<ApiIssue> {
     return this.request<ApiIssue>(`/issues/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updates),

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"log"
 	"mellon-harmony-api/internal/models"
 	"mellon-harmony-api/internal/repository"
@@ -54,7 +55,12 @@ func (h *IssueHandler) GetIssues(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, issues)
+	// Convert issues to response format with parsed attachments
+	response := make([]models.IssueResponse, len(issues))
+	for i, issue := range issues {
+		response[i] = issue.ToResponse()
+	}
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *IssueHandler) GetIssue(c *gin.Context) {
@@ -70,7 +76,7 @@ func (h *IssueHandler) GetIssue(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, issue)
+	c.JSON(http.StatusOK, issue.ToResponse())
 }
 
 type CreateIssueRequest struct {
@@ -81,6 +87,7 @@ type CreateIssueRequest struct {
 	ProjectID   *string               `json:"project_id"`
 	StartDate   *string               `json:"start_date"`
 	DueDate     *string               `json:"due_date"`
+	Attachments []models.Attachment   `json:"attachments"`
 }
 
 func (h *IssueHandler) CreateIssue(c *gin.Context) {
@@ -99,6 +106,11 @@ func (h *IssueHandler) CreateIssue(c *gin.Context) {
 		Priority:    req.Priority,
 		CreatedBy:   userID,
 		Status:      models.StatusTodo,
+	}
+	
+	// Set attachments if provided
+	if len(req.Attachments) > 0 {
+		issue.SetAttachments(req.Attachments)
 	}
 
 	if req.Priority == "" {
@@ -161,7 +173,7 @@ func (h *IssueHandler) CreateIssue(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusCreated, issue)
+	c.JSON(http.StatusCreated, issue.ToResponse())
 }
 
 type UpdateIssueRequest struct {
@@ -172,6 +184,7 @@ type UpdateIssueRequest struct {
 	ProjectID   *string               `json:"project_id"`
 	StartDate   *string               `json:"start_date"`
 	DueDate     *string               `json:"due_date"`
+	Attachments *[]models.Attachment  `json:"attachments"`
 }
 
 func (h *IssueHandler) UpdateIssue(c *gin.Context) {
@@ -217,6 +230,12 @@ func (h *IssueHandler) UpdateIssue(c *gin.Context) {
 	if req.DueDate != nil {
 		if dueDate, err := time.Parse(time.RFC3339, *req.DueDate); err == nil {
 			updates["due_date"] = &dueDate
+		}
+	}
+	if req.Attachments != nil {
+		// Convert attachments to JSON string
+		if data, err := json.Marshal(*req.Attachments); err == nil {
+			updates["attachments"] = string(data)
 		}
 	}
 
@@ -375,7 +394,7 @@ func (h *IssueHandler) UpdateIssue(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, issue)
+	c.JSON(http.StatusOK, issue.ToResponse())
 }
 
 type UpdateStatusRequest struct {
@@ -451,7 +470,7 @@ func (h *IssueHandler) UpdateIssueStatus(c *gin.Context) {
 		}()
 	}
 
-	c.JSON(http.StatusOK, issue)
+	c.JSON(http.StatusOK, issue.ToResponse())
 }
 
 func (h *IssueHandler) DeleteIssue(c *gin.Context) {
