@@ -1,7 +1,7 @@
 // Get API URL from environment variable
 // In production, this MUST be set to the production backend URL
 const getApiBaseUrl = () => {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  let apiUrl = process.env.NEXT_PUBLIC_API_URL;
   
   // In browser (production), warn if using localhost fallback
   if (typeof window !== 'undefined' && !apiUrl) {
@@ -10,9 +10,37 @@ const getApiBaseUrl = () => {
       'The app will try to connect to localhost:8080 which will fail in production. ' +
       'Please set NEXT_PUBLIC_API_URL environment variable in Railway/Vercel.'
     );
+    return 'http://localhost:8080/api/v1';
   }
   
-  return apiUrl || 'http://localhost:8080/api/v1';
+  // If no API URL is set, use localhost for development
+  if (!apiUrl) {
+    return 'http://localhost:8080/api/v1';
+  }
+  
+  // Validate and fix URL format
+  // If URL doesn't start with http:// or https://, add https://
+  if (!apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
+    console.warn(
+      '⚠️ NEXT_PUBLIC_API_URL is missing protocol (http:// or https://). ' +
+      'Adding https:// automatically. ' +
+      'Please update NEXT_PUBLIC_API_URL to include the protocol: ' +
+      `https://${apiUrl}`
+    );
+    apiUrl = `https://${apiUrl}`;
+  }
+  
+  // Ensure URL ends with /api/v1 if it doesn't already
+  // This helps catch common configuration mistakes
+  if (apiUrl && !apiUrl.includes('/api/v1') && !apiUrl.endsWith('/')) {
+    console.warn(
+      '⚠️ NEXT_PUBLIC_API_URL might be missing /api/v1 path. ' +
+      'Current value: ' + apiUrl + '. ' +
+      'Expected format: https://your-backend.railway.app/api/v1'
+    );
+  }
+  
+  return apiUrl;
 };
 
 const API_BASE_URL = getApiBaseUrl();
