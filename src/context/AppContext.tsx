@@ -19,6 +19,7 @@ export interface Issue {
   priority: 'low' | 'medium' | 'high';
   assignedTo?: string;
   createdBy: string;
+  projectId?: string;
   startDate?: string;
   dueDate?: string;
   attachments?: Array<{ type: 'link' | 'image' | 'file'; url: string; name?: string }>;
@@ -235,6 +236,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       priority: apiIssue.priority,
       assignedTo: apiIssue.assigned_to,
       createdBy: apiIssue.created_by,
+      projectId: apiIssue.project_id,
       startDate: apiIssue.start_date,
       dueDate: apiIssue.due_date,
       attachments: apiIssue.attachments,
