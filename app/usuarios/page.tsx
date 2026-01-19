@@ -5,6 +5,7 @@ import { useApp } from '@/context/AppContext';
 import { Users, Mail, Shield, UserCircle, Edit, Trash2 } from 'lucide-react';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { CreateUserModal } from '@/components/CreateUserModal';
+import { EditUserModal } from '@/components/EditUserModal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +20,7 @@ import {
 export default function GestionUsuarios() {
   const { users, deleteUser, user: currentUser } = useApp();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -124,7 +126,10 @@ export default function GestionUsuarios() {
                 </div>
 
                 <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                  <button className="flex-1 flex items-center justify-center gap-2 p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors text-sm">
+                  <button 
+                    onClick={() => setUserToEdit(user)}
+                    className="flex-1 flex items-center justify-center gap-2 p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors text-sm"
+                  >
                     <Edit className="w-4 h-4" />
                     <span>Editar</span>
                   </button>
@@ -285,6 +290,16 @@ export default function GestionUsuarios() {
           // Users will be reloaded automatically via useEffect in AppContext
           window.location.reload();
         }}
+      />
+
+      <EditUserModal
+        isOpen={userToEdit !== null}
+        onClose={() => setUserToEdit(null)}
+        onSuccess={() => {
+          // Reload users after update
+          window.location.reload();
+        }}
+        user={userToEdit}
       />
 
       <AlertDialog open={userToDelete !== null} onOpenChange={(open) => !open && setUserToDelete(null)}>
