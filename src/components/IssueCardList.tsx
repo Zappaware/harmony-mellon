@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { Issue, User } from '@/context/AppContext';
 import { Badge } from './Badge';
 import { Avatar } from './Avatar';
-import { Calendar, MessageSquare } from 'lucide-react';
+import { Calendar, MessageSquare, FolderKanban } from 'lucide-react';
 import { DateDisplay } from './DateDisplay';
+import { useApp } from '@/context/AppContext';
 
 interface IssueCardListProps {
   issue: Issue;
@@ -15,6 +16,11 @@ interface IssueCardListProps {
 }
 
 export function IssueCardList({ issue, assignedUser, showProject }: IssueCardListProps) {
+  const { projects } = useApp();
+  const project = showProject && issue.projectId 
+    ? projects.find(p => p.id === issue.projectId)
+    : null;
+
   return (
     <Link
       href={`/issue/${issue.id}`}
@@ -32,11 +38,17 @@ export function IssueCardList({ issue, assignedUser, showProject }: IssueCardLis
             </div>
           </div>
           
-          <div className="flex items-center gap-3 mt-3 text-sm text-gray-500">
+          <div className="flex items-center gap-3 mt-3 text-sm text-gray-500 flex-wrap">
             <div className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
               <DateDisplay date={issue.createdAt} format="date" />
             </div>
+            {showProject && project && (
+              <div className="flex items-center gap-1">
+                <FolderKanban className="w-4 h-4" />
+                <span>{project.name}</span>
+              </div>
+            )}
             {issue.comments.length > 0 && (
               <div className="flex items-center gap-1">
                 <MessageSquare className="w-4 h-4" />

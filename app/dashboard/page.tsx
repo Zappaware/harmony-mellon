@@ -1,7 +1,6 @@
 'use client'
 
-import React, { useEffect, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import React from 'react';
 import { useApp } from '@/context/AppContext';
 import { CheckCircle2, Clock, AlertCircle, TrendingUp, FolderKanban, Users } from 'lucide-react';
 import Link from 'next/link';
@@ -100,28 +99,32 @@ function DashboardUsuario() {
       value: todoCount, 
       icon: Clock, 
       color: 'bg-blue-500',
-      trend: todoTrend
+      trend: todoTrend,
+      href: '/tareas?status=todo'
     },
     { 
       label: 'En Progreso', 
       value: inProgressCount, 
       icon: TrendingUp, 
       color: 'bg-yellow-500',
-      trend: inProgressTrend
+      trend: inProgressTrend,
+      href: '/tareas?status=in-progress'
     },
     { 
       label: 'En Revisión', 
       value: reviewCount, 
       icon: AlertCircle, 
       color: 'bg-purple-500',
-      trend: reviewTrend
+      trend: reviewTrend,
+      href: '/tareas?status=review'
     },
     { 
       label: 'Completadas', 
       value: doneCount, 
       icon: CheckCircle2, 
       color: 'bg-green-500',
-      trend: doneTrend
+      trend: doneTrend,
+      href: '/tareas?status=done'
     },
   ];
 
@@ -301,16 +304,25 @@ function DashboardAdmin() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
         {stats.map((stat) => {
           const Icon = stat.icon;
+          const statusMap: Record<string, string> = {
+            'Por Hacer': 'todo',
+            'En Progreso': 'in-progress',
+            'En Revisión': 'review',
+            'Completadas': 'done',
+          };
+          const status = statusMap[stat.label] || 'all';
           return (
-            <div key={stat.label} className="bg-white rounded-lg shadow p-4 md:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center`}>
-                  <Icon className="w-6 h-6 text-white" />
+            <Link key={stat.label} href={`/tareas?status=${status}`}>
+              <div className="bg-white rounded-lg shadow p-4 md:p-6 cursor-pointer hover:shadow-lg transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center`}>
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-3xl text-gray-800">{stat.value}</span>
                 </div>
-                <span className="text-3xl text-gray-800">{stat.value}</span>
+                <p className="text-gray-600">{stat.label}</p>
               </div>
-              <p className="text-gray-600">{stat.label}</p>
-            </div>
+            </Link>
           );
         })}
       </div>
