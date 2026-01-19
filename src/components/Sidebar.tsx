@@ -15,15 +15,19 @@ import {
   LogOut,
   X,
   UserCircle,
-  Calendar
+  Calendar,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 
 interface SidebarProps {
   readonly isOpen?: boolean;
   readonly onClose?: () => void;
+  readonly collapsed?: boolean;
+  readonly onToggle?: () => void;
 }
 
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: SidebarProps) {
   const { user, logout } = useApp();
   const pathname = usePathname();
   const router = useRouter();
@@ -85,26 +89,47 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const sidebarContent = (
     <>
-      <div className="p-6 border-b border-gray-800 flex items-center justify-between">
-        <div>
-          <h2 className="text-xl">Harmony Mellon</h2>
-          <p className="text-sm font-bold text-white mt-1">{user?.name}</p>
-          <p className="text-xs text-gray-400">
-            {getRoleLabel()}
-          </p>
-        </div>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="md:hidden text-gray-400 hover:text-white transition-colors p-2"
-            aria-label="Cerrar menú"
-          >
-            <X className="w-5 h-5" />
-          </button>
+      <div className={`border-b border-gray-800 flex items-center justify-between transition-all duration-300 ${
+        collapsed ? 'p-4' : 'p-6'
+      }`}>
+        {!collapsed ? (
+          <div className="flex-1">
+            <h2 className="text-xl">Harmony Mellon</h2>
+            <p className="text-sm font-bold text-white mt-1">{user?.name}</p>
+            <p className="text-xs text-gray-400">
+              {getRoleLabel()}
+            </p>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center w-full">
+            <h2 className="text-lg font-bold">HM</h2>
+          </div>
         )}
+        <div className="flex items-center gap-2">
+          {onToggle && !collapsed && (
+            <button
+              onClick={onToggle}
+              className="hidden md:flex text-gray-400 hover:text-white transition-colors p-1.5 rounded hover:bg-gray-800"
+              aria-label="Colapsar menú"
+            >
+              <PanelLeftClose className="w-6 h-6" />
+            </button>
+          )}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="md:hidden text-gray-400 hover:text-white transition-colors p-2"
+              aria-label="Cerrar menú"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
       </div>
 
-      <nav className="flex-1 p-4 overflow-y-auto">
+      <nav className={`flex-1 overflow-y-auto transition-all duration-300 ${
+        collapsed ? 'p-2' : 'p-4'
+      }`}>
         <ul className="space-y-2">
           {links.map((link) => {
             const Icon = link.icon;
@@ -115,14 +140,19 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <Link
                   href={link.to}
                   onClick={handleLinkClick}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  className={`flex items-center rounded-lg transition-colors ${
+                    collapsed 
+                      ? 'justify-center px-3 py-3' 
+                      : 'gap-3 px-4 py-3'
+                  } ${
                     isActive
                       ? 'bg-indigo-600 text-white'
                       : 'text-gray-300 hover:bg-gray-800'
                   }`}
+                  title={collapsed ? link.label : undefined}
                 >
-                  <Icon className="w-5 h-5" />
-                  <span>{link.label}</span>
+                  <Icon className="w-5 h-5 shrink-0" />
+                  {!collapsed && <span>{link.label}</span>}
                 </Link>
               </li>
             );
@@ -130,13 +160,29 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </ul>
       </nav>
 
-      <div className="p-4 border-t border-gray-800">
+      <div className={`border-t border-gray-800 transition-all duration-300 ${
+        collapsed ? 'p-2 space-y-2' : 'p-4'
+      }`}>
+        {onToggle && collapsed && (
+          <button
+            onClick={onToggle}
+            className="hidden md:flex w-full justify-center items-center text-gray-400 hover:text-white transition-colors p-3 rounded-lg hover:bg-gray-800"
+            aria-label="Expandir menú"
+          >
+            <PanelLeftOpen className="w-5 h-5" />
+          </button>
+        )}
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 transition-colors w-full"
+          className={`flex items-center rounded-lg text-gray-300 hover:bg-gray-800 transition-colors w-full ${
+            collapsed 
+              ? 'justify-center px-3 py-3' 
+              : 'gap-3 px-4 py-3'
+          }`}
+          title={collapsed ? 'Cerrar Sesión' : undefined}
         >
-          <LogOut className="w-5 h-5" />
-          <span>Cerrar Sesión</span>
+          <LogOut className="w-5 h-5 shrink-0" />
+          {!collapsed && <span>Cerrar Sesión</span>}
         </button>
       </div>
     </>
@@ -144,8 +190,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Desktop: Always visible */}
-      <div className="hidden md:flex w-64 bg-gray-900 text-white h-screen flex-col">
+      {/* Desktop: Collapsible */}
+      <div 
+        className={`hidden md:flex bg-gray-900 text-white h-screen flex-col transition-all duration-300 ${
+          collapsed ? 'w-16' : 'w-64'
+        }`}
+      >
         {sidebarContent}
       </div>
 

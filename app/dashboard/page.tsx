@@ -417,34 +417,34 @@ function DashboardAdmin() {
 
       {/* Users List Modal */}
       <Dialog open={showUsersModal} onOpenChange={setShowUsersModal}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Lista de Usuarios ({users.length})</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[85vh] overflow-y-auto p-4 md:p-6">
+          <DialogHeader className="pb-3">
+            <DialogTitle className="text-lg md:text-xl">Lista de Usuarios ({users.length})</DialogTitle>
+            <DialogDescription className="text-xs md:text-sm">
               Todos los usuarios registrados en el sistema
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 mt-4">
+          <div className="space-y-2 md:space-y-3 mt-2 md:mt-4">
             {users.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">No hay usuarios registrados</p>
+              <p className="text-center text-gray-500 py-8 text-sm">No hay usuarios registrados</p>
             ) : (
               users.map((user) => (
                 <div
                   key={user.id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center justify-between p-3 md:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Avatar name={user.name} size="md" />
+                  <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                    <Avatar name={user.name} size="sm" />
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{user.name}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Mail className="w-3.5 h-3.5 text-gray-400" />
-                        <span className="text-sm text-gray-600 truncate">{user.email}</span>
+                      <p className="font-medium text-gray-900 truncate text-sm md:text-base">{user.name}</p>
+                      <div className="flex items-center gap-1.5 md:gap-2 mt-0.5 md:mt-1">
+                        <Mail className="w-3 h-3 md:w-3.5 md:h-3.5 text-gray-400 shrink-0" />
+                        <span className="text-xs md:text-sm text-gray-600 truncate">{user.email}</span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <span className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
                       {getRoleLabel(user.role)}
                     </span>
                   </div>
