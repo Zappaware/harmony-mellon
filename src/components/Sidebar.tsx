@@ -69,6 +69,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     { to: '/perfil', icon: UserCircle, label: 'Mi Perfil' },
   ];
 
+  // Get role label
+  const getRoleLabel = () => {
+    if (user?.role === 'admin') return 'Administrador';
+    if (user?.role === 'team_lead') return 'Líder';
+    return 'Usuario';
+  };
+
   // Determine which links to show based on user role
   const links = user?.role === 'admin' 
     ? adminLinks 
@@ -81,11 +88,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <div className="p-6 border-b border-gray-800 flex items-center justify-between">
         <div>
           <h2 className="text-xl">Harmony Mellon</h2>
-          <p className="text-sm text-gray-400 mt-1">{user?.name}</p>
-          <p className="text-xs text-gray-500">
-            {user?.role === 'admin' ? 'Administrador' : 
-             user?.role === 'team_lead' ? 'Líder de Equipo' : 
-             'Usuario'}
+          <p className="text-sm font-bold text-white mt-1">{user?.name}</p>
+          <p className="text-xs text-gray-400">
+            {getRoleLabel()}
           </p>
         </div>
         {onClose && (
