@@ -413,7 +413,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           id: response.user.id,
           name: response.user.name,
           email: response.user.email,
-          role: response.user.role === 'team_lead' ? 'admin' : response.user.role,
+          role: response.user.role,
           avatar: response.user.avatar,
         });
         setUseApi(true);
