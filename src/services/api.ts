@@ -55,6 +55,28 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
+// Export function to check if API URL is configured correctly
+export const isApiUrlConfigured = (): boolean => {
+  if (typeof window === 'undefined') return true; // Server-side, assume configured
+  
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const isProduction = window.location.hostname !== 'localhost' && 
+                      window.location.hostname !== '127.0.0.1';
+  
+  // In production, API URL must be set and not be localhost
+  if (isProduction) {
+    return !!apiUrl && !apiUrl.includes('localhost');
+  }
+  
+  // In development, it's okay to use localhost
+  return true;
+};
+
+// Export function to get the current API base URL (for debugging)
+export const getCurrentApiUrl = (): string => {
+  return API_BASE_URL;
+};
+
 export interface ApiUser {
   id: string;
   name: string;
@@ -148,13 +170,23 @@ class ApiService {
       // Handle network errors (CORS, connection refused, etc.)
       const errorMessage = fetchError instanceof Error ? fetchError.message : 'Network error';
       
-      // Check if this is a CORS or localhost connection error
-      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('CORS') || 
-          API_BASE_URL.includes('localhost') && typeof window !== 'undefined' && window.location.protocol === 'https:') {
+      // Check if this is a connection refused error (common when API URL is wrong)
+      if (errorMessage.includes('ERR_CONNECTION_REFUSED') || 
+          errorMessage.includes('Failed to fetch') ||
+          (API_BASE_URL.includes('localhost') && typeof window !== 'undefined' && 
+           window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
         throw new Error(
-          'Network error: Cannot connect to backend. ' +
+          'ERR_CONNECTION_REFUSED: Cannot connect to backend. ' +
           'This is likely because NEXT_PUBLIC_API_URL is not set correctly in production. ' +
           'Please configure NEXT_PUBLIC_API_URL in your deployment platform (Railway/Vercel).'
+        );
+      }
+      
+      // Check if this is a CORS error
+      if (errorMessage.includes('CORS')) {
+        throw new Error(
+          'Network error: CORS policy blocked the request. ' +
+          'This is likely because the backend is not configured to allow requests from this domain.'
         );
       }
       

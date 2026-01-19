@@ -6,13 +6,25 @@ import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 import { Loading } from '@/components/Loading';
 import { LogIn } from 'lucide-react';
+import { isApiUrlConfigured } from '@/services/api';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [apiConfigError, setApiConfigError] = useState('');
   const { login, user, isLoading } = useApp();
   const router = useRouter();
+
+  // Check if API URL is configured correctly in production
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !isApiUrlConfigured()) {
+      setApiConfigError(
+        '⚠️ Error de configuración: NEXT_PUBLIC_API_URL no está configurada correctamente en producción. ' +
+        'Por favor, contacta al administrador del sistema.'
+      );
+    }
+  }, []);
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -38,8 +50,21 @@ export default function Login() {
       } else {
         setError('Credenciales incorrectas');
       }
-    } catch (err) {
-      setError('Error al iniciar sesión. Intenta nuevamente.');
+    } catch (err: any) {
+      const errorMessage = err?.message || '';
+      
+      // Check for connection errors (API URL misconfiguration)
+      if (errorMessage.includes('ERR_CONNECTION_REFUSED') || 
+          errorMessage.includes('Failed to fetch') ||
+          errorMessage.includes('Network error') ||
+          errorMessage.includes('Cannot connect to backend')) {
+        setError(
+          'No se puede conectar al servidor. Esto puede deberse a un error de configuración. ' +
+          'Por favor, contacta al administrador del sistema.'
+        );
+      } else {
+        setError('Error al iniciar sesión. Intenta nuevamente.');
+      }
       console.error('Login error:', err);
     }
   };
@@ -58,8 +83,21 @@ export default function Login() {
       } else {
         setError('Credenciales incorrectas');
       }
-    } catch (err) {
-      setError('Error al iniciar sesión. Intenta nuevamente.');
+    } catch (err: any) {
+      const errorMessage = err?.message || '';
+      
+      // Check for connection errors (API URL misconfiguration)
+      if (errorMessage.includes('ERR_CONNECTION_REFUSED') || 
+          errorMessage.includes('Failed to fetch') ||
+          errorMessage.includes('Network error') ||
+          errorMessage.includes('Cannot connect to backend')) {
+        setError(
+          'No se puede conectar al servidor. Esto puede deberse a un error de configuración. ' +
+          'Por favor, contacta al administrador del sistema.'
+        );
+      } else {
+        setError('Error al iniciar sesión. Intenta nuevamente.');
+      }
       console.error('Login error:', err);
     }
   };
@@ -107,6 +145,13 @@ export default function Login() {
               suppressHydrationWarning
             />
           </div>
+
+          {apiConfigError && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-lg text-sm mb-4">
+              <p className="font-semibold mb-1">⚠️ Error de Configuración</p>
+              <p>{apiConfigError}</p>
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">

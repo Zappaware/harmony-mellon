@@ -10,6 +10,29 @@ interface CreateUserModalProps {
   onSuccess?: () => void;
 }
 
+// Password validation rules
+interface PasswordRules {
+  minLength: boolean;
+  hasUpperCase: boolean;
+  hasLowerCase: boolean;
+  hasNumber: boolean;
+  hasSpecialChar: boolean;
+}
+
+const validatePassword = (password: string): PasswordRules => {
+  return {
+    minLength: password.length >= 8,
+    hasUpperCase: /[A-Z]/.test(password),
+    hasLowerCase: /[a-z]/.test(password),
+    hasNumber: /\d/.test(password),
+    hasSpecialChar: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password),
+  };
+};
+
+const isPasswordValid = (rules: PasswordRules): boolean => {
+  return Object.values(rules).every(rule => rule === true);
+};
+
 export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalProps) {
   const { createUser } = useApp();
   const [formData, setFormData] = useState({
@@ -28,9 +51,10 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
     e.preventDefault();
     setError(null);
 
-    // Validaciones
-    if (formData.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+    // Validar contraseña según las reglas
+    const rules = validatePassword(formData.password);
+    if (!isPasswordValid(rules)) {
+      setError('La contraseña no cumple con todos los requisitos. Por favor, revisa las reglas de contraseña.');
       return;
     }
 
@@ -57,6 +81,14 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
         confirmPassword: '',
         role: 'user',
       });
+      setPasswordRules({
+        minLength: false,
+        hasUpperCase: false,
+        hasLowerCase: false,
+        hasNumber: false,
+        hasSpecialChar: false,
+      });
+      setShowPasswordRules(false);
 
       onSuccess?.();
       onClose();
@@ -73,6 +105,17 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
       ...prev,
       [name]: value,
     }));
+
+    // Actualizar reglas de contraseña en tiempo real
+    if (name === 'password') {
+      const rules = validatePassword(value);
+      setPasswordRules(rules);
+      setShowPasswordRules(value.length > 0);
+      // Limpiar error si la contraseña es válida
+      if (isPasswordValid(rules) && formData.confirmPassword && value === formData.confirmPassword) {
+        setError(null);
+      }
+    }
   };
 
   return (
@@ -128,39 +171,85 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Contraseña <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                minLength={6}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Mínimo 6 caracteres"
-              />
-            </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              Contraseña <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              onFocus={() => setShowPasswordRules(true)}
+              required
+              minLength={8}
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                formData.password && !isPasswordValid(passwordRules)
+                  ? 'border-red-300 focus:ring-red-500'
+                  : formData.password && isPasswordValid(passwordRules)
+                  ? 'border-green-300 focus:ring-green-500'
+                  : 'border-gray-300 focus:ring-indigo-500'
+              }`}
+              placeholder="Mínimo 8 caracteres"
+            />
+            
+            {showPasswordRules && (
+              <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-xs font-semibold text-gray-700 mb-2">Requisitos de contraseña:</p>
+                <ul className="space-y-1 text-xs">
+                  <li className={`flex items-center ${passwordRules.minLength ? 'text-green-600' : 'text-gray-500'}`}>
+                    <span className="mr-2">{passwordRules.minLength ? '✓' : '○'}</span>
+                    <span>Mínimo 8 caracteres</span>
+                  </li>
+                  <li className={`flex items-center ${passwordRules.hasUpperCase ? 'text-green-600' : 'text-gray-500'}`}>
+                    <span className="mr-2">{passwordRules.hasUpperCase ? '✓' : '○'}</span>
+                    <span>Al menos una letra mayúscula</span>
+                  </li>
+                  <li className={`flex items-center ${passwordRules.hasLowerCase ? 'text-green-600' : 'text-gray-500'}`}>
+                    <span className="mr-2">{passwordRules.hasLowerCase ? '✓' : '○'}</span>
+                    <span>Al menos una letra minúscula</span>
+                  </li>
+                  <li className={`flex items-center ${passwordRules.hasNumber ? 'text-green-600' : 'text-gray-500'}`}>
+                    <span className="mr-2">{passwordRules.hasNumber ? '✓' : '○'}</span>
+                    <span>Al menos un número</span>
+                  </li>
+                  <li className={`flex items-center ${passwordRules.hasSpecialChar ? 'text-green-600' : 'text-gray-500'}`}>
+                    <span className="mr-2">{passwordRules.hasSpecialChar ? '✓' : '○'}</span>
+                    <span>Al menos un carácter especial (!@#$%^&*...)</span>
+                  </li>
+                </ul>
+              </div>
+            )}
+          </div>
 
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirmar Contraseña <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="password"
-                id="confirmPassword"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Repite la contraseña"
-              />
-            </div>
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+              Confirmar Contraseña <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              required
+              minLength={8}
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                formData.confirmPassword && formData.password !== formData.confirmPassword
+                  ? 'border-red-300 focus:ring-red-500'
+                  : formData.confirmPassword && formData.password === formData.confirmPassword && isPasswordValid(passwordRules)
+                  ? 'border-green-300 focus:ring-green-500'
+                  : 'border-gray-300 focus:ring-indigo-500'
+              }`}
+              placeholder="Repite la contraseña"
+            />
+            {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+              <p className="text-xs text-red-600 mt-1">Las contraseñas no coinciden</p>
+            )}
+            {formData.confirmPassword && formData.password === formData.confirmPassword && isPasswordValid(passwordRules) && (
+              <p className="text-xs text-green-600 mt-1">✓ Las contraseñas coinciden</p>
+            )}
           </div>
 
           <div>
@@ -194,7 +283,7 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
             <button
               type="submit"
               className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isPasswordValid(passwordRules) || formData.password !== formData.confirmPassword}
             >
               {isSubmitting ? 'Creando...' : 'Crear Usuario'}
             </button>
