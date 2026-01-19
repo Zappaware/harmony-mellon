@@ -304,15 +304,21 @@ function DashboardAdmin() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
         {stats.map((stat) => {
           const Icon = stat.icon;
-          const statusMap: Record<string, string> = {
-            'Por Hacer': 'todo',
-            'En Progreso': 'in-progress',
-            'En Revisión': 'review',
-            'Completadas': 'done',
-          };
-          const status = statusMap[stat.label] || 'all';
+          let href = '/tareas';
+          
+          // Set the correct href based on the stat label
+          if (stat.label === 'Total Usuarios') {
+            href = '/usuarios';
+          } else if (stat.label === 'Prioridad Alta') {
+            href = '/tareas?priority=high';
+          } else if (stat.label === 'En Progreso') {
+            href = '/tareas?status=in-progress';
+          } else {
+            href = '/tareas';
+          }
+          
           return (
-            <Link key={stat.label} href={`/tareas?status=${status}`}>
+            <Link key={stat.label} href={href}>
               <div className="bg-white rounded-lg shadow p-4 md:p-6 cursor-pointer hover:shadow-lg transition-shadow">
                 <div className="flex items-center justify-between mb-4">
                   <div className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center`}>
