@@ -197,6 +197,27 @@ func (h *IssueHandler) CreateIssue(c *gin.Context) {
 				}
 			}()
 		}
+
+		// Notify all admins and team leads about new issue
+		go func() {
+			allUsers, err := h.userRepo.GetAll()
+			if err == nil {
+				creatorName := "Sistema"
+				if creator != nil {
+					creatorName = creator.Name
+				}
+				title := "Nueva tarea creada: " + issue.Title
+				message := creatorName + " ha creado una nueva tarea: \"" + issue.Title + "\""
+				for _, user := range allUsers {
+					// Notify admins and team leads, but not the creator
+					if (user.Role == models.RoleAdmin || user.Role == models.RoleTeamLead) && user.ID != userID {
+						if err := h.notificationService.CreateNotification(user.ID, models.NotificationTypeStatus, title, message, issueID); err != nil {
+							log.Printf("Failed to notify admin/team lead %s: %v", user.ID, err)
+						}
+					}
+				}
+			}
+		}()
 	}
 
 	// Send emails (non-blocking)
@@ -399,6 +420,23 @@ func (h *IssueHandler) UpdateIssue(c *gin.Context) {
 			}
 		}
 
+		// Notify all admins and team leads about issue update
+		if h.notificationService != nil {
+			go func() {
+				allUsers, err := h.userRepo.GetAll()
+				if err == nil {
+					for _, user := range allUsers {
+						// Notify admins and team leads, but not the updater
+						if (user.Role == models.RoleAdmin || user.Role == models.RoleTeamLead) && user.ID != currentUserID {
+							if err := h.notificationService.CreateNotification(user.ID, models.NotificationTypeStatus, title, message, issueID); err != nil {
+								log.Printf("Failed to notify admin/team lead %s: %v", user.ID, err)
+							}
+						}
+					}
+				}
+			}()
+		}
+
 		// Send emails (non-blocking)
 		if h.emailService != nil {
 			// Email to creator
@@ -517,6 +555,19 @@ func (h *IssueHandler) UpdateIssueStatus(c *gin.Context) {
 			if issue.AssignedTo != nil && *issue.AssignedTo != currentUserID && *issue.AssignedTo != issue.CreatedBy {
 				if err := h.notificationService.CreateNotification(*issue.AssignedTo, models.NotificationTypeStatus, title, message, issueID); err != nil {
 					log.Printf("Failed to notify issue assignee about status change: %v", err)
+				}
+			}
+
+			// Notify all admins and team leads about status change
+			allUsers, err := h.userRepo.GetAll()
+			if err == nil {
+				for _, user := range allUsers {
+					// Notify admins and team leads, but not the updater
+					if (user.Role == models.RoleAdmin || user.Role == models.RoleTeamLead) && user.ID != currentUserID {
+						if err := h.notificationService.CreateNotification(user.ID, models.NotificationTypeStatus, title, message, issueID); err != nil {
+							log.Printf("Failed to notify admin/team lead %s about status change: %v", user.ID, err)
+						}
+					}
 				}
 			}
 		}()
