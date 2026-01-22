@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
+import { api, ApiClient } from '@/services/api';
 
 interface CreateProjectModalProps {
   isOpen: boolean;
@@ -18,12 +19,14 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
     name: '',
     description: '',
     type: 'Campaña' as 'Campaña' | 'Planner' | 'Producciones',
-    progress: 0,
     status: 'planning' as string,
+    clientId: '',
     startDate: initialStartDate || '',
     deadline: '',
     color: 'bg-blue-500',
   });
+  const [clients, setClients] = useState<ApiClient[]>([]);
+  const [isLoadingClients, setIsLoadingClients] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +36,24 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
       setFormData(prev => ({ ...prev, startDate: initialStartDate }));
     }
   }, [initialStartDate]);
+
+  // Load clients when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const loadClients = async () => {
+        setIsLoadingClients(true);
+        try {
+          const apiClients = await api.getClients();
+          setClients(apiClients);
+        } catch (error) {
+          console.error('Error loading clients:', error);
+        } finally {
+          setIsLoadingClients(false);
+        }
+      };
+      loadClients();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -45,8 +66,8 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
       await createProject({
         name: formData.name,
         description: formData.description || undefined,
-        progress: formData.progress,
         status: formData.status,
+        client_id: formData.clientId || undefined,
         startDate: formData.startDate || undefined,
         deadline: formData.deadline || undefined,
         color: formData.color,
@@ -62,8 +83,8 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
         name: '',
         description: '',
         type: 'Campaña',
-        progress: 0,
         status: 'planning',
+        clientId: '',
         startDate: initialStartDate || '',
         deadline: '',
         color: 'bg-blue-500',
@@ -86,7 +107,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'progress' ? parseInt(value) || 0 : value,
+      [name]: value,
     }));
   };
 
@@ -190,19 +211,27 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
             </div>
 
             <div>
-              <label htmlFor="progress" className="block text-sm font-medium text-gray-700 mb-2">
-                Progreso (%)
+              <label htmlFor="clientId" className="block text-sm font-medium text-gray-700 mb-2">
+                Cliente
               </label>
-              <input
-                type="number"
-                id="progress"
-                name="progress"
-                value={formData.progress}
+              <select
+                id="clientId"
+                name="clientId"
+                value={formData.clientId}
                 onChange={handleChange}
-                min="0"
-                max="100"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
+                disabled={isLoadingClients}
+              >
+                <option value="">Sin cliente</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.name}
+                  </option>
+                ))}
+              </select>
+              {isLoadingClients && (
+                <p className="text-xs text-gray-500 mt-1">Cargando clientes...</p>
+              )}
             </div>
           </div>
 

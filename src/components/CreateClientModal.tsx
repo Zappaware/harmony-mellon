@@ -17,6 +17,10 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
     description: '',
     email: '',
     phone: '',
+    address: '',
+    contactName: '',
+    contactEmail: '',
+    contactPhone: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +38,10 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
         description: formData.description || undefined,
         email: formData.email || undefined,
         phone: formData.phone || undefined,
+        address: formData.address || undefined,
+        contact_name: formData.contactName || undefined,
+        contact_email: formData.contactEmail || undefined,
+        contact_phone: formData.contactPhone || undefined,
       });
 
       // Show success toast
@@ -47,6 +55,10 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
         description: '',
         email: '',
         phone: '',
+        address: '',
+        contactName: '',
+        contactEmail: '',
+        contactPhone: '',
       });
 
       onSuccess?.();
@@ -116,7 +128,7 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
               name="description"
               value={formData.description}
               onChange={handleChange}
-              rows={4}
+              rows={3}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
               placeholder="Describe el cliente..."
             />
@@ -125,7 +137,7 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email
+                Email de la Empresa
               </label>
               <input
                 type="email"
@@ -134,13 +146,13 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
                 value={formData.email}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="cliente@ejemplo.com"
+                placeholder="empresa@ejemplo.com"
               />
             </div>
 
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                Teléfono
+                Teléfono de la Empresa
               </label>
               <input
                 type="tel"
@@ -151,6 +163,74 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="+1 234 567 8900"
               />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
+              Dirección
+            </label>
+            <textarea
+              id="address"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              rows={2}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              placeholder="Dirección completa de la empresa..."
+            />
+          </div>
+
+          <div className="border-t border-gray-200 pt-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Persona de Contacto</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="contactName" className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre del Contacto
+                </label>
+                <input
+                  type="text"
+                  id="contactName"
+                  name="contactName"
+                  value={formData.contactName}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Ej: Juan Pérez"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700 mb-2">
+                    Email del Contacto
+                  </label>
+                  <input
+                    type="email"
+                    id="contactEmail"
+                    name="contactEmail"
+                    value={formData.contactEmail}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="contacto@ejemplo.com"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="contactPhone" className="block text-sm font-medium text-gray-700 mb-2">
+                    Teléfono del Contacto
+                  </label>
+                  <input
+                    type="tel"
+                    id="contactPhone"
+                    name="contactPhone"
+                    value={formData.contactPhone}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="+1 234 567 8900"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 

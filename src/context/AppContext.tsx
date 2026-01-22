@@ -50,8 +50,8 @@ interface CreateProjectData {
   name: string;
   description?: string;
   type?: 'Campaña' | 'Planner' | 'Producciones';
-  progress?: number;
   status?: string;
+  client_id?: string;
   startDate?: string;
   deadline?: string;
   color?: string;
@@ -548,8 +548,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           name: data.name,
           description: data.description,
           type: data.type || 'Campaña',
-          progress: data.progress || 0,
           status: data.status || 'planning',
+          client_id: data.client_id,
           start_date: startDate,
           deadline: deadline,
           color: data.color,

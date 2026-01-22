@@ -431,8 +431,8 @@ export interface CreateProjectRequest {
   name: string;
   description?: string;
   type?: 'Campaña' | 'Planner' | 'Producciones';
-  progress?: number;
   status?: string;
+  client_id?: string;
   start_date?: string;
   deadline?: string;
   color?: string;
@@ -462,6 +462,10 @@ export interface ApiClient {
   description?: string;
   email?: string;
   phone?: string;
+  address?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -474,6 +478,10 @@ export interface CreateClientRequest {
   description?: string;
   email?: string;
   phone?: string;
+  address?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
 }
 
 export const api = new ApiService();

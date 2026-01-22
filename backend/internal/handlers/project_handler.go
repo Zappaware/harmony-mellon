@@ -60,8 +60,8 @@ type CreateProjectRequest struct {
 	Name        string                `json:"name" binding:"required"`
 	Description string                `json:"description"`
 	Type        models.ProjectType    `json:"type"`
-	Progress    int                   `json:"progress"`
 	Status      models.ProjectStatus  `json:"status"`
+	ClientID    *string               `json:"client_id"`
 	StartDate   *string               `json:"start_date"`
 	Deadline    *string               `json:"deadline"`
 	Color       string                `json:"color"`
@@ -89,10 +89,18 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 		Name:        req.Name,
 		Description: req.Description,
 		Type:        req.Type,
-		Progress:    req.Progress,
+		Progress:    0, // Progress starts at 0, calculated from issues
 		Status:      req.Status,
 		Color:       req.Color,
 		CreatedBy:   userID,
+	}
+
+	// Set ClientID if provided
+	if req.ClientID != nil {
+		clientID, err := uuid.Parse(*req.ClientID)
+		if err == nil {
+			project.ClientID = &clientID
+		}
 	}
 
 	if req.StartDate != nil {

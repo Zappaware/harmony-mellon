@@ -56,10 +56,14 @@ func (h *ClientHandler) GetClient(c *gin.Context) {
 }
 
 type CreateClientRequest struct {
-	Name        string  `json:"name" binding:"required"`
-	Description string  `json:"description"`
-	Email       *string `json:"email"`
-	Phone       *string `json:"phone"`
+	Name         string  `json:"name" binding:"required"`
+	Description  string  `json:"description"`
+	Email        *string `json:"email"`
+	Phone        *string `json:"phone"`
+	Address      *string `json:"address"`
+	ContactName  *string `json:"contact_name"`
+	ContactEmail *string `json:"contact_email"`
+	ContactPhone *string `json:"contact_phone"`
 }
 
 func (h *ClientHandler) CreateClient(c *gin.Context) {
@@ -81,11 +85,15 @@ func (h *ClientHandler) CreateClient(c *gin.Context) {
 	}
 
 	client := &models.Client{
-		Name:        req.Name,
-		Description: req.Description,
-		Email:       req.Email,
-		Phone:       req.Phone,
-		CreatedBy:   userID,
+		Name:         req.Name,
+		Description:  req.Description,
+		Email:        req.Email,
+		Phone:        req.Phone,
+		Address:      req.Address,
+		ContactName:  req.ContactName,
+		ContactEmail: req.ContactEmail,
+		ContactPhone: req.ContactPhone,
+		CreatedBy:    userID,
 	}
 
 	if err := h.clientService.CreateClient(client); err != nil {
@@ -122,10 +130,14 @@ func (h *ClientHandler) CreateClient(c *gin.Context) {
 }
 
 type UpdateClientRequest struct {
-	Name        *string `json:"name"`
-	Description *string `json:"description"`
-	Email       *string `json:"email"`
-	Phone       *string `json:"phone"`
+	Name         *string `json:"name"`
+	Description  *string `json:"description"`
+	Email        *string `json:"email"`
+	Phone        *string `json:"phone"`
+	Address      *string `json:"address"`
+	ContactName  *string `json:"contact_name"`
+	ContactEmail *string `json:"contact_email"`
+	ContactPhone *string `json:"contact_phone"`
 }
 
 func (h *ClientHandler) UpdateClient(c *gin.Context) {
@@ -162,6 +174,18 @@ func (h *ClientHandler) UpdateClient(c *gin.Context) {
 	}
 	if req.Phone != nil {
 		updates["phone"] = req.Phone
+	}
+	if req.Address != nil {
+		updates["address"] = req.Address
+	}
+	if req.ContactName != nil {
+		updates["contact_name"] = req.ContactName
+	}
+	if req.ContactEmail != nil {
+		updates["contact_email"] = req.ContactEmail
+	}
+	if req.ContactPhone != nil {
+		updates["contact_phone"] = req.ContactPhone
 	}
 
 	client, err := h.clientService.UpdateClient(id, updates)

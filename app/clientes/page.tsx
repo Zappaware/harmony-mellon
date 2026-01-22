@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { Building2, Mail, Phone, Plus, Trash2, Users } from 'lucide-react';
+import { Building2, Mail, Phone, Plus, Trash2, Users, MapPin, User } from 'lucide-react';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { CreateClientModal } from '@/components/CreateClientModal';
 import { Loading } from '@/components/Loading';
@@ -202,7 +202,27 @@ function ClientesContent() {
                         <span>{client.phone}</span>
                       </div>
                     )}
-                    <div className="flex items-center gap-2">
+                    {client.address && (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                        <span className="line-clamp-2">{client.address}</span>
+                      </div>
+                    )}
+                    {client.contact_name && (
+                      <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                        <User className="w-4 h-4 text-gray-400" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-700">{client.contact_name}</div>
+                          {client.contact_email && (
+                            <div className="text-xs text-gray-500 truncate">{client.contact_email}</div>
+                          )}
+                          {client.contact_phone && (
+                            <div className="text-xs text-gray-500">{client.contact_phone}</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
                       <Users className="w-4 h-4 text-gray-400" />
                       <span>{client.projects?.length || 0} proyecto(s)</span>
                     </div>
@@ -258,8 +278,28 @@ function ClientesContent() {
                               <span>{client.phone}</span>
                             </div>
                           )}
-                          {!client.email && !client.phone && (
-                            <span className="text-sm text-gray-400">Sin contacto</span>
+                          {client.address && (
+                            <div className="flex items-start gap-2 text-sm text-gray-600">
+                              <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                              <span className="line-clamp-1 max-w-xs">{client.address}</span>
+                            </div>
+                          )}
+                          {client.contact_name && (
+                            <div className="flex items-center gap-2 text-sm text-gray-600 pt-1 border-t border-gray-100">
+                              <User className="w-4 h-4 text-gray-400" />
+                              <div>
+                                <div className="font-medium">{client.contact_name}</div>
+                                {client.contact_email && (
+                                  <div className="text-xs text-gray-500">{client.contact_email}</div>
+                                )}
+                                {client.contact_phone && (
+                                  <div className="text-xs text-gray-500">{client.contact_phone}</div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {!client.email && !client.phone && !client.address && !client.contact_name && (
+                            <span className="text-sm text-gray-400">Sin información de contacto</span>
                           )}
                         </div>
                       </TableCell>
