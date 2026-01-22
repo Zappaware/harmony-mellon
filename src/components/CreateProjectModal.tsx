@@ -11,10 +11,22 @@ interface CreateProjectModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   initialStartDate?: string;
+  projectToEdit?: {
+    id: string;
+    name: string;
+    description?: string;
+    type?: 'Campaña' | 'Planner' | 'Producciones';
+    status?: string;
+    client_id?: string;
+    start_date?: string;
+    deadline?: string;
+    color?: string;
+  };
 }
 
-export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDate }: CreateProjectModalProps) {
-  const { createProject } = useApp();
+export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDate, projectToEdit }: CreateProjectModalProps) {
+  const { createProject, updateProject } = useApp();
+  const isEditMode = !!projectToEdit;
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -37,7 +49,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
     }
   }, [initialStartDate]);
 
-  // Load clients when modal opens
+  // Load clients when modal opens and populate form if editing
   useEffect(() => {
     if (isOpen) {
       const loadClients = async () => {
@@ -52,8 +64,55 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
         }
       };
       loadClients();
+
+      // Populate form if editing
+      if (projectToEdit) {
+        // Fetch full project data to get client_id
+        try {
+          const fullProject = await api.getProject(projectToEdit.id);
+          setFormData({
+            name: projectToEdit.name,
+            description: projectToEdit.description || '',
+            type: projectToEdit.type || 'Campaña',
+            status: projectToEdit.status || 'planning',
+            clientId: fullProject.client_id || '',
+            startDate: fullProject.start_date 
+              ? fullProject.start_date.split('T')[0] 
+              : (initialStartDate || ''),
+            deadline: projectToEdit.deadline ? projectToEdit.deadline.split('T')[0] : '',
+            color: projectToEdit.color || 'bg-blue-500',
+          });
+        } catch (error) {
+          console.error('Error loading project data:', error);
+          // Fallback to provided data
+          setFormData({
+            name: projectToEdit.name,
+            description: projectToEdit.description || '',
+            type: projectToEdit.type || 'Campaña',
+            status: projectToEdit.status || 'planning',
+            clientId: projectToEdit.client_id || '',
+            startDate: projectToEdit.start_date 
+              ? projectToEdit.start_date.split('T')[0] 
+              : (initialStartDate || ''),
+            deadline: projectToEdit.deadline ? projectToEdit.deadline.split('T')[0] : '',
+            color: projectToEdit.color || 'bg-blue-500',
+          });
+        }
+      } else {
+        // Reset form for new project
+        setFormData({
+          name: '',
+          description: '',
+          type: 'Campaña',
+          status: 'planning',
+          clientId: '',
+          startDate: initialStartDate || '',
+          deadline: '',
+          color: 'bg-blue-500',
+        });
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, projectToEdit, initialStartDate]);
 
   if (!isOpen) return null;
 
@@ -63,39 +122,59 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
     setIsSubmitting(true);
 
     try {
-      await createProject({
-        name: formData.name,
-        description: formData.description || undefined,
-        status: formData.status,
-        client_id: formData.clientId || undefined,
-        startDate: formData.startDate || undefined,
-        deadline: formData.deadline || undefined,
-        color: formData.color,
-      });
+      if (isEditMode && projectToEdit) {
+        // Update existing project
+        await updateProject(projectToEdit.id, {
+          name: formData.name,
+          description: formData.description || undefined,
+          type: formData.type,
+          status: formData.status,
+          client_id: formData.clientId || undefined,
+          startDate: formData.startDate || undefined,
+          deadline: formData.deadline || undefined,
+          color: formData.color,
+        });
 
-      // Show success toast
-      toast.success('Proyecto creado exitosamente', {
-        description: `El proyecto "${formData.name}" ha sido creado.`,
-      });
+        toast.success('Proyecto actualizado exitosamente', {
+          description: `El proyecto "${formData.name}" ha sido actualizado.`,
+        });
+      } else {
+        // Create new project
+        await createProject({
+          name: formData.name,
+          description: formData.description || undefined,
+          type: formData.type,
+          status: formData.status,
+          client_id: formData.clientId || undefined,
+          startDate: formData.startDate || undefined,
+          deadline: formData.deadline || undefined,
+          color: formData.color,
+        });
 
-      // Reset form
-      setFormData({
-        name: '',
-        description: '',
-        type: 'Campaña',
-        status: 'planning',
-        clientId: '',
-        startDate: initialStartDate || '',
-        deadline: '',
-        color: 'bg-blue-500',
-      });
+        toast.success('Proyecto creado exitosamente', {
+          description: `El proyecto "${formData.name}" ha sido creado.`,
+        });
+
+        // Reset form only for new projects
+        setFormData({
+          name: '',
+          description: '',
+          type: 'Campaña',
+          status: 'planning',
+          clientId: '',
+          startDate: initialStartDate || '',
+          deadline: '',
+          color: 'bg-blue-500',
+        });
+      }
 
       onSuccess?.();
       onClose();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al crear el proyecto';
+      const defaultError = isEditMode ? 'Error al actualizar el proyecto' : 'Error al crear el proyecto';
+      const errorMessage = err instanceof Error ? err.message : defaultError;
       setError(errorMessage);
-      toast.error('Error al crear el proyecto', {
+      toast.error(defaultError, {
         description: errorMessage,
       });
     } finally {
@@ -124,7 +203,9 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-2xl font-semibold text-gray-800">Crear Nuevo Proyecto</h2>
+          <h2 className="text-2xl font-semibold text-gray-800">
+            {isEditMode ? 'Editar Proyecto' : 'Crear Nuevo Proyecto'}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -298,7 +379,12 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
               className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Creando...' : 'Crear Proyecto'}
+              {(() => {
+                if (isSubmitting) {
+                  return isEditMode ? 'Actualizando...' : 'Creando...';
+                }
+                return isEditMode ? 'Actualizar Proyecto' : 'Crear Proyecto';
+              })()}
             </button>
           </div>
         </form>

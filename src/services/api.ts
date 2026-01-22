@@ -414,6 +414,7 @@ export interface ApiProject {
   type?: 'Campaña' | 'Planner' | 'Producciones';
   progress: number;
   status: string;
+  client_id?: string;
   start_date?: string;
   deadline?: string;
   color?: string;

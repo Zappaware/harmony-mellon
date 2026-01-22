@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
-import { FolderKanban, Users, Calendar, TrendingUp, Trash2, Grid3x3, List } from 'lucide-react';
+import { FolderKanban, Users, Calendar, TrendingUp, Trash2, Grid3x3, List, Edit2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
@@ -46,6 +46,7 @@ function ProyectosContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
   const [proyectos, setProyectos] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user, deleteProject, issues } = useApp();
@@ -434,17 +435,31 @@ function ProyectosContent() {
                                   Ver →
                                 </Link>
                                 {(user?.role === 'admin' || user?.role === 'team_lead') && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      setProjectToDelete(proyecto.id);
-                                    }}
-                                    className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                                    title="Eliminar proyecto"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
+                                  <>
+                                    <button
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setProjectToEdit(proyecto);
+                                        setIsCreateModalOpen(true);
+                                      }}
+                                      className="p-1 text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                                      title="Editar proyecto"
+                                    >
+                                      <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setProjectToDelete(proyecto.id);
+                                      }}
+                                      className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                      title="Eliminar proyecto"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </>
                                 )}
                               </div>
                             </TableCell>
@@ -487,17 +502,31 @@ function ProyectosContent() {
                   </div>
                 </Link>
                 {(user?.role === 'admin' || user?.role === 'team_lead') && (
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setProjectToDelete(proyecto.id);
-                    }}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                    title="Eliminar proyecto"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setProjectToEdit(proyecto);
+                        setIsCreateModalOpen(true);
+                      }}
+                      className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      title="Editar proyecto"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setProjectToDelete(proyecto.id);
+                      }}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Eliminar proyecto"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -550,9 +579,23 @@ function ProyectosContent() {
       </div>
       <CreateProjectModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setProjectToEdit(null);
+        }}
+        projectToEdit={projectToEdit ? {
+          id: projectToEdit.id,
+          name: projectToEdit.nombre,
+          description: projectToEdit.descripcion,
+          type: projectToEdit.tipo,
+          status: projectToEdit.estado,
+          client_id: undefined, // Will be loaded from API
+          start_date: undefined, // Will be loaded from API
+          deadline: projectToEdit.fechaLimite || undefined,
+          color: projectToEdit.color,
+        } : undefined}
         onSuccess={async () => {
-          // Reload projects after successful creation
+          // Reload projects after successful creation/update
           try {
             const apiProjects = await api.getProjects();
             const convertedProjects: Project[] = apiProjects.map(project => ({
@@ -566,6 +609,7 @@ function ProyectosContent() {
               color: project.color || 'bg-blue-500',
             }));
             setProyectos(convertedProjects);
+            setProjectToEdit(null);
           } catch (error) {
             console.error('Error reloading projects:', error);
           }

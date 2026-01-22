@@ -177,7 +177,7 @@ export default function ProjectDetailPage() {
               </div>
             </div>
             {canEdit && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mr-16 md:mr-20">
                 <button
                   onClick={() => setShowDeleteDialog(true)}
                   className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
