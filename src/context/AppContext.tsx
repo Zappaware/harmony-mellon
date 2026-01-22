@@ -571,8 +571,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (data.name !== undefined) updateData.name = data.name;
         if (data.description !== undefined) updateData.description = data.description;
         if (data.type !== undefined) updateData.type = data.type;
-        if (data.progress !== undefined) updateData.progress = data.progress;
         if (data.status !== undefined) updateData.status = data.status;
+        if (data.client_id !== undefined) updateData.client_id = data.client_id;
         if (data.startDate !== undefined) {
           updateData.start_date = data.startDate ? new Date(data.startDate).toISOString() : null;
         }
