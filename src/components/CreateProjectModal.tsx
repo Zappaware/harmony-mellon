@@ -51,19 +51,19 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
 
   // Load clients when modal opens and populate form if editing
   useEffect(() => {
-    if (isOpen) {
-      const loadClients = async () => {
-        setIsLoadingClients(true);
-        try {
-          const apiClients = await api.getClients();
-          setClients(apiClients);
-        } catch (error) {
-          console.error('Error loading clients:', error);
-        } finally {
-          setIsLoadingClients(false);
-        }
-      };
-      loadClients();
+    if (!isOpen) return;
+
+    const loadData = async () => {
+      // Load clients
+      setIsLoadingClients(true);
+      try {
+        const apiClients = await api.getClients();
+        setClients(apiClients);
+      } catch (error) {
+        console.error('Error loading clients:', error);
+      } finally {
+        setIsLoadingClients(false);
+      }
 
       // Populate form if editing
       if (projectToEdit) {
@@ -111,7 +111,9 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
           color: 'bg-blue-500',
         });
       }
-    }
+    };
+
+    loadData();
   }, [isOpen, projectToEdit, initialStartDate]);
 
   if (!isOpen) return null;
