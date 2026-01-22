@@ -21,6 +21,7 @@ func Migrate(db *gorm.DB) error {
 		&models.User{},
 		&models.Issue{},
 		&models.Comment{},
+		&models.Client{},
 		&models.Project{},
 		&models.ProjectMember{},
 		&models.Notification{},

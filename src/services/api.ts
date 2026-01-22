@@ -376,6 +376,35 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  // Client methods
+  async getClients(): Promise<ApiClient[]> {
+    return this.request<ApiClient[]>('/clients');
+  }
+
+  async getClient(id: string): Promise<ApiClient> {
+    return this.request<ApiClient>(`/clients/${id}`);
+  }
+
+  async createClient(client: CreateClientRequest): Promise<ApiClient> {
+    return this.request<ApiClient>('/clients', {
+      method: 'POST',
+      body: JSON.stringify(client),
+    });
+  }
+
+  async updateClient(id: string, updates: Partial<CreateClientRequest>): Promise<ApiClient> {
+    return this.request<ApiClient>(`/clients/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async deleteClient(id: string): Promise<void> {
+    return this.request<void>(`/clients/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export interface ApiProject {
@@ -425,6 +454,26 @@ export interface ApiNotification {
   read: boolean;
   related_id?: string;
   created_at: string;
+}
+
+export interface ApiClient {
+  id: string;
+  name: string;
+  description?: string;
+  email?: string;
+  phone?: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  creator?: ApiUser;
+  projects?: ApiProject[];
+}
+
+export interface CreateClientRequest {
+  name: string;
+  description?: string;
+  email?: string;
+  phone?: string;
 }
 
 export const api = new ApiService();

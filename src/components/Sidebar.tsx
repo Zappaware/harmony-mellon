@@ -17,7 +17,8 @@ import {
   UserCircle,
   Calendar,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Building2
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -50,6 +51,7 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
     { to: '/kanban', icon: FolderKanban, label: 'Kanban' },
     { to: '/calendario', icon: Calendar, label: 'Calendario' },
     { to: '/proyectos', icon: FolderKanban, label: 'Proyectos' },
+    { to: '/clientes', icon: Building2, label: 'Clientes' },
     { to: '/notificaciones', icon: Bell, label: 'Notificaciones' },
     { to: '/perfil', icon: Users, label: 'Mi Perfil' },
   ];
@@ -57,6 +59,7 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
   const adminLinks = [
     { to: '/dashboard', icon: BarChart3, label: 'Métricas' },
     { to: '/proyectos', icon: FolderKanban, label: 'Proyectos' },
+    { to: '/clientes', icon: Building2, label: 'Clientes' },
     { to: '/kanban', icon: FolderKanban, label: 'Kanban' },
     { to: '/calendario', icon: Calendar, label: 'Calendario' },
     { to: '/usuarios', icon: Users, label: 'Equipo' },
@@ -68,6 +71,7 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
   const teamLeadLinks = [
     { to: '/dashboard', icon: BarChart3, label: 'Métricas' },
     { to: '/proyectos', icon: FolderKanban, label: 'Proyectos' },
+    { to: '/clientes', icon: Building2, label: 'Clientes' },
     { to: '/kanban', icon: FolderKanban, label: 'Kanban' },
     { to: '/calendario', icon: Calendar, label: 'Calendario' },
     { to: '/notificaciones', icon: Bell, label: 'Notificaciones' },

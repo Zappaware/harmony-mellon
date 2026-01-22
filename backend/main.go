@@ -37,6 +37,7 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	issueRepo := repository.NewIssueRepository(db)
 	commentRepo := repository.NewCommentRepository(db)
+	clientRepo := repository.NewClientRepository(db)
 	projectRepo := repository.NewProjectRepository(db)
 	notificationRepo := repository.NewNotificationRepository(db)
 
@@ -47,6 +48,7 @@ func main() {
 	notificationService := service.NewNotificationServiceWithEmail(notificationRepo, emailService, userRepo)
 	issueService := service.NewIssueService(issueRepo, userRepo)
 	commentService := service.NewCommentService(commentRepo, userRepo, issueRepo)
+	clientService := service.NewClientService(clientRepo, userRepo)
 	projectService := service.NewProjectService(projectRepo, userRepo)
 
 	// Initialize handlers
@@ -55,6 +57,7 @@ func main() {
 		notificationHandler := handlers.NewNotificationHandler(notificationService)
 	issueHandler := handlers.NewIssueHandler(issueService, emailService, userRepo, notificationService, projectRepo)
 	commentHandler := handlers.NewCommentHandler(commentService)
+	clientHandler := handlers.NewClientHandler(clientService, userRepo, notificationService)
 	projectHandler := handlers.NewProjectHandler(projectService, emailService, userRepo, notificationService, projectRepo)
 
 	// Setup router
@@ -128,6 +131,13 @@ func main() {
 		protected.POST("/issues/:id/comments", commentHandler.CreateComment)
 		protected.PUT("/comments/:id", commentHandler.UpdateComment)
 		protected.DELETE("/comments/:id", commentHandler.DeleteComment)
+
+		// Client routes
+		protected.GET("/clients", clientHandler.GetClients)
+		protected.GET("/clients/:id", clientHandler.GetClient)
+		protected.POST("/clients", clientHandler.CreateClient)
+		protected.PUT("/clients/:id", clientHandler.UpdateClient)
+		protected.DELETE("/clients/:id", clientHandler.DeleteClient)
 
 		// Project routes
 		protected.GET("/projects", projectHandler.GetProjects)
