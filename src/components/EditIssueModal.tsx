@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import { X, Link as LinkIcon, Image, File, Plus, Trash2, FolderKanban } from 'lucide-react';
+import { X, Link as LinkIcon, Image, File, Plus, Trash2, FolderKanban, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { api, ApiAttachment } from '@/services/api';
+import { api, ApiAttachment, ApiClient } from '@/services/api';
 import { Issue, useApp } from '@/context/AppContext';
 
 interface EditIssueModalProps {
@@ -15,12 +15,14 @@ interface EditIssueModalProps {
 
 export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueModalProps) {
   const { users, projects } = useApp();
+  const [clients, setClients] = useState<ApiClient[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     priority: 'medium' as 'low' | 'medium' | 'high',
     assignedTo: '',
     projectId: '',
+    clientId: '',
     startDate: '',
     dueDate: '',
   });
@@ -42,14 +44,21 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
         priority: issue.priority,
         assignedTo: issue.assignedTo || '',
         projectId: issue.projectId || '',
+        clientId: issue.clientId || '',
         startDate: issue.startDate || '',
         dueDate: issue.dueDate || '',
       });
-      // Load attachments from API if available
       loadIssueDetails();
       setError(null);
     }
   }, [isOpen, issue]);
+
+  // Load clients when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      api.getClients().then(setClients).catch(() => setClients([]));
+    }
+  }, [isOpen]);
 
   const loadIssueDetails = async () => {
     if (!issue) return;
@@ -58,6 +67,11 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
       if (issueDetails.attachments) {
         setAttachments(issueDetails.attachments);
       }
+      setFormData((prev) => ({
+        ...prev,
+        projectId: issueDetails.project_id || prev.projectId,
+        clientId: issueDetails.client_id || prev.clientId,
+      }));
     } catch (err) {
       console.error('Error loading issue details:', err);
     }
@@ -76,6 +90,8 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
         description: formData.description,
         priority: formData.priority,
         assigned_to: formData.assignedTo || undefined,
+        project_id: formData.projectId || undefined,
+        client_id: formData.clientId || undefined,
         start_date: formData.startDate || undefined,
         due_date: formData.dueDate || undefined,
         attachments: attachments.length > 0 ? attachments : undefined,
@@ -218,25 +234,48 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
             </div>
           </div>
 
-          <div>
-            <label htmlFor="projectId" className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-              <FolderKanban className="w-4 h-4" />
-              Proyecto
-            </label>
-            <select
-              id="projectId"
-              name="projectId"
-              value={formData.projectId}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">Sin proyecto</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="projectId" className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                <FolderKanban className="w-4 h-4" />
+                Proyecto
+              </label>
+              <select
+                id="projectId"
+                name="projectId"
+                value={formData.projectId}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Sin proyecto</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="clientId" className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                <Building2 className="w-4 h-4" />
+                Cliente
+              </label>
+              <select
+                id="clientId"
+                name="clientId"
+                value={formData.clientId}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Sin cliente</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

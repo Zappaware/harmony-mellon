@@ -20,6 +20,7 @@ export interface Issue {
   assignedTo?: string;
   createdBy: string;
   projectId?: string;
+  clientId?: string;
   startDate?: string;
   dueDate?: string;
   attachments?: Array<{ type: 'link' | 'image' | 'file'; url: string; name?: string }>;
@@ -239,6 +240,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       assignedTo: apiIssue.assigned_to,
       createdBy: apiIssue.created_by,
       projectId: apiIssue.project_id,
+      clientId: apiIssue.client_id,
       startDate: apiIssue.start_date,
       dueDate: apiIssue.due_date,
       attachments: apiIssue.attachments,
