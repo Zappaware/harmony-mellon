@@ -1,0 +1,24 @@
+# Dependencies and build output (do not exclude package.json or package-lock.json)
+node_modules
+.next
+out
+build
+
+# Git and env
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+# Backend (separate service; keep frontend context small)
+backend
+
+# Docs and misc (optional; comment out if you need these in context)
+*.md
+mdFiles
+scripts
+docker-compose.yml
+.railwayignore
+.DS_Store
+*.log

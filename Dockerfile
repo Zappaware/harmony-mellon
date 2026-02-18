@@ -7,8 +7,8 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json* ./
+# Copy full context so package.json is included (works with Metal/Railway root directory)
+COPY . .
 RUN npm ci --legacy-peer-deps
 
 # Rebuild the source code only when needed
