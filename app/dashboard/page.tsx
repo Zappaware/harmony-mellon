@@ -273,8 +273,9 @@ function DashboardUsuario() {
 }
 
 function DashboardAdmin() {
-  const { issues, users, isLoading } = useApp();
+  const { issues, users, projects, isLoading } = useApp();
   const [showUsersModal, setShowUsersModal] = useState(false);
+  const [showProjectsModal, setShowProjectsModal] = useState(false);
 
   if (isLoading) {
     return <Loading fullScreen message="Cargando métricas..." />;
@@ -292,10 +293,18 @@ function DashboardAdmin() {
     return 'text-gray-600 bg-gray-50';
   };
 
+  // Progress per user: % of assigned issues that are done
+  const getUserProgress = (userId: string) => {
+    const assigned = issues.filter((i) => i.assignedTo === userId);
+    if (assigned.length === 0) return { done: 0, total: 0, percent: 0 };
+    const done = assigned.filter((i) => i.status === 'done').length;
+    return { done, total: assigned.length, percent: Math.round((done / assigned.length) * 100) };
+  };
+
   const stats = [
     { label: 'Total Issues', value: issues.length, icon: FolderKanban, color: 'bg-blue-500' },
-    { label: 'Total Usuarios', value: users.length, icon: Users, color: 'bg-purple-500' },
-    { label: 'En Progreso', value: issues.filter((i) => i.status === 'in-progress').length, icon: TrendingUp, color: 'bg-yellow-500' },
+    { label: 'Avance por usuario', value: users.length, icon: Users, color: 'bg-purple-500' },
+    { label: 'Avance por proyecto', value: projects.length, icon: TrendingUp, color: 'bg-yellow-500' },
     { label: 'Prioridad Alta', value: issues.filter((i) => i.priority === 'high').length, icon: AlertCircle, color: 'bg-red-500' },
   ];
 
@@ -328,12 +337,12 @@ function DashboardAdmin() {
           let onClick: (() => void) | undefined = undefined;
           
           // Set the correct href/onClick based on the stat label
-          if (stat.label === 'Total Usuarios') {
+          if (stat.label === 'Avance por usuario') {
             onClick = () => setShowUsersModal(true);
+          } else if (stat.label === 'Avance por proyecto') {
+            onClick = () => setShowProjectsModal(true);
           } else if (stat.label === 'Prioridad Alta') {
             href = '/tareas?priority=high';
-          } else if (stat.label === 'En Progreso') {
-            href = '/tareas?status=in-progress';
           } else {
             href = '/tareas';
           }
@@ -415,41 +424,106 @@ function DashboardAdmin() {
       </div>
       </div>
 
-      {/* Users List Modal */}
+      {/* Avance por usuario - Users List Modal with progress */}
       <Dialog open={showUsersModal} onOpenChange={setShowUsersModal}>
         <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[85vh] overflow-y-auto p-4 md:p-6">
           <DialogHeader className="pb-3">
-            <DialogTitle className="text-lg md:text-xl">Lista de Usuarios ({users.length})</DialogTitle>
+            <DialogTitle className="text-lg md:text-xl">Avance por usuario ({users.length})</DialogTitle>
             <DialogDescription className="text-xs md:text-sm">
-              Todos los usuarios registrados en el sistema
+              Progreso de tareas completadas por cada usuario
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 md:space-y-3 mt-2 md:mt-4">
             {users.length === 0 ? (
               <p className="text-center text-gray-500 py-8 text-sm">No hay usuarios registrados</p>
             ) : (
-              users.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between p-3 md:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-                    <Avatar name={user.name} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate text-sm md:text-base">{user.name}</p>
-                      <div className="flex items-center gap-1.5 md:gap-2 mt-0.5 md:mt-1">
-                        <Mail className="w-3 h-3 md:w-3.5 md:h-3.5 text-gray-400 shrink-0" />
-                        <span className="text-xs md:text-sm text-gray-600 truncate">{user.email}</span>
+              users.map((u) => {
+                const { done, total, percent } = getUserProgress(u.id);
+                return (
+                  <div
+                    key={u.id}
+                    className="p-3 md:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                        <Avatar name={u.name} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 truncate text-sm md:text-base">{u.name}</p>
+                          <div className="flex items-center gap-1.5 md:gap-2 mt-0.5 md:mt-1">
+                            <Mail className="w-3 h-3 md:w-3.5 md:h-3.5 text-gray-400 shrink-0" />
+                            <span className="text-xs md:text-sm text-gray-600 truncate">{u.email}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-sm font-medium text-gray-700">{percent}%</span>
+                        <span className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-medium ${getRoleColor(u.role)}`}>
+                          {getRoleLabel(u.role)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                        <span>{done} de {total} tareas completadas</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div
+                          className="bg-indigo-500 h-2.5 rounded-full transition-all duration-300"
+                          style={{ width: `${percent}%` }}
+                        />
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 ml-2">
-                    <span className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
-                      {getRoleLabel(user.role)}
-                    </span>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Avance por proyecto - Projects List Modal with progress */}
+      <Dialog open={showProjectsModal} onOpenChange={setShowProjectsModal}>
+        <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[85vh] overflow-y-auto p-4 md:p-6">
+          <DialogHeader className="pb-3">
+            <DialogTitle className="text-lg md:text-xl">Avance por proyecto ({projects.length})</DialogTitle>
+            <DialogDescription className="text-xs md:text-sm">
+              Progreso de cada proyecto del sistema
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 md:space-y-3 mt-2 md:mt-4">
+            {projects.length === 0 ? (
+              <p className="text-center text-gray-500 py-8 text-sm">No hay proyectos</p>
+            ) : (
+              projects.map((project) => {
+                const progress = Math.min(100, Math.max(0, project.progress ?? 0));
+                return (
+                  <div
+                    key={project.id}
+                    className="p-3 md:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <FolderKanban className="w-5 h-5 text-amber-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 truncate text-sm md:text-base">{project.name}</p>
+                          {project.description && (
+                            <p className="text-xs text-gray-500 truncate mt-0.5">{project.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-700 shrink-0">{progress}%</span>
+                    </div>
+                    <div className="mt-2">
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div
+                          className="bg-amber-500 h-2.5 rounded-full transition-all duration-300"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </DialogContent>
