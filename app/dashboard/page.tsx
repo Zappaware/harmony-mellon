@@ -301,6 +301,15 @@ function DashboardAdmin() {
     return { done, total: assigned.length, percent: Math.round((done / assigned.length) * 100) };
   };
 
+  // Progress per project: % of issues in project that are done (computed from issues)
+  const getProjectProgress = (projectId: string) => {
+    const projectIssues = issues.filter((i) => i.projectId === projectId);
+    if (projectIssues.length === 0) return { done: 0, total: 0, percent: 0 };
+    const done = projectIssues.filter((i) => i.status === 'done').length;
+    const percent = Math.round((done / projectIssues.length) * 100);
+    return { done, total: projectIssues.length, percent };
+  };
+
   const stats = [
     { label: 'Total Issues', value: issues.length, icon: FolderKanban, color: 'bg-blue-500' },
     { label: 'Avance por usuario', value: users.length, icon: Users, color: 'bg-purple-500' },
@@ -481,7 +490,7 @@ function DashboardAdmin() {
         </DialogContent>
       </Dialog>
 
-      {/* Avance por proyecto - Projects List Modal with progress */}
+      {/* Avance por proyecto - Projects List Modal with progress (same structure as Avance por usuario) */}
       <Dialog open={showProjectsModal} onOpenChange={setShowProjectsModal}>
         <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[85vh] overflow-y-auto p-4 md:p-6">
           <DialogHeader className="pb-3">
@@ -495,7 +504,7 @@ function DashboardAdmin() {
               <p className="text-center text-gray-500 py-8 text-sm">No hay proyectos</p>
             ) : (
               projects.map((project) => {
-                const progress = Math.min(100, Math.max(0, project.progress ?? 0));
+                const { done, total, percent } = getProjectProgress(project.id);
                 return (
                   <div
                     key={project.id}
@@ -511,13 +520,18 @@ function DashboardAdmin() {
                           )}
                         </div>
                       </div>
-                      <span className="text-sm font-medium text-gray-700 shrink-0">{progress}%</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-sm font-medium text-gray-700">{percent}%</span>
+                      </div>
                     </div>
                     <div className="mt-2">
+                      <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                        <span>{done} de {total} tareas completadas</span>
+                      </div>
                       <div className="w-full bg-gray-200 rounded-full h-2.5">
                         <div
-                          className="bg-amber-500 h-2.5 rounded-full transition-all duration-300"
-                          style={{ width: `${progress}%` }}
+                          className="bg-indigo-500 h-2.5 rounded-full transition-all duration-300"
+                          style={{ width: `${percent}%` }}
                         />
                       </div>
                     </div>

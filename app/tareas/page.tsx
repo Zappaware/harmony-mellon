@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
@@ -25,6 +25,7 @@ function TareasPageContent() {
   const router = useRouter();
   const { issues, users, projects, user: currentUser } = useApp();
   const isAdminOrTeamLead = currentUser?.role === 'admin' || currentUser?.role === 'team_lead';
+  const filtersRef = useRef<HTMLDivElement>(null);
 
   // Get initial filters from URL params
   const initialStatus = searchParams.get('status') || 'all';
@@ -32,16 +33,50 @@ function TareasPageContent() {
   const initialProjectId = searchParams.get('project') || 'all';
   const initialDateFrom = searchParams.get('dateFrom') || '';
   const initialDateTo = searchParams.get('dateTo') || '';
+  const initialPriority = searchParams.get('priority') || 'all';
 
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
   const [userFilter, setUserFilter] = useState<string>(initialUserId);
   const [projectFilter, setProjectFilter] = useState<string>(initialProjectId);
+  const [priorityFilter, setPriorityFilter] = useState<string>(initialPriority);
   const [dateFromFilter, setDateFromFilter] = useState<string>(initialDateFrom);
   const [dateToFilter, setDateToFilter] = useState<string>(initialDateTo);
   const [showStatusFilter, setShowStatusFilter] = useState(false);
   const [showUserFilter, setShowUserFilter] = useState(false);
   const [showProjectFilter, setShowProjectFilter] = useState(false);
+  const [showPriorityFilter, setShowPriorityFilter] = useState(false);
   const [showDateFilter, setShowDateFilter] = useState(false);
+
+  // Keep filter state in sync with URL (e.g. back/forward, direct link with params)
+  useEffect(() => {
+    const status = searchParams.get('status');
+    const user = searchParams.get('user');
+    const project = searchParams.get('project');
+    const dateFrom = searchParams.get('dateFrom');
+    const dateTo = searchParams.get('dateTo');
+    const priority = searchParams.get('priority');
+    setStatusFilter(status ?? 'all');
+    setUserFilter(user ?? 'all');
+    setProjectFilter(project ?? 'all');
+    setPriorityFilter(priority ?? 'all');
+    setDateFromFilter(dateFrom ?? '');
+    setDateToFilter(dateTo ?? '');
+  }, [searchParams]);
+
+  // Close filter dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (filtersRef.current && !filtersRef.current.contains(e.target as Node)) {
+        setShowStatusFilter(false);
+        setShowUserFilter(false);
+        setShowProjectFilter(false);
+        setShowPriorityFilter(false);
+        setShowDateFilter(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Filter issues based on current user role
   const availableIssues = useMemo(() => {
@@ -68,6 +103,10 @@ function TareasPageContent() {
       filtered = filtered.filter(issue => issue.projectId === projectFilter);
     }
 
+    if (priorityFilter !== 'all') {
+      filtered = filtered.filter(issue => issue.priority === priorityFilter);
+    }
+
     if (dateFromFilter) {
       const fromDate = parseISO(dateFromFilter);
       filtered = filtered.filter(issue => {
@@ -89,13 +128,14 @@ function TareasPageContent() {
     }
 
     return filtered;
-  }, [availableIssues, statusFilter, userFilter, projectFilter, dateFromFilter, dateToFilter, isAdminOrTeamLead]);
+  }, [availableIssues, statusFilter, userFilter, projectFilter, priorityFilter, dateFromFilter, dateToFilter, isAdminOrTeamLead]);
 
   // Update URL when filters change
   const updateFilters = (updates: {
     status?: string;
     user?: string;
     project?: string;
+    priority?: string;
     dateFrom?: string;
     dateTo?: string;
   }) => {
@@ -104,12 +144,14 @@ function TareasPageContent() {
     const newStatus = updates.status !== undefined ? updates.status : statusFilter;
     const newUser = updates.user !== undefined ? updates.user : userFilter;
     const newProject = updates.project !== undefined ? updates.project : projectFilter;
+    const newPriority = updates.priority !== undefined ? updates.priority : priorityFilter;
     const newDateFrom = updates.dateFrom !== undefined ? updates.dateFrom : dateFromFilter;
     const newDateTo = updates.dateTo !== undefined ? updates.dateTo : dateToFilter;
 
     if (newStatus !== 'all') params.set('status', newStatus);
     if (isAdminOrTeamLead && newUser !== 'all') params.set('user', newUser);
     if (newProject !== 'all') params.set('project', newProject);
+    if (newPriority !== 'all') params.set('priority', newPriority);
     if (newDateFrom) params.set('dateFrom', newDateFrom);
     if (newDateTo) params.set('dateTo', newDateTo);
 
@@ -134,6 +176,12 @@ function TareasPageContent() {
     setShowProjectFilter(false);
   };
 
+  const handlePriorityChange = (priority: string) => {
+    setPriorityFilter(priority);
+    updateFilters({ priority });
+    setShowPriorityFilter(false);
+  };
+
   const handleDateFromChange = (date: string) => {
     setDateFromFilter(date);
     updateFilters({ dateFrom: date });
@@ -148,6 +196,7 @@ function TareasPageContent() {
     setStatusFilter('all');
     setUserFilter('all');
     setProjectFilter('all');
+    setPriorityFilter('all');
     setDateFromFilter('');
     setDateToFilter('');
     router.push('/tareas');
@@ -156,6 +205,7 @@ function TareasPageContent() {
   const hasActiveFilters = statusFilter !== 'all' || 
     (isAdminOrTeamLead && userFilter !== 'all') || 
     projectFilter !== 'all' || 
+    priorityFilter !== 'all' || 
     dateFromFilter || 
     dateToFilter;
 
@@ -171,9 +221,20 @@ function TareasPageContent() {
     return statusOptions.find(opt => opt.value === status)?.label || status;
   };
 
+  const priorityOptions = [
+    { value: 'all', label: 'Todas' },
+    { value: 'low', label: 'Baja' },
+    { value: 'medium', label: 'Media' },
+    { value: 'high', label: 'Alta' },
+  ];
+
+  const getPriorityLabel = (priority: string) => {
+    return priorityOptions.find(opt => opt.value === priority)?.label || priority;
+  };
+
   return (
     <LayoutWithSidebar>
-      <div className="p-4 md:p-8">
+      <div className="p-4 md:px-4 md:py-6">
         <div className="mb-4">
           <Link 
             href="/dashboard"
@@ -205,8 +266,8 @@ function TareasPageContent() {
           )}
         </div>
 
-        {/* Issues Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        {/* Issues Table - overflow-visible so filter dropdowns are not clipped */}
+        <div ref={filtersRef} className="bg-white rounded-lg shadow overflow-visible">
           {filteredIssues.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               <p className="text-lg mb-2">No se encontraron tareas</p>
@@ -260,12 +321,12 @@ function TareasPageContent() {
                 })}
               </div>
 
-              {/* Desktop: Table View */}
-              <div className="hidden md:block overflow-x-auto">
-                <Table>
+              {/* Desktop: Table View - no overflow on wrapper so filter dropdowns (Estado, Proyecto, etc.) are not clipped */}
+              <div className="hidden md:block">
+                <Table containerClassName="overflow-visible min-w-0">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[300px]">
+                  <TableHead className="min-w-[120px] max-w-[160px] w-[160px]">
                     <div className="flex items-center gap-2">
                       <span>Título</span>
                     </div>
@@ -277,6 +338,7 @@ function TareasPageContent() {
                           setShowStatusFilter(!showStatusFilter);
                           setShowUserFilter(false);
                           setShowProjectFilter(false);
+                          setShowPriorityFilter(false);
                           setShowDateFilter(false);
                         }}
                         className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
@@ -294,23 +356,77 @@ function TareasPageContent() {
                         )}
                       </button>
                       {showStatusFilter && (
-                        <div className="absolute top-full left-0 mt-1 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[180px] max-w-[90vw]">
+                        <div className="absolute top-full left-0 mt-1 z-[100] bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[200px] max-w-[90vw] max-h-[300px] overflow-y-auto">
                           {statusOptions.map(option => (
                             <button
                               key={option.value}
                               onClick={() => handleStatusChange(option.value)}
-                              className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors text-sm ${
+                              className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors flex items-center gap-2 text-sm text-gray-900 ${
                                 statusFilter === option.value ? 'bg-indigo-50 text-indigo-700 font-medium' : ''
                               }`}
                             >
-                              {option.label}
+                              <span className="w-2 h-2 rounded-full shrink-0 bg-gray-300" style={option.value !== 'all' ? { backgroundColor: option.value === 'todo' ? '#94a3b8' : option.value === 'in-progress' ? '#3b82f6' : option.value === 'review' ? '#8b5cf6' : '#22c55e' } : undefined} />
+                              <span>{option.label}</span>
                             </button>
                           ))}
                         </div>
                       )}
                     </div>
                   </TableHead>
-                  <TableHead className="w-[120px]">Prioridad</TableHead>
+                  <TableHead className="w-[140px]">
+                    <div className="relative">
+                      <button
+                        onClick={() => {
+                          setShowPriorityFilter(!showPriorityFilter);
+                          setShowStatusFilter(false);
+                          setShowUserFilter(false);
+                          setShowProjectFilter(false);
+                          setShowDateFilter(false);
+                        }}
+                        className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
+                      >
+                        <span>Prioridad</span>
+                        {priorityFilter !== 'all' && (
+                          <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">
+                            {getPriorityLabel(priorityFilter)}
+                          </span>
+                        )}
+                        {showPriorityFilter ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
+                      {showPriorityFilter && (
+                        <div className="absolute top-full left-0 mt-1 z-[100] bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[180px] max-w-[90vw] max-h-[300px] overflow-y-auto">
+                          {priorityOptions.map(option => (
+                            <button
+                              key={option.value}
+                              onClick={() => handlePriorityChange(option.value)}
+                              className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors flex items-center gap-2 text-sm text-gray-900 ${
+                                priorityFilter === option.value ? 'bg-indigo-50 text-indigo-700 font-medium' : ''
+                              }`}
+                            >
+                              <span
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{
+                                  backgroundColor:
+                                    option.value === 'all'
+                                      ? '#94a3b8'
+                                      : option.value === 'low'
+                                        ? '#22c55e'
+                                        : option.value === 'medium'
+                                          ? '#eab308'
+                                          : '#ef4444',
+                                }}
+                              />
+                              <span>{option.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </TableHead>
                   {isAdminOrTeamLead && (
                     <TableHead className="w-[180px]">
                       <div className="relative">
@@ -319,6 +435,7 @@ function TareasPageContent() {
                             setShowUserFilter(!showUserFilter);
                             setShowStatusFilter(false);
                             setShowProjectFilter(false);
+                            setShowPriorityFilter(false);
                             setShowDateFilter(false);
                           }}
                           className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
@@ -337,7 +454,7 @@ function TareasPageContent() {
                           )}
                         </button>
                         {showUserFilter && (
-                          <div className="absolute top-full left-0 mt-1 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[200px] max-w-[90vw] max-h-[300px] overflow-y-auto">
+                          <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[200px] max-w-[90vw] max-h-[300px] overflow-y-auto">
                             <button
                               onClick={() => handleUserChange('all')}
                               className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors text-sm ${
@@ -373,6 +490,7 @@ function TareasPageContent() {
                           setShowProjectFilter(!showProjectFilter);
                           setShowStatusFilter(false);
                           setShowUserFilter(false);
+                          setShowPriorityFilter(false);
                           setShowDateFilter(false);
                         }}
                         className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
@@ -391,24 +509,26 @@ function TareasPageContent() {
                         )}
                       </button>
                       {showProjectFilter && (
-                        <div className="absolute top-full left-0 mt-1 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[200px] max-w-[90vw] max-h-[300px] overflow-y-auto">
+                        <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[200px] max-w-[90vw] max-h-[300px] overflow-y-auto">
                           <button
                             onClick={() => handleProjectChange('all')}
-                            className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors text-sm ${
+                            className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors text-sm flex items-center gap-2 ${
                               projectFilter === 'all' ? 'bg-indigo-50 text-indigo-700 font-medium' : ''
                             }`}
                           >
-                            Todos los proyectos
+                            <FolderKanban className="w-4 h-4 shrink-0 text-gray-500" />
+                            <span>Todos los proyectos</span>
                           </button>
                           {projects.map(project => (
                             <button
                               key={project.id}
                               onClick={() => handleProjectChange(project.id)}
-                              className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors text-sm ${
+                              className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors flex items-center gap-2 text-sm ${
                                 projectFilter === project.id ? 'bg-indigo-50 text-indigo-700 font-medium' : ''
                               }`}
                             >
-                              <span className="truncate block">{project.name}</span>
+                              <FolderKanban className="w-4 h-4 shrink-0 text-amber-500" />
+                              <span className="truncate">{project.name}</span>
                             </button>
                           ))}
                         </div>
@@ -423,6 +543,7 @@ function TareasPageContent() {
                           setShowStatusFilter(false);
                           setShowUserFilter(false);
                           setShowProjectFilter(false);
+                          setShowPriorityFilter(false);
                         }}
                         className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
                       >
@@ -440,7 +561,7 @@ function TareasPageContent() {
                         )}
                       </button>
                       {showDateFilter && (
-                        <div className="absolute top-full right-0 mt-1 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-[250px] max-w-[90vw]">
+                        <div className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-[250px] max-w-[90vw]">
                           <div className="space-y-2">
                             <div>
                               <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -492,17 +613,20 @@ function TareasPageContent() {
                   
                   return (
                     <TableRow key={issue.id} className="hover:bg-gray-50">
-                      <TableCell>
+                      <TableCell className="max-w-[160px]">
                         <Link 
                           href={`/issue/${issue.id}`}
-                          className="hover:text-indigo-600 transition-colors"
+                          className="hover:text-indigo-600 transition-colors block"
+                          title={issue.description ? `${issue.title}: ${issue.description}` : issue.title}
                         >
-                          <div>
-                            <div className="font-medium text-gray-900">{issue.title}</div>
-                            <div className="text-sm text-gray-500 line-clamp-1 mt-1">
-                              {issue.description}
-                            </div>
-                          </div>
+                          <span className="font-medium text-gray-900 truncate block">
+                            {issue.title}
+                          </span>
+                          {issue.description && (
+                            <span className="text-xs text-gray-500 line-clamp-1 block mt-0.5 max-w-full truncate">
+                              {issue.description.length > 50 ? `${issue.description.slice(0, 50)}…` : issue.description}
+                            </span>
+                          )}
                         </Link>
                       </TableCell>
                       <TableCell>

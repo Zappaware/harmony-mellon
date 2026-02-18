@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useApp, Issue } from '@/context/AppContext';
 import { api } from '@/services/api';
-import { User, Calendar, MessageSquare, Send, Clock, Trash2, FolderKanban } from 'lucide-react';
+import { User, Calendar, MessageSquare, Send, Clock, Trash2, FolderKanban, Pencil } from 'lucide-react';
 import { Badge } from '@/components/Badge';
 import { Avatar } from '@/components/Avatar';
 import { PageHeader } from '@/components/PageHeader';
@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { EditIssueModal } from '@/components/EditIssueModal';
 
 export default function DetalleIssue() {
   const params = useParams();
@@ -33,6 +34,7 @@ export default function DetalleIssue() {
   const [isUpdatingProject, setIsUpdatingProject] = useState(false);
   const [showStatusConfirmDialog, setShowStatusConfirmDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<Issue['status'] | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const issue = issues.find((i) => i.id === id);
 
@@ -146,13 +148,22 @@ export default function DetalleIssue() {
                 </div>
               </div>
             </div>
-            <button
-              onClick={() => setShowDeleteDialog(true)}
-              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              title="Eliminar tarea"
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Editar tarea"
+              >
+                <Pencil className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setShowDeleteDialog(true)}
+                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Eliminar tarea"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           <div className="mb-6">
@@ -341,6 +352,16 @@ export default function DetalleIssue() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <EditIssueModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={() => {
+            setShowEditModal(false);
+            window.location.reload();
+          }}
+          issue={issue}
+        />
       </div>
     </LayoutWithSidebar>
   );
