@@ -189,52 +189,23 @@ func (h *IssueHandler) CreateIssue(c *gin.Context) {
 			}()
 		}
 
-		// Notify project members if issue is part of a project
-		if issue.ProjectID != nil && h.projectRepo != nil {
+		// Notify admins and team leads only when a regular user creates the issue
+		if creator != nil && creator.Role == models.RoleUser {
 			go func() {
-				project, err := h.projectRepo.GetByID(*issue.ProjectID)
-				if err == nil && project != nil {
-					members, err := h.projectRepo.GetMembers(*issue.ProjectID)
-					if err == nil {
-						creatorName := "Sistema"
-						if creator != nil {
-							creatorName = creator.Name
-						}
-						title := "Nueva tarea en proyecto: " + issue.Title
-						message := creatorName + " ha creado una nueva tarea en el proyecto"
-						for _, member := range members {
-							// Don't notify the creator
-							if member.UserID != userID {
-								if err := h.notificationService.CreateNotification(member.UserID, models.NotificationTypeStatus, title, message, issueID); err != nil {
-									log.Printf("Failed to notify project member %s: %v", member.UserID, err)
-								}
+				allUsers, err := h.userRepo.GetAll()
+				if err == nil {
+					title := "Nueva tarea creada: " + issue.Title
+					message := creator.Name + " ha creado una nueva tarea: \"" + issue.Title + "\""
+					for _, user := range allUsers {
+						if (user.Role == models.RoleAdmin || user.Role == models.RoleTeamLead) && user.ID != userID {
+							if err := h.notificationService.CreateNotification(user.ID, models.NotificationTypeStatus, title, message, issueID); err != nil {
+								log.Printf("Failed to notify admin/team lead %s: %v", user.ID, err)
 							}
 						}
 					}
 				}
 			}()
 		}
-
-		// Notify all admins and team leads about new issue
-		go func() {
-			allUsers, err := h.userRepo.GetAll()
-			if err == nil {
-				creatorName := "Sistema"
-				if creator != nil {
-					creatorName = creator.Name
-				}
-				title := "Nueva tarea creada: " + issue.Title
-				message := creatorName + " ha creado una nueva tarea: \"" + issue.Title + "\""
-				for _, user := range allUsers {
-					// Notify admins and team leads, but not the creator
-					if (user.Role == models.RoleAdmin || user.Role == models.RoleTeamLead) && user.ID != userID {
-						if err := h.notificationService.CreateNotification(user.ID, models.NotificationTypeStatus, title, message, issueID); err != nil {
-							log.Printf("Failed to notify admin/team lead %s: %v", user.ID, err)
-						}
-					}
-				}
-			}
-		}()
 	}
 
 	c.JSON(http.StatusCreated, issue.ToResponse())
@@ -354,9 +325,6 @@ func (h *IssueHandler) UpdateIssue(c *gin.Context) {
 
 	// Send notifications and emails (non-blocking)
 	if len(changes) > 0 {
-		// Get users
-		creator, _ := h.userRepo.GetByID(issue.CreatedBy)
-		
 		changesText := ""
 		for i, change := range changes {
 			if i > 0 {
@@ -374,16 +342,7 @@ func (h *IssueHandler) UpdateIssue(c *gin.Context) {
 			message = "La tarea ha sido actualizada: " + changesText
 		}
 
-		// Notify creator (if not the one making the update)
-		if h.notificationService != nil && creator != nil && issue.CreatedBy != currentUserID {
-			go func() {
-				if err := h.notificationService.CreateNotification(issue.CreatedBy, models.NotificationTypeStatus, title, message, issueID); err != nil {
-					log.Printf("Failed to notify issue creator: %v", err)
-				}
-			}()
-		}
-
-		// Notify assignee if assigned (and not the creator)
+		// Notify assignee if assigned (and not the updater)
 		if issue.AssignedTo != nil && h.notificationService != nil {
 			go func() {
 				assignee, err := h.userRepo.GetByID(*issue.AssignedTo)
@@ -496,13 +455,6 @@ func (h *IssueHandler) UpdateIssueStatus(c *gin.Context) {
 				message = currentUser.Name + " ha cambiado el estado de la tarea a: " + statusText
 			} else {
 				message = "El estado de la tarea ha sido cambiado a: " + statusText
-			}
-
-			// Notify creator (if not the one making the update)
-			if issue.CreatedBy != currentUserID {
-				if err := h.notificationService.CreateNotification(issue.CreatedBy, models.NotificationTypeStatus, title, message, issueID); err != nil {
-					log.Printf("Failed to notify issue creator about status change: %v", err)
-				}
 			}
 
 			// Notify assignee if assigned (and not the one making the update)
