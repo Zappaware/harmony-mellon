@@ -15,16 +15,14 @@ import (
 
 type IssueHandler struct {
 	issueService        service.IssueService
-	emailService        service.EmailService
 	userRepo            repository.UserRepository
 	notificationService service.NotificationService
 	projectRepo         repository.ProjectRepository
 }
 
-func NewIssueHandler(issueService service.IssueService, emailService service.EmailService, userRepo repository.UserRepository, notificationService service.NotificationService, projectRepo repository.ProjectRepository) *IssueHandler {
+func NewIssueHandler(issueService service.IssueService, userRepo repository.UserRepository, notificationService service.NotificationService, projectRepo repository.ProjectRepository) *IssueHandler {
 	return &IssueHandler{
 		issueService:        issueService,
-		emailService:        emailService,
 		userRepo:            userRepo,
 		notificationService: notificationService,
 		projectRepo:         projectRepo,
@@ -239,32 +237,6 @@ func (h *IssueHandler) CreateIssue(c *gin.Context) {
 		}()
 	}
 
-	// Send emails (non-blocking)
-	if h.emailService != nil {
-		// Email to creator
-		go func() {
-			if creator != nil {
-				if err := h.emailService.SendIssueCreatedEmail(creator.Email, issue.Title, issue.ID.String()); err != nil {
-					log.Printf("Failed to send issue created email to creator %s: %v", creator.Email, err)
-				}
-			}
-		}()
-
-		// Email to assignee if assigned
-		if issue.AssignedTo != nil {
-			go func() {
-				assignee, err := h.userRepo.GetByID(*issue.AssignedTo)
-				if err == nil && assignee != nil && assignee.ID != userID {
-					if creator != nil {
-						if err := h.emailService.SendIssueAssignedEmail(assignee.Email, issue.Title, issue.ID.String(), creator.Name); err != nil {
-							log.Printf("Failed to send issue assigned email to %s: %v", assignee.Email, err)
-						}
-					}
-				}
-			}()
-		}
-	}
-
 	c.JSON(http.StatusCreated, issue.ToResponse())
 }
 
@@ -463,52 +435,6 @@ func (h *IssueHandler) UpdateIssue(c *gin.Context) {
 					}
 				}
 			}()
-		}
-
-		// Send emails (non-blocking)
-		if h.emailService != nil {
-			// Email to creator
-			go func() {
-				if creator != nil {
-					if err := h.emailService.SendIssueUpdatedEmail(creator.Email, issue.Title, issue.ID.String(), changes); err != nil {
-						log.Printf("Failed to send issue updated email to creator %s: %v", creator.Email, err)
-					}
-				}
-			}()
-
-			// Email to assignee if assigned
-			if issue.AssignedTo != nil {
-				go func() {
-					assignee, err := h.userRepo.GetByID(*issue.AssignedTo)
-					if err == nil && assignee != nil {
-						if err := h.emailService.SendIssueUpdatedEmail(assignee.Email, issue.Title, issue.ID.String(), changes); err != nil {
-							log.Printf("Failed to send issue updated email to assignee %s: %v", assignee.Email, err)
-						}
-					}
-				}()
-			}
-
-			// If assignment changed, send assignment email
-			if req.AssignedTo != nil {
-				oldAssignedID := ""
-				if oldIssue.AssignedTo != nil {
-					oldAssignedID = oldIssue.AssignedTo.String()
-				}
-				if *req.AssignedTo != oldAssignedID && *req.AssignedTo != "" {
-					go func() {
-						assignee, err := h.userRepo.GetByID(*issue.AssignedTo)
-						if err == nil && assignee != nil {
-							assignerName := "Sistema"
-							if creator != nil {
-								assignerName = creator.Name
-							}
-							if err := h.emailService.SendIssueAssignedEmail(assignee.Email, issue.Title, issue.ID.String(), assignerName); err != nil {
-								log.Printf("Failed to send issue assigned email to %s: %v", assignee.Email, err)
-							}
-						}
-					}()
-				}
-			}
 		}
 	}
 

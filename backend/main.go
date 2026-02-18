@@ -42,23 +42,22 @@ func main() {
 	notificationRepo := repository.NewNotificationRepository(db)
 
 	// Initialize services
-	emailService := service.NewEmailService(cfg)
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 	userService := service.NewUserService(userRepo)
-	notificationService := service.NewNotificationServiceWithEmail(notificationRepo, emailService, userRepo)
+	notificationService := service.NewNotificationService(notificationRepo)
 	issueService := service.NewIssueService(issueRepo, userRepo)
 	commentService := service.NewCommentService(commentRepo, userRepo, issueRepo)
 	clientService := service.NewClientService(clientRepo, userRepo)
 	projectService := service.NewProjectService(projectRepo, userRepo)
 
 	// Initialize handlers
-	authHandler := handlers.NewAuthHandlerWithUserService(authService, userService, emailService)
-	userHandler := handlers.NewUserHandler(userService, emailService, userRepo)
-		notificationHandler := handlers.NewNotificationHandler(notificationService)
-	issueHandler := handlers.NewIssueHandler(issueService, emailService, userRepo, notificationService, projectRepo)
+	authHandler := handlers.NewAuthHandlerWithUserService(authService, userService)
+	userHandler := handlers.NewUserHandler(userService, userRepo)
+	notificationHandler := handlers.NewNotificationHandler(notificationService)
+	issueHandler := handlers.NewIssueHandler(issueService, userRepo, notificationService, projectRepo)
 	commentHandler := handlers.NewCommentHandler(commentService)
 	clientHandler := handlers.NewClientHandler(clientService, userRepo, notificationService)
-	projectHandler := handlers.NewProjectHandler(projectService, emailService, userRepo, notificationService, projectRepo)
+	projectHandler := handlers.NewProjectHandler(projectService, userRepo, notificationService, projectRepo)
 
 	// Setup router
 	router := gin.Default()

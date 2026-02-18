@@ -14,16 +14,14 @@ import (
 
 type ProjectHandler struct {
 	projectService      service.ProjectService
-	emailService        service.EmailService
 	userRepo            repository.UserRepository
 	notificationService service.NotificationService
 	projectRepo         repository.ProjectRepository
 }
 
-func NewProjectHandler(projectService service.ProjectService, emailService service.EmailService, userRepo repository.UserRepository, notificationService service.NotificationService, projectRepo repository.ProjectRepository) *ProjectHandler {
+func NewProjectHandler(projectService service.ProjectService, userRepo repository.UserRepository, notificationService service.NotificationService, projectRepo repository.ProjectRepository) *ProjectHandler {
 	return &ProjectHandler{
 		projectService:      projectService,
-		emailService:        emailService,
 		userRepo:            userRepo,
 		notificationService: notificationService,
 		projectRepo:         projectRepo,
@@ -126,18 +124,6 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	if err := h.projectService.CreateProject(project); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
-	}
-
-	// Send email to creator (non-blocking)
-	if h.emailService != nil {
-		go func() {
-			creator, err := h.userRepo.GetByID(userID)
-			if err == nil && creator != nil {
-				if err := h.emailService.SendProjectCreatedEmail(creator.Email, project.Name, project.ID.String()); err != nil {
-					log.Printf("Failed to send project created email to %s: %v", creator.Email, err)
-				}
-			}
-		}()
 	}
 
 	// Notify all admins and team leads about new project (except creator)
@@ -309,18 +295,6 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 								}
 							}
 						}
-					}
-				}
-			}()
-		}
-
-		// Send email to creator if there are changes (non-blocking)
-		if h.emailService != nil {
-			go func() {
-				creator, err := h.userRepo.GetByID(project.CreatedBy)
-				if err == nil && creator != nil {
-					if err := h.emailService.SendProjectUpdatedEmail(creator.Email, project.Name, project.ID.String(), changes); err != nil {
-						log.Printf("Failed to send project updated email to %s: %v", creator.Email, err)
 					}
 				}
 			}()

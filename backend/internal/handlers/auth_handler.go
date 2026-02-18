@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log"
 	"mellon-harmony-api/internal/models"
 	"mellon-harmony-api/internal/service"
 	"net/http"
@@ -11,20 +10,18 @@ import (
 )
 
 type AuthHandler struct {
-	authService  service.AuthService
-	userService  service.UserService
-	emailService service.EmailService
+	authService service.AuthService
+	userService service.UserService
 }
 
 func NewAuthHandler(authService service.AuthService) *AuthHandler {
 	return &AuthHandler{authService: authService}
 }
 
-func NewAuthHandlerWithUserService(authService service.AuthService, userService service.UserService, emailService service.EmailService) *AuthHandler {
+func NewAuthHandlerWithUserService(authService service.AuthService, userService service.UserService) *AuthHandler {
 	return &AuthHandler{
-		authService:  authService,
-		userService:  userService,
-		emailService: emailService,
+		authService: authService,
+		userService: userService,
 	}
 }
 
@@ -75,16 +72,6 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	// Send welcome email (non-blocking)
-	go func() {
-		if h.emailService != nil {
-			if err := h.emailService.SendUserCreatedEmail(user.Email, user.Name, req.Password); err != nil {
-				// Log error but don't fail registration
-				log.Printf("Failed to send welcome email to %s: %v", user.Email, err)
-			}
-		}
-	}()
 
 	token, err := h.authService.GenerateToken(user)
 	if err != nil {
