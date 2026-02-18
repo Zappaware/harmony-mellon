@@ -69,39 +69,6 @@ export default function Login() {
     }
   };
 
-  const handleQuickLogin = async (userEmail: string) => {
-    // Use correct passwords for test users
-    const password = userEmail === 'admin@example.com' ? 'admin123' : 'user123';
-    setEmail(userEmail);
-    setPassword(password);
-    try {
-      const success = await login(userEmail, password);
-      if (success) {
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 100);
-      } else {
-        setError('Credenciales incorrectas');
-      }
-    } catch (err: any) {
-      const errorMessage = err?.message || '';
-      
-      // Check for connection errors (API URL misconfiguration)
-      if (errorMessage.includes('ERR_CONNECTION_REFUSED') || 
-          errorMessage.includes('Failed to fetch') ||
-          errorMessage.includes('Network error') ||
-          errorMessage.includes('Cannot connect to backend')) {
-        setError(
-          'No se puede conectar al servidor. Esto puede deberse a un error de configuración. ' +
-          'Por favor, contacta al administrador del sistema.'
-        );
-      } else {
-        setError('Error al iniciar sesión. Intenta nuevamente.');
-      }
-      console.error('Login error:', err);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
@@ -167,39 +134,13 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-10 pt-6 text-center">
           <p className="text-sm text-gray-600">
             ¿No tienes una cuenta?{' '}
             <Link href="/registro" className="text-indigo-600 hover:text-indigo-700 font-medium">
               Regístrate aquí
             </Link>
           </p>
-        </div>
-
-        <div className="mt-6 space-y-3">
-          <div className="text-sm text-gray-600 bg-gray-50 p-4 rounded-lg">
-            <p className="mb-3">Acceso rápido (solo desarrollo):</p>
-            <div className="space-y-2">
-              <button
-                onClick={() => handleQuickLogin('admin@example.com')}
-                className="w-full bg-purple-100 text-purple-700 py-2 px-4 rounded-lg hover:bg-purple-200 transition-colors text-sm"
-              >
-                🔐 Ingresar como Admin
-              </button>
-              <button
-                onClick={() => handleQuickLogin('user@example.com')}
-                className="w-full bg-blue-100 text-blue-700 py-2 px-4 rounded-lg hover:bg-blue-200 transition-colors text-sm"
-              >
-                👤 Ingresar como Usuario
-              </button>
-            </div>
-          </div>
-          
-          <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
-            <p className="mb-1">Credenciales de prueba:</p>
-            <p>Admin: admin@example.com / admin123</p>
-            <p>Usuario: user@example.com / user123</p>
-          </div>
         </div>
       </div>
     </div>
