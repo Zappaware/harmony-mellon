@@ -35,6 +35,7 @@ interface Project {
   nombre: string;
   descripcion: string;
   tipo?: 'Campaña' | 'Planner' | 'Producciones';
+  clientId?: string;
   progreso: number;
   miembros: number;
   fechaLimite: string | null;
@@ -61,6 +62,10 @@ function ProyectosContent() {
   const [typeFilter, setTypeFilter] = useState<string>(() => {
     return searchParams.get('type') || 'all';
   });
+  const [clientFilter, setClientFilter] = useState<string>(() => {
+    return searchParams.get('client') || 'all';
+  });
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
 
   // Load projects from API
   useEffect(() => {
@@ -86,6 +91,7 @@ function ProyectosContent() {
             nombre: project.name,
             descripcion: project.description || '',
             tipo: project.type,
+            clientId: project.client_id,
             progreso: progress,
             miembros: project.members?.length || 0,
             fechaLimite: project.deadline || null,
@@ -105,6 +111,13 @@ function ProyectosContent() {
     loadProjects();
   }, [user, issues]);
 
+  // Load clients for filter
+  useEffect(() => {
+    api.getClients().then((list) => {
+      setClients(list.map((c) => ({ id: c.id, name: c.name })));
+    }).catch(() => setClients([]));
+  }, []);
+
   // Filter projects based on filters
   const filteredProyectos = useMemo(() => {
     let filtered = [...proyectos];
@@ -117,23 +130,28 @@ function ProyectosContent() {
       filtered = filtered.filter(p => p.tipo === typeFilter);
     }
 
+    if (clientFilter !== 'all') {
+      filtered = filtered.filter(p => p.clientId === clientFilter);
+    }
+
     return filtered;
-  }, [proyectos, statusFilter, typeFilter]);
+  }, [proyectos, statusFilter, typeFilter, clientFilter]);
 
   const handleCardClick = (filterType: 'all' | 'in-progress' | 'completed' | 'on-hold') => {
     setViewMode('table');
+    const base = `/proyectos?view=table&type=${typeFilter}&client=${clientFilter}`;
     if (filterType === 'in-progress') {
       setStatusFilter('in_progress');
-      router.push('/proyectos?view=table&status=in_progress');
+      router.push(`${base}&status=in_progress`);
     } else if (filterType === 'completed') {
       setStatusFilter('completed');
-      router.push('/proyectos?view=table&status=completed');
+      router.push(`${base}&status=completed`);
     } else if (filterType === 'on-hold') {
       setStatusFilter('on_hold');
-      router.push('/proyectos?view=table&status=on_hold');
+      router.push(`${base}&status=on_hold`);
     } else {
       setStatusFilter('all');
-      router.push('/proyectos?view=table');
+      router.push(`${base}&status=all`);
     }
   };
 
@@ -160,7 +178,7 @@ function ProyectosContent() {
               <button
                 onClick={() => {
                   setViewMode('table');
-                  router.push('/proyectos?view=table');
+                  router.push(`/proyectos?view=table&status=${statusFilter}&type=${typeFilter}&client=${clientFilter}`);
                 }}
                 className={`p-2 rounded-lg transition-colors ${
                   viewMode === 'table' 
@@ -262,7 +280,7 @@ function ProyectosContent() {
                   value={statusFilter}
                   onChange={(e) => {
                     setStatusFilter(e.target.value);
-                    router.push(`/proyectos?view=table&status=${e.target.value}&type=${typeFilter}`);
+                    router.push(`/proyectos?view=table&status=${e.target.value}&type=${typeFilter}&client=${clientFilter}`);
                   }}
                   className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
@@ -280,7 +298,7 @@ function ProyectosContent() {
                   value={typeFilter}
                   onChange={(e) => {
                     setTypeFilter(e.target.value);
-                    router.push(`/proyectos?view=table&status=${statusFilter}&type=${e.target.value}`);
+                    router.push(`/proyectos?view=table&status=${statusFilter}&type=${e.target.value}&client=${clientFilter}`);
                   }}
                   className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
@@ -288,6 +306,23 @@ function ProyectosContent() {
                   <option value="Campaña">Campaña</option>
                   <option value="Planner">Planner</option>
                   <option value="Producciones">Producciones</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="client-filter" className="block text-xs font-medium text-gray-700 mb-1">Cliente</label>
+                <select
+                  id="client-filter"
+                  value={clientFilter}
+                  onChange={(e) => {
+                    setClientFilter(e.target.value);
+                    router.push(`/proyectos?view=table&status=${statusFilter}&type=${typeFilter}&client=${e.target.value}`);
+                  }}
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="all">Todos</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -598,16 +633,25 @@ function ProyectosContent() {
           // Reload projects after successful creation/update
           try {
             const apiProjects = await api.getProjects();
-            const convertedProjects: Project[] = apiProjects.map(project => ({
-              id: project.id,
-              nombre: project.name,
-              descripcion: project.description || '',
-              progreso: project.progress || 0,
-              miembros: project.members?.length || 0,
-              fechaLimite: project.deadline || null,
-              estado: project.status || 'planning',
-              color: project.color || 'bg-blue-500',
-            }));
+            const convertedProjects: Project[] = apiProjects.map(project => {
+              const projectIssues = issues.filter(issue => issue.projectId === project.id);
+              const completedIssues = projectIssues.filter(issue => issue.status === 'done');
+              const progress = projectIssues.length > 0
+                ? Math.round((completedIssues.length / projectIssues.length) * 100)
+                : (project.progress || 0);
+              return {
+                id: project.id,
+                nombre: project.name,
+                descripcion: project.description || '',
+                tipo: project.type,
+                clientId: project.client_id,
+                progreso: progress,
+                miembros: project.members?.length || 0,
+                fechaLimite: project.deadline || null,
+                estado: project.status || 'planning',
+                color: project.color || 'bg-blue-500',
+              };
+            });
             setProyectos(convertedProjects);
             setProjectToEdit(null);
           } catch (error) {
@@ -636,16 +680,25 @@ function ProyectosContent() {
                   setProjectToDelete(null);
                   // Reload projects
                   const apiProjects = await api.getProjects();
-                  const convertedProjects: Project[] = apiProjects.map(project => ({
-                    id: project.id,
-                    nombre: project.name,
-                    descripcion: project.description || '',
-                    progreso: project.progress || 0,
-                    miembros: project.members?.length || 0,
-                    fechaLimite: project.deadline || null,
-                    estado: project.status || 'planning',
-                    color: project.color || 'bg-blue-500',
-                  }));
+                  const convertedProjects: Project[] = apiProjects.map(project => {
+                    const projectIssues = issues.filter(issue => issue.projectId === project.id);
+                    const completedIssues = projectIssues.filter(issue => issue.status === 'done');
+                    const progress = projectIssues.length > 0
+                      ? Math.round((completedIssues.length / projectIssues.length) * 100)
+                      : (project.progress || 0);
+                    return {
+                      id: project.id,
+                      nombre: project.name,
+                      descripcion: project.description || '',
+                      tipo: project.type,
+                      clientId: project.client_id,
+                      progreso: progress,
+                      miembros: project.members?.length || 0,
+                      fechaLimite: project.deadline || null,
+                      estado: project.status || 'planning',
+                      color: project.color || 'bg-blue-500',
+                    };
+                  });
                   setProyectos(convertedProjects);
                 } catch (error) {
                   console.error('Error deleting project:', error);
