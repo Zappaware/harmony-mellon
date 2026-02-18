@@ -40,6 +40,7 @@ type Issue struct {
 	AssignedTo  *uuid.UUID   `gorm:"type:uuid" json:"assigned_to,omitempty"`
 	CreatedBy   uuid.UUID    `gorm:"type:uuid;not null" json:"created_by"`
 	ProjectID   *uuid.UUID   `gorm:"type:uuid" json:"project_id,omitempty"`
+	ClientID    *uuid.UUID   `gorm:"type:uuid" json:"client_id,omitempty"`
 	StartDate   *time.Time   `json:"start_date,omitempty"`
 	DueDate     *time.Time   `json:"due_date,omitempty"`
 	Attachments string       `gorm:"type:text" json:"-"` // JSON string stored in DB
@@ -51,6 +52,7 @@ type Issue struct {
 	Assignee   *User     `gorm:"foreignKey:AssignedTo" json:"assignee,omitempty"`
 	Creator    User      `gorm:"foreignKey:CreatedBy" json:"creator"`
 	Project    *Project  `gorm:"foreignKey:ProjectID" json:"project,omitempty"`
+	Client     *Client   `gorm:"foreignKey:ClientID" json:"client,omitempty"`
 	Comments   []Comment `gorm:"foreignKey:IssueID" json:"comments,omitempty"`
 }
 
@@ -97,6 +99,7 @@ type IssueResponse struct {
 	AssignedTo  *uuid.UUID   `json:"assigned_to,omitempty"`
 	CreatedBy   uuid.UUID    `json:"created_by"`
 	ProjectID   *uuid.UUID   `json:"project_id,omitempty"`
+	ClientID    *uuid.UUID   `json:"client_id,omitempty"`
 	StartDate   *time.Time   `json:"start_date,omitempty"`
 	DueDate     *time.Time   `json:"due_date,omitempty"`
 	Attachments []Attachment `json:"attachments,omitempty"`
@@ -105,6 +108,7 @@ type IssueResponse struct {
 	Assignee   *User         `json:"assignee,omitempty"`
 	Creator    User         `json:"creator"`
 	Project     *Project     `json:"project,omitempty"`
+	Client      *Client      `json:"client,omitempty"`
 	Comments    []Comment    `json:"comments,omitempty"`
 }
 
@@ -119,6 +123,7 @@ func (i *Issue) ToResponse() IssueResponse {
 		AssignedTo:  i.AssignedTo,
 		CreatedBy:   i.CreatedBy,
 		ProjectID:   i.ProjectID,
+		ClientID:    i.ClientID,
 		StartDate:   i.StartDate,
 		DueDate:     i.DueDate,
 		Attachments: i.GetAttachments(),
@@ -127,6 +132,7 @@ func (i *Issue) ToResponse() IssueResponse {
 		Assignee:    i.Assignee,
 		Creator:     i.Creator,
 		Project:     i.Project,
+		Client:      i.Client,
 		Comments:    i.Comments,
 	}
 }

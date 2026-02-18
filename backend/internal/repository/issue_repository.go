@@ -31,7 +31,7 @@ func (r *issueRepository) Create(issue *models.Issue) error {
 
 func (r *issueRepository) GetByID(id uuid.UUID) (*models.Issue, error) {
 	var issue models.Issue
-	err := r.db.Preload("Assignee").Preload("Creator").Preload("Project").Preload("Comments.User").
+	err := r.db.Preload("Assignee").Preload("Creator").Preload("Project").Preload("Client").Preload("Comments.User").
 		Where("id = ?", id).First(&issue).Error
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func (r *issueRepository) GetByID(id uuid.UUID) (*models.Issue, error) {
 
 func (r *issueRepository) GetAll(filters map[string]interface{}) ([]models.Issue, error) {
 	var issues []models.Issue
-	query := r.db.Preload("Assignee").Preload("Creator").Preload("Project").Preload("Comments.User")
+	query := r.db.Preload("Assignee").Preload("Creator").Preload("Project").Preload("Client").Preload("Comments.User")
 
 	if status, ok := filters["status"]; ok {
 		query = query.Where("status = ?", status)
@@ -62,14 +62,14 @@ func (r *issueRepository) GetAll(filters map[string]interface{}) ([]models.Issue
 
 func (r *issueRepository) GetByAssignedTo(userID uuid.UUID) ([]models.Issue, error) {
 	var issues []models.Issue
-	err := r.db.Preload("Assignee").Preload("Creator").Preload("Project").Preload("Comments.User").
+	err := r.db.Preload("Assignee").Preload("Creator").Preload("Project").Preload("Client").Preload("Comments.User").
 		Where("assigned_to = ?", userID).Order("created_at DESC").Find(&issues).Error
 	return issues, err
 }
 
 func (r *issueRepository) GetByProjectID(projectID uuid.UUID) ([]models.Issue, error) {
 	var issues []models.Issue
-	err := r.db.Preload("Assignee").Preload("Creator").Preload("Comments.User").
+	err := r.db.Preload("Assignee").Preload("Creator").Preload("Project").Preload("Client").Preload("Comments.User").
 		Where("project_id = ?", projectID).Order("created_at DESC").Find(&issues).Error
 	return issues, err
 }

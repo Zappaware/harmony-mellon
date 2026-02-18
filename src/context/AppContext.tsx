@@ -41,6 +41,7 @@ interface CreateIssueData {
   priority?: 'low' | 'medium' | 'high';
   assignedTo?: string;
   projectId?: string;
+  clientId?: string;
   startDate?: string;
   dueDate?: string;
   attachments?: Array<{ type: 'link' | 'image' | 'file'; url: string; name?: string }>;
@@ -509,6 +510,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           priority: data.priority || 'medium',
           assigned_to: data.assignedTo,
           project_id: data.projectId || undefined,
+          client_id: data.clientId || undefined,
           start_date: startDate,
           due_date: dueDate,
           attachments: data.attachments,

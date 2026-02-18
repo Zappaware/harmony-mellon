@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import { X, Link as LinkIcon, Image, File, Plus, Trash2, FolderKanban } from 'lucide-react';
+import { X, Link as LinkIcon, Image, File, Plus, Trash2, FolderKanban, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
-import { ApiAttachment } from '@/services/api';
+import { ApiAttachment, api, ApiClient } from '@/services/api';
 
 interface CreateIssueModalProps {
   isOpen: boolean;
@@ -16,12 +16,14 @@ interface CreateIssueModalProps {
 
 export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate, initialProjectId }: CreateIssueModalProps) {
   const { users, projects, createIssue } = useApp();
+  const [clients, setClients] = useState<ApiClient[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     priority: 'medium' as 'low' | 'medium' | 'high',
     assignedTo: '',
     projectId: initialProjectId || '',
+    clientId: '',
     startDate: initialStartDate || '',
     dueDate: '',
   });
@@ -48,6 +50,13 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
     }
   }, [initialProjectId]);
 
+  // Load clients when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      api.getClients().then(setClients).catch(() => setClients([]));
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,6 +71,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
         priority: formData.priority,
         assignedTo: formData.assignedTo || undefined,
         projectId: formData.projectId || undefined,
+        clientId: formData.clientId || undefined,
         startDate: formData.startDate || undefined,
         dueDate: formData.dueDate || undefined,
         attachments: attachments.length > 0 ? attachments : undefined,
@@ -79,6 +89,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
         priority: 'medium',
         assignedTo: '',
         projectId: '',
+        clientId: '',
         startDate: initialStartDate || '',
         dueDate: '',
       });
@@ -218,25 +229,48 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
             </div>
           </div>
 
-          <div>
-            <label htmlFor="projectId" className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-              <FolderKanban className="w-4 h-4" />
-              Proyecto
-            </label>
-            <select
-              id="projectId"
-              name="projectId"
-              value={formData.projectId}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">Sin proyecto</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="projectId" className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                <FolderKanban className="w-4 h-4" />
+                Proyecto
+              </label>
+              <select
+                id="projectId"
+                name="projectId"
+                value={formData.projectId}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Sin proyecto</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="clientId" className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                <Building2 className="w-4 h-4" />
+                Cliente
+              </label>
+              <select
+                id="clientId"
+                name="clientId"
+                value={formData.clientId}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Sin cliente</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
