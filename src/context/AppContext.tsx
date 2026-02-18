@@ -66,6 +66,9 @@ interface CreateUserData {
   role?: 'user' | 'admin' | 'team_lead';
 }
 
+const EXPIRING_TASKS_MODAL_STORAGE_KEY = 'expiringTasksModalLastShown';
+const EXPIRING_TASKS_MODAL_THROTTLE_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 interface AppContextType {
   user: User | null;
   isLoading: boolean;
@@ -83,6 +86,10 @@ interface AppContextType {
   deleteUser: (userId: string) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
   users: User[];
+  showExpiringTasksModal: boolean;
+  setShowExpiringTasksModal: (show: boolean) => void;
+  shouldShowExpiringTasksByTime: () => boolean;
+  markExpiringTasksModalShown: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -228,6 +235,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<ApiProject[]>([]);
   const [useApi, setUseApi] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showExpiringTasksModal, setShowExpiringTasksModal] = useState(false);
 
   // Convert API issue to app issue format
   const convertApiIssue = (apiIssue: ApiIssue, userList: User[]): Issue => {
@@ -405,6 +413,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [useApi]);
 
+  const shouldShowExpiringTasksByTime = (): boolean => {
+    if (typeof window === 'undefined') return false;
+    const last = localStorage.getItem(EXPIRING_TASKS_MODAL_STORAGE_KEY);
+    if (!last) return true;
+    const lastTime = parseInt(last, 10);
+    if (Number.isNaN(lastTime)) return true;
+    return Date.now() - lastTime >= EXPIRING_TASKS_MODAL_THROTTLE_MS;
+  };
+
+  const markExpiringTasksModalShown = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(EXPIRING_TASKS_MODAL_STORAGE_KEY, String(Date.now()));
+    }
+  };
+
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       // Try API first
@@ -421,6 +444,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           avatar: response.user.avatar,
         });
         setUseApi(true);
+        setShowExpiringTasksModal(true);
         return true;
       }
     } catch (error) {
@@ -429,6 +453,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (foundUser) {
         setUser(foundUser);
         setUseApi(false);
+        setShowExpiringTasksModal(true);
         return true;
       }
     }
@@ -702,6 +727,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         deleteUser,
         deleteProject,
         users,
+        showExpiringTasksModal,
+        setShowExpiringTasksModal,
+        shouldShowExpiringTasksByTime,
+        markExpiringTasksModalShown,
       }}
     >
       {children}

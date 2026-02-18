@@ -1,20 +1,30 @@
 'use client'
 
-import React, { useEffect, useState, Suspense, lazy } from 'react';
+import React, { useEffect, useState, useRef, Suspense, lazy } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { Loading } from './Loading';
 import { Menu } from 'lucide-react';
 import { Footer } from './Footer';
+import { ExpiringTasksModal, getExpiringIssues } from './ExpiringTasksModal';
 
 // Lazy load heavy components
 const Sidebar = lazy(() => import('./Sidebar').then(module => ({ default: module.Sidebar })));
 const NotificationBadge = lazy(() => import('./NotificationBadge').then(module => ({ default: module.NotificationBadge })));
 
 export function LayoutWithSidebar({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useApp();
+  const {
+    user,
+    isLoading,
+    issues,
+    showExpiringTasksModal,
+    setShowExpiringTasksModal,
+    shouldShowExpiringTasksByTime,
+    markExpiringTasksModalShown,
+  } = useApp();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const hasCheckedExpiringRef = useRef(false);
   // Initialize from localStorage immediately to prevent flash
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -49,6 +59,19 @@ export function LayoutWithSidebar({ children }: { children: React.ReactNode }) {
       return () => clearTimeout(timer);
     }
   }, [user, isLoading, router]);
+
+  // When user and issues are ready, show expiring-tasks modal if 24h have passed since last time (not on login; login sets showExpiringTasksModal itself)
+  useEffect(() => {
+    if (!user || isLoading || hasCheckedExpiringRef.current) return;
+    if (showExpiringTasksModal) return; // Already showing (e.g. from login)
+    const expiring = getExpiringIssues(issues, user.id, user.role);
+    if (expiring.length === 0) return;
+    if (!shouldShowExpiringTasksByTime()) return;
+    hasCheckedExpiringRef.current = true;
+    setShowExpiringTasksModal(true);
+  }, [user, isLoading, issues, showExpiringTasksModal, shouldShowExpiringTasksByTime, setShowExpiringTasksModal]);
+
+  const expiringIssues = user ? getExpiringIssues(issues, user.id, user.role) : [];
 
   // Show loading screen while restoring session
   if (isLoading) {
@@ -98,6 +121,13 @@ export function LayoutWithSidebar({ children }: { children: React.ReactNode }) {
           <Footer />
         </div>
       </div>
+
+      <ExpiringTasksModal
+        open={showExpiringTasksModal}
+        onClose={() => setShowExpiringTasksModal(false)}
+        issues={expiringIssues}
+        onDismiss={markExpiringTasksModalShown}
+      />
     </div>
   );
 }
