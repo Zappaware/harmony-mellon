@@ -34,20 +34,32 @@ func NewIssueHandler(issueService service.IssueService, emailService service.Ema
 func (h *IssueHandler) GetIssues(c *gin.Context) {
 	filters := make(map[string]interface{})
 
-	if status := c.Query("status"); status != "" {
-		filters["status"] = models.IssueStatus(status)
-	}
-	if priority := c.Query("priority"); priority != "" {
-		filters["priority"] = models.IssuePriority(priority)
-	}
-	if assignedTo := c.Query("assigned_to"); assignedTo != "" {
-		if id, err := uuid.Parse(assignedTo); err == nil {
+	// Role-based access: regular users only see tasks assigned to them
+	userIDStr, _ := c.Get("user_id")
+	userRole, _ := c.Get("user_role")
+	roleStr, _ := userRole.(string)
+	if roleStr == string(models.RoleUser) {
+		// Restrict to current user's tasks only; ignore any assigned_to from query
+		if id, err := uuid.Parse(userIDStr.(string)); err == nil {
 			filters["assigned_to"] = id
 		}
-	}
-	if projectID := c.Query("project_id"); projectID != "" {
-		if id, err := uuid.Parse(projectID); err == nil {
-			filters["project_id"] = id
+	} else {
+		// Admin and team_lead: allow optional filters from query
+		if status := c.Query("status"); status != "" {
+			filters["status"] = models.IssueStatus(status)
+		}
+		if priority := c.Query("priority"); priority != "" {
+			filters["priority"] = models.IssuePriority(priority)
+		}
+		if assignedTo := c.Query("assigned_to"); assignedTo != "" {
+			if id, err := uuid.Parse(assignedTo); err == nil {
+				filters["assigned_to"] = id
+			}
+		}
+		if projectID := c.Query("project_id"); projectID != "" {
+			if id, err := uuid.Parse(projectID); err == nil {
+				filters["project_id"] = id
+			}
 		}
 	}
 
@@ -87,6 +99,7 @@ type CreateIssueRequest struct {
 	Priority    models.IssuePriority  `json:"priority"`
 	AssignedTo  *string               `json:"assigned_to"`
 	ProjectID   *string               `json:"project_id"`
+	ClientID    *string               `json:"client_id"`
 	StartDate   *string               `json:"start_date"`
 	DueDate     *string               `json:"due_date"`
 	Attachments []models.Attachment   `json:"attachments"`
@@ -128,6 +141,12 @@ func (h *IssueHandler) CreateIssue(c *gin.Context) {
 	if req.ProjectID != nil {
 		if id, err := uuid.Parse(*req.ProjectID); err == nil {
 			issue.ProjectID = &id
+		}
+	}
+
+	if req.ClientID != nil {
+		if id, err := uuid.Parse(*req.ClientID); err == nil {
+			issue.ClientID = &id
 		}
 	}
 
@@ -255,6 +274,7 @@ type UpdateIssueRequest struct {
 	Priority    *models.IssuePriority  `json:"priority"`
 	AssignedTo  *string               `json:"assigned_to"`
 	ProjectID   *string               `json:"project_id"`
+	ClientID    *string               `json:"client_id"`
 	StartDate   *string               `json:"start_date"`
 	DueDate     *string               `json:"due_date"`
 	Attachments *[]models.Attachment  `json:"attachments"`
@@ -291,6 +311,13 @@ func (h *IssueHandler) UpdateIssue(c *gin.Context) {
 	if req.ProjectID != nil {
 		if id, err := uuid.Parse(*req.ProjectID); err == nil {
 			updates["project_id"] = &id
+		}
+	}
+	if req.ClientID != nil {
+		if *req.ClientID == "" {
+			updates["client_id"] = nil
+		} else if id, err := uuid.Parse(*req.ClientID); err == nil {
+			updates["client_id"] = &id
 		}
 	}
 

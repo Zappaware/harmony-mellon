@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useState, useMemo, Suspense } from 'react';
+import React, { useState, useMemo, Suspense, useEffect } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useApp, Issue } from '@/context/AppContext';
-import { AlertCircle, Clock, Edit } from 'lucide-react';
+import { AlertCircle, Clock, Edit, Filter } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { api, ApiClient } from '@/services/api';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/Badge';
 import { Avatar } from '@/components/Avatar';
@@ -162,20 +163,66 @@ function Column({ title, status, issues, count, color, onEditIssue, onStatusChan
   );
 }
 
+const STATUS_OPTIONS: { value: Issue['status']; label: string }[] = [
+  { value: 'todo', label: 'Por Hacer' },
+  { value: 'in-progress', label: 'En Progreso' },
+  { value: 'review', label: 'En Revisión' },
+  { value: 'done', label: 'Completadas' },
+];
+
 function KanbanContent() {
-  const { issues, projects } = useApp();
+  const { issues, projects, users, user } = useApp();
   const searchParams = useSearchParams();
   const projectId = searchParams.get('project');
 
-  // Filter issues by project if projectId is provided
-  const filteredIssues = useMemo(() => {
-    if (projectId) {
-      return issues.filter(issue => issue.projectId === projectId);
-    }
-    return issues;
-  }, [issues, projectId]);
+  const canFilter = user && (user.role === 'admin' || user.role === 'team_lead');
+  const [clients, setClients] = useState<ApiClient[]>([]);
+  const [filterUser, setFilterUser] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>('');
+  const [filterClient, setFilterClient] = useState<string>('');
 
-  const project = projectId ? projects.find(p => p.id === projectId) : null;
+  useEffect(() => {
+    if (canFilter) {
+      api.getClients().then(setClients).catch(() => setClients([]));
+    }
+  }, [canFilter]);
+
+  // Filter issues: by project (from URL), then by user/status/client for admins/team leads
+  const filteredIssues = useMemo(() => {
+    let list = issues;
+    if (projectId) {
+      list = list.filter((issue) => issue.projectId === projectId);
+    }
+    if (!canFilter) {
+      return list; // Regular users: backend already returns only their tasks
+    }
+    if (filterUser) {
+      list = list.filter((issue) => issue.assignedTo === filterUser);
+    }
+    if (filterStatus) {
+      list = list.filter((issue) => issue.status === filterStatus);
+    }
+    if (filterClient) {
+      list = list.filter((issue) => {
+        const proj = projects.find((p) => p.id === issue.projectId);
+        return proj?.client_id === filterClient;
+      });
+    }
+    return list;
+  }, [issues, projectId, canFilter, filterUser, filterStatus, filterClient, projects]);
+
+  const project = projectId ? projects.find((p) => p.id === projectId) : null;
+
+  const pageTitle = project
+    ? `Kanban - ${project.name}`
+    : user?.role === 'user'
+      ? 'Mis tareas'
+      : 'Tablero Kanban';
+  const pageSubtitle = project
+    ? `Tareas del proyecto: ${project.name}`
+    : user?.role === 'user'
+      ? 'Tareas asignadas a ti'
+      : 'Arrastra las tarjetas para cambiar su estado';
 
   const columns = [
     { 
@@ -258,13 +305,74 @@ function KanbanContent() {
     <DndProvider backend={backend}>
       <div className="p-4 md:p-8 h-screen overflow-x-auto">
         <PageHeader
-          title={project ? `Kanban - ${project.name}` : "Tablero Kanban"}
-          subtitle={project ? `Tareas del proyecto: ${project.name}` : "Arrastra las tarjetas para cambiar su estado"}
+          title={pageTitle}
+          subtitle={pageSubtitle}
           action={{
             label: 'Nueva Tarea',
             onClick: () => setIsCreateModalOpen(true),
           }}
         />
+
+        {canFilter && (
+          <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <Filter className="w-4 h-4" />
+              Filtros
+            </div>
+            <select
+              value={filterUser}
+              onChange={(e) => setFilterUser(e.target.value)}
+              className="text-sm border border-gray-300 rounded-md px-3 py-2 bg-white min-w-[140px]"
+              aria-label="Filtrar por usuario"
+            >
+              <option value="">Todos los usuarios</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
+              ))}
+            </select>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="text-sm border border-gray-300 rounded-md px-3 py-2 bg-white min-w-[140px]"
+              aria-label="Filtrar por estado"
+            >
+              <option value="">Todos los estados</option>
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={filterClient}
+              onChange={(e) => setFilterClient(e.target.value)}
+              className="text-sm border border-gray-300 rounded-md px-3 py-2 bg-white min-w-[140px]"
+              aria-label="Filtrar por cliente"
+            >
+              <option value="">Todos los clientes</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            {(filterUser || filterStatus || filterClient) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterUser('');
+                  setFilterStatus('');
+                  setFilterClient('');
+                }}
+                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+              >
+                Limpiar filtros
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-col md:flex-row gap-3 md:gap-4 pb-6 md:pb-8 overflow-x-auto md:overflow-x-auto">
           {columns.map((column) => {
