@@ -71,7 +71,7 @@ func main() {
 	userService := service.NewUserService(userRepo)
 	notificationService := service.NewNotificationService(notificationRepo)
 	issueService := service.NewIssueService(issueRepo, userRepo)
-	commentService := service.NewCommentService(commentRepo, userRepo, issueRepo)
+	commentService := service.NewCommentService(commentRepo, userRepo, issueRepo, notificationService)
 	clientService := service.NewClientService(clientRepo, userRepo)
 	projectService := service.NewProjectService(projectRepo, userRepo)
 	fileService := service.NewFileService(cfg.UploadDir)
