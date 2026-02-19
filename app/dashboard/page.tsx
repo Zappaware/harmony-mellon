@@ -1,13 +1,16 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { CheckCircle2, Clock, AlertCircle, TrendingUp, FolderKanban, Users, Mail } from 'lucide-react';
 import Link from 'next/link';
+import { addDays, parseISO } from 'date-fns';
 import { StatCard } from '@/components/StatCard';
 import { IssueCardList } from '@/components/IssueCardList';
 import { Loading } from '@/components/Loading';
 import { Avatar } from '@/components/Avatar';
+import { ExpiringTasksModal } from '@/components/ExpiringTasksModal';
+import type { Issue } from '@/context/AppContext';
 import {
   Dialog,
   DialogContent,
@@ -272,10 +275,33 @@ function DashboardUsuario() {
   );
 }
 
+function getHighPriorityExpiringIssues(issues: Issue[]): Issue[] {
+  const now = new Date();
+  const limit = addDays(now, 7);
+  return issues
+    .filter((issue) => {
+      if (issue.priority !== 'high' || issue.status === 'done' || !issue.dueDate) return false;
+      const due = parseISO(issue.dueDate);
+      return due <= limit;
+    })
+    .sort((a, b) => {
+      const dA = a.dueDate ? parseISO(a.dueDate).getTime() : 0;
+      const dB = b.dueDate ? parseISO(b.dueDate).getTime() : 0;
+      return dA - dB;
+    });
+}
+
 function DashboardAdmin() {
   const { issues, users, projects, isLoading } = useApp();
   const [showUsersModal, setShowUsersModal] = useState(false);
   const [showProjectsModal, setShowProjectsModal] = useState(false);
+  const [showHighPriorityExpiringModal, setShowHighPriorityExpiringModal] = useState(false);
+  const [highlightPriorityCard, setHighlightPriorityCard] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setHighlightPriorityCard(false), 3000);
+    return () => clearTimeout(t);
+  }, []);
 
   if (isLoading) {
     return <Loading fullScreen message="Cargando métricas..." />;
@@ -310,11 +336,12 @@ function DashboardAdmin() {
     return { done, total: projectIssues.length, percent };
   };
 
+  const highPriorityExpiringCount = getHighPriorityExpiringIssues(issues).length;
   const stats = [
     { label: 'Total Issues', value: issues.length, icon: FolderKanban, color: 'bg-blue-500' },
     { label: 'Avance por usuario', value: users.length, icon: Users, color: 'bg-purple-500' },
     { label: 'Avance por proyecto', value: projects.length, icon: TrendingUp, color: 'bg-yellow-500' },
-    { label: 'Prioridad Alta', value: issues.filter((i) => i.priority === 'high').length, icon: AlertCircle, color: 'bg-red-500' },
+    { label: 'Issues por expirar', value: highPriorityExpiringCount, icon: AlertCircle, color: 'bg-red-500' },
   ];
 
   const statusData = [
@@ -350,16 +377,21 @@ function DashboardAdmin() {
             onClick = () => setShowUsersModal(true);
           } else if (stat.label === 'Avance por proyecto') {
             onClick = () => setShowProjectsModal(true);
-          } else if (stat.label === 'Prioridad Alta') {
-            href = '/tareas?priority=high';
+          } else if (stat.label === 'Issues por expirar') {
+            onClick = () => setShowHighPriorityExpiringModal(true);
           } else {
             href = '/tareas';
           }
           
+          const isExpiringCard = stat.label === 'Issues por expirar';
           const CardContent = (
             <div className="bg-white rounded-lg shadow p-4 md:p-6 cursor-pointer hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between mb-4">
-                <div className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center`}>
+                <div
+                  className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center transition-all ${
+                    isExpiringCard && highlightPriorityCard ? 'animate-icon-shake' : ''
+                  }`}
+                >
                   <Icon className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-3xl text-gray-800">{stat.value}</span>
@@ -387,6 +419,34 @@ function DashboardAdmin() {
             </Link>
           );
         })}
+      </div>
+
+      {/* Avance general: total issues vs completadas */}
+      <div className="bg-white rounded-lg shadow p-4 md:p-6 mb-6 md:mb-8">
+        <h2 className="text-lg md:text-xl text-gray-800 mb-3">Avance general</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Progreso de todas las tareas del sistema (completadas sobre el total).
+        </p>
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
+              <span>
+                {issues.filter((i) => i.status === 'done').length} de {issues.length || 1} tareas completadas
+              </span>
+              <span className="font-medium text-gray-800">
+                {issues.length ? Math.round((issues.filter((i) => i.status === 'done').length / issues.length) * 100) : 0}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div
+                className="bg-indigo-500 h-3 rounded-full transition-all duration-300"
+                style={{
+                  width: `${issues.length ? (issues.filter((i) => i.status === 'done').length / issues.length) * 100 : 0}%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="hidden md:block">
@@ -542,6 +602,15 @@ function DashboardAdmin() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ExpiringTasksModal
+        open={showHighPriorityExpiringModal}
+        onClose={() => setShowHighPriorityExpiringModal(false)}
+        issues={getHighPriorityExpiringIssues(issues)}
+        title="Tareas de prioridad alta por vencer o vencidas"
+        description="Revisa y toma acción sobre estas tareas de prioridad alta que ya vencieron o vencen en los próximos 7 días."
+        emptyMessage="No hay tareas de prioridad alta por vencer o vencidas."
+      />
     </div>
   );
 }

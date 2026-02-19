@@ -44,9 +44,23 @@ interface ExpiringTasksModalProps {
   onClose: () => void;
   issues: Issue[];
   onDismiss?: () => void;
+  /** Optional title when used for high-priority / other contexts */
+  title?: string;
+  /** Optional description when used for high-priority / other contexts */
+  description?: string;
+  /** Optional empty message when there are no issues */
+  emptyMessage?: string;
 }
 
-export function ExpiringTasksModal({ open, onClose, issues, onDismiss }: ExpiringTasksModalProps) {
+export function ExpiringTasksModal({
+  open,
+  onClose,
+  issues,
+  onDismiss,
+  title = 'Tareas por vencer',
+  description = `Las siguientes tareas vencen en los próximos ${EXPIRING_DAYS} días. Revisa y actualiza su estado si es necesario.`,
+  emptyMessage = `No hay tareas por vencer en los próximos ${EXPIRING_DAYS} días.`,
+}: ExpiringTasksModalProps) {
   const handleClose = () => {
     onDismiss?.();
     onClose();
@@ -58,17 +72,17 @@ export function ExpiringTasksModal({ open, onClose, issues, onDismiss }: Expirin
         <DialogHeader>
           <div className="flex items-center gap-2 text-amber-600">
             <AlertTriangle className="h-5 w-5" />
-            <DialogTitle>Tareas por vencer</DialogTitle>
+            <DialogTitle>{title}</DialogTitle>
           </div>
           <DialogDescription>
-            Las siguientes tareas vencen en los próximos {EXPIRING_DAYS} días. Revisa y actualiza su estado si es necesario.
+            {description}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto min-h-0 py-2">
           {issues.length === 0 ? (
             <p className="text-sm text-gray-500 py-4 text-center">
-              No hay tareas por vencer en los próximos {EXPIRING_DAYS} días.
+              {emptyMessage}
             </p>
           ) : (
             <ul className="space-y-3">
