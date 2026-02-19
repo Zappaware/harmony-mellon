@@ -15,7 +15,9 @@ interface CreateIssueModalProps {
 }
 
 export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate, initialProjectId }: CreateIssueModalProps) {
-  const { users, projects, createIssue } = useApp();
+  const { users, projects, createIssue, user: currentUser } = useApp();
+  // Creator cannot be assignee: exclude current user from assignee list
+  const assignableUsers = currentUser ? users.filter((u) => u.id !== currentUser.id) : users;
   const [clients, setClients] = useState<ApiClient[]>([]);
   const [formData, setFormData] = useState({
     title: '',
@@ -220,9 +222,9 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Sin asignar</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name}
+                {assignableUsers.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
                   </option>
                 ))}
               </select>

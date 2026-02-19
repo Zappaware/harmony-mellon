@@ -35,14 +35,15 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load issue data when modal opens
+  // Load issue data when modal opens (creator cannot be assignee: clear if same)
   useEffect(() => {
     if (isOpen && issue) {
+      const assignee = issue.assignedTo && issue.assignedTo !== issue.createdBy ? issue.assignedTo : '';
       setFormData({
         title: issue.title,
         description: issue.description,
         priority: issue.priority,
-        assignedTo: issue.assignedTo || '',
+        assignedTo: assignee,
         projectId: issue.projectId || '',
         clientId: issue.clientId || '',
         startDate: issue.startDate || '',
@@ -225,9 +226,9 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">Sin asignar</option>
-                  {users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.name}
+                  {users.filter((u) => u.id !== issue.createdBy).map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
                     </option>
                   ))}
                 </select>
