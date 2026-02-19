@@ -361,24 +361,33 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
                       type="file"
                       id="file-upload"
                       accept={newAttachment.type === 'image' ? 'image/*' : '*'}
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          // Convert file to data URL for storage
-                          const reader = new FileReader();
-                          reader.onload = (event) => {
-                            const dataUrl = event.target?.result as string;
-                            const attachment: ApiAttachment = {
-                              type: newAttachment.type,
-                              url: dataUrl,
-                              name: file.name,
-                            };
-                            setAttachments(prev => [...prev, attachment]);
+                          // Validate file size (10MB max)
+                          const maxSize = 10 * 1024 * 1024; // 10MB
+                          if (file.size > maxSize) {
+                            toast.error('El archivo es demasiado grande. El tamaño máximo es 10MB.');
+                            e.target.value = '';
+                            return;
+                          }
+
+                          try {
+                            // Upload file to server (under uploads/client_id/project_id/images|files)
+                            const uploadedAttachment = await api.uploadFile(file, {
+                              clientId: formData.clientId || undefined,
+                              projectId: formData.projectId || undefined,
+                            });
+                            setAttachments(prev => [...prev, uploadedAttachment]);
                             setNewAttachment({ type: 'link', url: '', name: '' });
+                            toast.success('Archivo subido exitosamente');
+                          } catch (error) {
+                            console.error('Error uploading file:', error);
+                            toast.error(error instanceof Error ? error.message : 'Error al subir el archivo');
+                          } finally {
                             // Reset file input
                             e.target.value = '';
-                          };
-                          reader.readAsDataURL(file);
+                          }
                         }
                       }}
                       className="hidden"
@@ -411,9 +420,15 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
                           {att.name || att.url}
                         </a>
                       ) : (
-                        <span className="flex-1 text-sm text-gray-700 truncate">
+                        <a
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download={att.name}
+                          className="flex-1 text-sm text-indigo-600 hover:text-indigo-800 hover:underline truncate"
+                        >
                           {att.name || att.url}
-                        </span>
+                        </a>
                       )}
                       <button
                         type="button"

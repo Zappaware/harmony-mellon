@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useApp, Issue } from '@/context/AppContext';
 import { api } from '@/services/api';
-import { User, Calendar, MessageSquare, Send, Clock, Trash2, FolderKanban, Pencil, AlertCircle } from 'lucide-react';
+import { User, Calendar, MessageSquare, Send, Clock, Trash2, FolderKanban, Pencil, AlertCircle, Plus, Paperclip, Download } from 'lucide-react';
 import { Badge } from '@/components/Badge';
 import { Avatar } from '@/components/Avatar';
 import { PageHeader } from '@/components/PageHeader';
@@ -25,7 +25,7 @@ import { EditIssueModal } from '@/components/EditIssueModal';
 export default function DetalleIssue() {
   const params = useParams();
   const id = params.id as string;
-  const { issues, addComment, users, projects, user: currentUser, deleteIssue, updateIssueStatus } = useApp();
+  const { issues, addComment, users, projects, user: currentUser, deleteIssue, updateIssueStatus, refreshIssue } = useApp();
   const router = useRouter();
   const [newComment, setNewComment] = useState('');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -36,6 +36,22 @@ export default function DetalleIssue() {
   const [pendingStatus, setPendingStatus] = useState<Issue['status'] | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [forbiddenMessage, setForbiddenMessage] = useState<string | null>(null);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const [pendingIssueAttachments, setPendingIssueAttachments] = useState<Array<{ type: 'image' | 'file'; url: string; name?: string }>>([]);
+  const [downloadingUrl, setDownloadingUrl] = useState<string | null>(null);
+
+  const handleDownload = async (url: string, fileName: string) => {
+    if (downloadingUrl) return;
+    setDownloadingUrl(url);
+    try {
+      await api.downloadFile(url, fileName);
+    } catch (err) {
+      console.error('Download failed:', err);
+      alert(err instanceof Error ? err.message : 'Error al descargar');
+    } finally {
+      setDownloadingUrl(null);
+    }
+  };
 
   const FORBIDDEN_COMPLETE_MSG = 'Solo el creador de la tarea puede marcarla como completada tras revisarla. La tarea está en revisión esperando la aprobación del creador.';
 
@@ -93,10 +109,24 @@ export default function DetalleIssue() {
     currentUser && issue.assignedTo === currentUser.id && issue.createdBy !== currentUser.id
   );
 
-  const handleAddComment = (e: React.FormEvent) => {
+  const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newComment.trim()) {
-      addComment(issue.id, newComment);
+    const hasComment = newComment.trim().length > 0;
+    const hasPendingAttachments = pendingIssueAttachments.length > 0;
+
+    if (!hasComment && !hasPendingAttachments) return;
+
+    if (hasPendingAttachments) {
+      const currentIssue = await api.getIssue(issue.id);
+      const currentAttachments = currentIssue.attachments || [];
+      const updatedAttachments = [...currentAttachments, ...pendingIssueAttachments];
+      await api.updateIssue(issue.id, { attachments: updatedAttachments });
+      await refreshIssue(issue.id);
+      setPendingIssueAttachments([]);
+    }
+
+    if (hasComment) {
+      await addComment(issue.id, newComment);
       setNewComment('');
     }
   };
@@ -110,6 +140,43 @@ export default function DetalleIssue() {
       console.error('Error deleting issue:', error);
       alert('Error al eliminar la tarea. Por favor, intenta de nuevo.');
       setIsDeleting(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !issue) return;
+
+    // Validate file size (10MB max)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      alert('El archivo es demasiado grande. El tamaño máximo es 10MB.');
+      e.target.value = '';
+      return;
+    }
+
+    setIsUploadingAttachment(true);
+    try {
+      // Upload file to server (under uploads/client_id/project_id/images|files)
+      const uploadedAttachment = await api.uploadFile(file, {
+        clientId: issue.clientId || undefined,
+        projectId: issue.projectId || undefined,
+      });
+
+      // Preload: add to pending list (will be added to issue when user clicks Enviar)
+      setPendingIssueAttachments(prev => [...prev, uploadedAttachment]);
+    } catch (error) {
+      console.error('Error uploading attachment:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error al subir el archivo. Por favor, intenta de nuevo.';
+      alert(errorMessage);
+      if (error instanceof Error &&
+          (error.message.includes('Sesión expirada') ||
+           error.message.includes('Unauthorized: Invalid or expired token'))) {
+        setTimeout(() => router.push('/'), 1500);
+      }
+    } finally {
+      setIsUploadingAttachment(false);
+      e.target.value = '';
     }
   };
 
@@ -188,6 +255,58 @@ export default function DetalleIssue() {
             <p className="text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-lg">
               {issue.description}
             </p>
+          </div>
+
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+              <Paperclip className="w-4 h-4" />
+              Adjuntos del issue
+            </h3>
+            {issue.attachments && issue.attachments.length > 0 ? (
+              <div className="flex flex-wrap gap-3">
+                {issue.attachments.map((att, index) => {
+                  const fileName = att.name || att.url.split('/').pop() || 'archivo';
+                  const isImage = att.type === 'image' || (att.url && /\.(jpe?g|png|gif|webp)$/i.test(att.url));
+                  return (
+                    <div key={att.url ? `${att.url}-${index}` : index} className="relative flex items-center gap-1 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden group">
+                      {isImage ? (
+                        <>
+                          <a href={att.url} target="_blank" rel="noopener noreferrer" className="block" title="Ver imagen">
+                            <img src={att.url} alt="" className="h-14 w-14 object-cover" />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => handleDownload(att.url, fileName)}
+                            disabled={downloadingUrl === att.url}
+                            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-gray-200 transition-colors flex items-center justify-center disabled:opacity-50"
+                            title="Descargar imagen"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center p-3 text-gray-500 hover:text-indigo-600 hover:bg-gray-100 transition-colors" title={`Ver ${fileName}`}>
+                            <Paperclip className="w-6 h-6" />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => handleDownload(att.url, fileName)}
+                            disabled={downloadingUrl === att.url}
+                            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-gray-200 transition-colors flex items-center justify-center border-l border-gray-300 disabled:opacity-50"
+                            title="Descargar archivo"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No hay adjuntos en este issue.</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -286,6 +405,60 @@ export default function DetalleIssue() {
                   </div>
                 </div>
                 <p className="text-gray-700 pl-11">{comment.text}</p>
+                {comment.attachments && comment.attachments.length > 0 && (
+                  <div className="mt-3 pl-11 flex flex-wrap gap-2">
+                    {comment.attachments.map((att, idx) => {
+                      const fileName = att.name || att.url.split('/').pop() || 'archivo';
+                      const isImage = att.type === 'image' || (att.url && /\.(jpe?g|png|gif|webp)$/i.test(att.url));
+                      
+                      return (
+                        <div key={idx} className="relative flex items-center gap-1 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden group">
+                          {isImage ? (
+                            <>
+                              <a href={att.url} target="_blank" rel="noopener noreferrer" className="block" title="Ver imagen">
+                                <img
+                                  src={att.url}
+                                  alt=""
+                                  className="h-14 w-14 object-cover"
+                                />
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => handleDownload(att.url, fileName)}
+                                disabled={downloadingUrl === att.url}
+                                className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-gray-200 transition-colors flex items-center justify-center disabled:opacity-50"
+                                title="Descargar imagen"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <a
+                                href={att.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center p-3 text-gray-500 hover:text-indigo-600 hover:bg-gray-200 transition-colors"
+                                title={`Ver ${fileName}`}
+                              >
+                                <Paperclip className="w-6 h-6" />
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => handleDownload(att.url, fileName)}
+                                disabled={downloadingUrl === att.url}
+                                className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-gray-200 transition-colors flex items-center justify-center border-l border-gray-300 disabled:opacity-50"
+                                title="Descargar archivo"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ))}
             {issue.comments.length === 0 && (
@@ -297,6 +470,29 @@ export default function DetalleIssue() {
             )}
           </div>
 
+          {pendingIssueAttachments.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              <span className="w-full text-xs text-gray-500 mb-1">Adjuntos pendientes (se añadirán al issue al pulsar Enviar):</span>
+              {pendingIssueAttachments.map((att, idx) => {
+                const isImage = att.type === 'image' || (att.url && /\.(jpe?g|png|gif|webp)$/i.test(att.url));
+                const label = att.name || (isImage ? 'Imagen' : 'Archivo');
+                return (
+                  <div key={idx} className="flex items-center gap-2 bg-gray-100 rounded-lg border border-gray-200 px-3 py-2">
+                    <span className="text-sm text-gray-700 truncate max-w-[200px]">{label}</span>
+                    <button
+                      type="button"
+                      onClick={() => setPendingIssueAttachments(prev => prev.filter((_, i) => i !== idx))}
+                      className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 rounded p-1 text-sm"
+                      title="Eliminar"
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           <form onSubmit={handleAddComment} className="flex gap-3">
             <Avatar name={currentUser?.name || 'Usuario'} size="md" />
             <div className="flex-1 flex gap-3">
@@ -307,14 +503,35 @@ export default function DetalleIssue() {
                 placeholder="Escribe un comentario..."
                 className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
-              <button
-                type="submit"
-                disabled={!newComment.trim()}
-                className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Send className="w-5 h-5" />
-                <span>Enviar</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  id="file-upload-attachment"
+                  accept="image/*,*"
+                  onChange={handleFileUpload}
+                  disabled={isUploadingAttachment}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="file-upload-attachment"
+                  className={`p-3 rounded-lg transition-colors flex items-center justify-center cursor-pointer ${
+                    isUploadingAttachment
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                  title="Agregar imagen o archivo"
+                >
+                  <Plus className="w-5 h-5" />
+                </label>
+                <button
+                  type="submit"
+                  disabled={!newComment.trim() && pendingIssueAttachments.length === 0}
+                  className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Send className="w-5 h-5" />
+                  <span>Enviar</span>
+                </button>
+              </div>
             </div>
           </form>
         </div>

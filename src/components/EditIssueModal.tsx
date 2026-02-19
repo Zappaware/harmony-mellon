@@ -324,38 +324,87 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
                   <option value="image">Imagen</option>
                   <option value="file">Archivo</option>
                 </select>
-                <input
-                  type="text"
-                  placeholder="URL"
-                  value={newAttachment.url || ''}
-                  onChange={(e) => setNewAttachment(prev => ({ ...prev, url: e.target.value }))}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddAttachment();
-                    }
-                  }}
-                  className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
-                />
-                <input
-                  type="text"
-                  placeholder="Nombre (opcional)"
-                  value={newAttachment.name || ''}
-                  onChange={(e) => setNewAttachment(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full sm:w-32 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
-                />
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleAddAttachment();
-                  }}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span className="sm:hidden">Agregar</span>
-                </button>
+                {newAttachment.type === 'link' ? (
+                  <>
+                    <input
+                      type="text"
+                      placeholder="URL"
+                      value={newAttachment.url || ''}
+                      onChange={(e) => setNewAttachment(prev => ({ ...prev, url: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddAttachment();
+                        }
+                      }}
+                      className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Nombre (opcional)"
+                      value={newAttachment.name || ''}
+                      onChange={(e) => setNewAttachment(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full sm:w-32 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleAddAttachment();
+                      }}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span className="sm:hidden">Agregar</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      type="file"
+                      id="file-upload-edit"
+                      accept={newAttachment.type === 'image' ? 'image/*' : '*'}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          // Validate file size (10MB max)
+                          const maxSize = 10 * 1024 * 1024; // 10MB
+                          if (file.size > maxSize) {
+                            toast.error('El archivo es demasiado grande. El tamaño máximo es 10MB.');
+                            e.target.value = '';
+                            return;
+                          }
+
+                          try {
+                            // Upload file to server (under uploads/client_id/project_id/images|files)
+                            const uploadedAttachment = await api.uploadFile(file, {
+                              clientId: formData.clientId || undefined,
+                              projectId: formData.projectId || undefined,
+                            });
+                            setAttachments(prev => [...prev, uploadedAttachment]);
+                            setNewAttachment({ type: 'link', url: '', name: '' });
+                            toast.success('Archivo subido exitosamente');
+                          } catch (error) {
+                            console.error('Error uploading file:', error);
+                            toast.error(error instanceof Error ? error.message : 'Error al subir el archivo');
+                          } finally {
+                            // Reset file input
+                            e.target.value = '';
+                          }
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="file-upload-edit"
+                      className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>{newAttachment.type === 'image' ? 'Seleccionar Imagen' : 'Seleccionar Archivo'}</span>
+                    </label>
+                  </>
+                )}
               </div>
               
               {attachments.length > 0 && (
@@ -375,9 +424,15 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
                           {att.name || att.url}
                         </a>
                       ) : (
-                        <span className="flex-1 text-sm text-gray-700 truncate">
+                        <a
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download={att.name}
+                          className="flex-1 text-sm text-indigo-600 hover:text-indigo-800 hover:underline truncate"
+                        >
                           {att.name || att.url}
-                        </span>
+                        </a>
                       )}
                       <button
                         type="button"
