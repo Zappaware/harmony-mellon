@@ -35,6 +35,14 @@ if ! pg_isready -h localhost -p 5432 > /dev/null 2>&1; then
     sleep 5
 fi
 
+# Reset uploads folder (clear all uploaded files)
+UPLOADS_DIR="${PROJECT_ROOT}/backend/uploads"
+if [ -d "$UPLOADS_DIR" ]; then
+    rm -rf "${UPLOADS_DIR:?}"/*
+    echo -e "${GREEN}Cleared uploads folder${NC}"
+fi
+mkdir -p "$UPLOADS_DIR"
+
 # Start backend in background
 echo -e "${BLUE}Starting Backend API...${NC}"
 if [ ! -d "backend" ]; then
@@ -55,14 +63,15 @@ if [ ! -f .env ]; then
         echo -e "${YELLOW}Creating .env file with default values...${NC}"
         cat > .env << EOF
 PORT=8080
+ENVIRONMENT=development
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/mellon_harmony?sslmode=disable
 JWT_SECRET=test-secret-key-for-development-only-change-in-production
 EOF
     fi
 fi
 
-# Run backend in background
-go run main.go &
+# Run backend in background (ENVIRONMENT=development so seeding runs)
+ENVIRONMENT=development go run main.go &
 BACKEND_PID=$!
 cd "$PROJECT_ROOT"
 

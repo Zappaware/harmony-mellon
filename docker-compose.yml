@@ -26,8 +26,11 @@ services:
     container_name: mellon-backend
     environment:
       PORT: 8080
+      ENVIRONMENT: development
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/mellon_harmony?sslmode=disable
       JWT_SECRET: your-secret-key-change-in-production-use-strong-secret
+    volumes:
+      - ./backend/uploads:/root/uploads
     ports:
       - "8080:8080"
     depends_on:

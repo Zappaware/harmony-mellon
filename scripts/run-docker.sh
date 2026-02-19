@@ -37,8 +37,28 @@ if [ ! -f "docker-compose.yml" ]; then
     exit 1
 fi
 
+# Reset uploads folder (cleared on every run; backend uses volume mount)
+UPLOADS_DIR="${PROJECT_ROOT}/backend/uploads"
+if [ -d "$UPLOADS_DIR" ]; then
+    rm -rf "${UPLOADS_DIR:?}"/*
+    echo -e "${GREEN}Cleared uploads folder${NC}"
+fi
+mkdir -p "$UPLOADS_DIR"
+
 # Build and start services
 $COMPOSE_CMD up --build -d
+
+# Wait for backend to be up so we can run reset
+echo -e "${BLUE}Waiting for backend to be ready...${NC}"
+sleep 5
+
+# Reset database in development (requires Go on host)
+if command -v go &> /dev/null && [ -f "backend/reset-database.go" ]; then
+    echo -e "${BLUE}Resetting database (development)...${NC}"
+    (cd backend && ENVIRONMENT=development DATABASE_URL="postgres://postgres:postgres@localhost:5433/mellon_harmony?sslmode=disable" go run reset-database.go) || true
+else
+    echo -e "${YELLOW}Skipping database reset (go not found or reset-database.go missing)${NC}"
+fi
 
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}Services are starting!${NC}"
