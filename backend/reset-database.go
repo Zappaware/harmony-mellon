@@ -6,16 +6,17 @@ import (
 	"log"
 	"mellon-harmony-api/internal/config"
 	"mellon-harmony-api/internal/database"
+	"mellon-harmony-api/internal/models"
 	"mellon-harmony-api/internal/repository"
 )
 
-// Script to reset the database by deleting all users except admin@example.com and user@example.com
+// Script to reset the database by deleting all users except admin, user, and team lead test credentials.
 // Usage: go run reset-database.go
-// This script preserves the admin and user test credentials
 
 const (
-	adminEmail = "admin@example.com"
-	userEmail  = "user@example.com"
+	adminEmail    = "admin@example.com"
+	userEmail     = "user@example.com"
+	teamLeadEmail = "teamlead@example.com"
 )
 
 func main() {
@@ -38,12 +39,56 @@ func main() {
 
 	log.Println("Connected to database successfully")
 
+	// Check if we're in development mode
+	if cfg.Environment != "development" {
+		log.Fatal("❌ This script can only be run in development mode. Set ENVIRONMENT=development in your .env file.")
+	}
+
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	projectRepo := repository.NewProjectRepository(db)
 	issueRepo := repository.NewIssueRepository(db)
+	clientRepo := repository.NewClientRepository(db)
+	commentRepo := repository.NewCommentRepository(db)
+	notificationRepo := repository.NewNotificationRepository(db)
 
-	// Delete all issues/tasks first (they may reference projects)
+	// Delete all comments first (they reference issues)
+	log.Println("Deleting all comments...")
+	var allComments []models.Comment
+	if err := db.Find(&allComments).Error; err != nil {
+		log.Printf("Warning: Failed to get comments: %v", err)
+	} else {
+		log.Printf("Found %d comments in database", len(allComments))
+		commentsDeleted := 0
+		for _, comment := range allComments {
+			if err := commentRepo.Delete(comment.ID); err != nil {
+				log.Printf("Error deleting comment %s: %v", comment.ID, err)
+			} else {
+				commentsDeleted++
+			}
+		}
+		log.Printf("Deleted %d comments", commentsDeleted)
+	}
+
+	// Delete all notifications
+	log.Println("Deleting all notifications...")
+	var allNotifications []models.Notification
+	if err := db.Find(&allNotifications).Error; err != nil {
+		log.Printf("Warning: Failed to get notifications: %v", err)
+	} else {
+		log.Printf("Found %d notifications in database", len(allNotifications))
+		notificationsDeleted := 0
+		for _, notification := range allNotifications {
+			if err := notificationRepo.Delete(notification.ID); err != nil {
+				log.Printf("Error deleting notification %s: %v", notification.ID, err)
+			} else {
+				notificationsDeleted++
+			}
+		}
+		log.Printf("Deleted %d notifications", notificationsDeleted)
+	}
+
+	// Delete all issues/tasks (they may reference projects)
 	log.Println("Deleting all issues/tasks...")
 	allIssues, err := issueRepo.GetAll(map[string]interface{}{})
 	if err != nil {
@@ -79,6 +124,24 @@ func main() {
 		log.Printf("Deleted %d projects", projectsDeleted)
 	}
 
+	// Delete all clients
+	log.Println("Deleting all clients...")
+	allClients, err := clientRepo.GetAll()
+	if err != nil {
+		log.Printf("Warning: Failed to get clients: %v", err)
+	} else {
+		log.Printf("Found %d clients in database", len(allClients))
+		clientsDeleted := 0
+		for _, client := range allClients {
+			if err := clientRepo.Delete(client.ID); err != nil {
+				log.Printf("Error deleting client %s: %v", client.ID, err)
+			} else {
+				clientsDeleted++
+			}
+		}
+		log.Printf("Deleted %d clients", clientsDeleted)
+	}
+
 	// Get all users
 	allUsers, err := userRepo.GetAll()
 	if err != nil {
@@ -92,7 +155,7 @@ func main() {
 	preservedUsers := 0
 
 	for _, u := range allUsers {
-		if u.Email == adminEmail || u.Email == userEmail {
+		if u.Email == adminEmail || u.Email == userEmail || u.Email == teamLeadEmail {
 			preservedUsers++
 			log.Printf("Preserving user: %s (%s) - %s", u.Name, u.Email, u.Role)
 		} else {
@@ -100,12 +163,12 @@ func main() {
 		}
 	}
 
-	// Delete users that are not admin or user
+	// Delete users that are not admin, user, or team lead
 	deletedCount := 0
 	if usersToDelete > 0 {
 		log.Printf("Will delete %d users (preserving %d test credentials)", usersToDelete, preservedUsers)
 		for _, u := range allUsers {
-			if u.Email != adminEmail && u.Email != userEmail {
+			if u.Email != adminEmail && u.Email != userEmail && u.Email != teamLeadEmail {
 				if err := userRepo.Delete(u.ID); err != nil {
 					log.Printf("Error deleting user %s (%s): %v", u.Name, u.Email, err)
 					continue
@@ -115,15 +178,19 @@ func main() {
 			}
 		}
 	} else {
-		log.Println("No users to delete. Only admin and user test credentials exist.")
+		log.Println("No users to delete. Only admin, user, and team lead test credentials exist.")
 	}
 
 	log.Printf("\n=== Database reset complete! ===")
 	log.Printf("Deleted:")
 	log.Printf("  - %d users", deletedCount)
+	log.Printf("  - All clients")
 	log.Printf("  - All projects")
 	log.Printf("  - All issues/tasks")
-	log.Printf("\nPreserved %d test credentials:", preservedUsers)
+	log.Printf("  - All comments")
+	log.Printf("  - All notifications")
+	log.Printf("\nPreserved 3 test credentials:")
 	log.Printf("  - %s (admin)", adminEmail)
 	log.Printf("  - %s (user)", userEmail)
+	log.Printf("  - %s (team lead)", teamLeadEmail)
 }
