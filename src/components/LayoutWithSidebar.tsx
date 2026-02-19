@@ -108,11 +108,7 @@ export function LayoutWithSidebar({ children }: { children: React.ReactNode }) {
           </Suspense>
         </div>
 
-        <div 
-          className={`flex flex-col flex-1 overflow-auto pt-16 md:pt-0 transition-all duration-300 ${
-            sidebarCollapsed ? 'md:ml-0' : 'md:ml-64'
-          }`}
-        >
+        <div className="flex flex-col flex-1 min-w-0 overflow-auto pt-16 md:pt-0">
           <div className="flex-1">
             <Suspense fallback={<Loading message="Cargando..." />}>
               {children}

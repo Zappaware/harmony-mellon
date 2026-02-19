@@ -33,6 +33,7 @@ export interface Comment {
   userId: string;
   userName: string;
   text: string;
+  attachments?: Array<{ type: 'link' | 'image' | 'file'; url: string; name?: string }>;
   createdAt: string;
 }
 
@@ -77,7 +78,7 @@ interface AppContextType {
   issues: Issue[];
   projects: ApiProject[];
   updateIssueStatus: (issueId: string, newStatus: Issue['status']) => Promise<void>;
-  addComment: (issueId: string, text: string) => Promise<void>;
+  addComment: (issueId: string, text: string, attachments?: Array<{ type: 'link' | 'image' | 'file'; url: string; name?: string }>) => Promise<void>;
   createIssue: (data: CreateIssueData) => Promise<void>;
   createProject: (data: CreateProjectData) => Promise<void>;
   updateProject: (projectId: string, data: Partial<CreateProjectData>) => Promise<void>;
@@ -85,6 +86,7 @@ interface AppContextType {
   deleteIssue: (issueId: string) => Promise<void>;
   deleteUser: (userId: string) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
+  refreshIssue: (issueId: string) => Promise<void>;
   users: User[];
   showExpiringTasksModal: boolean;
   setShowExpiringTasksModal: (show: boolean) => void;
@@ -229,9 +231,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   
   const [user, setUser] = useState<User | null>(null);
-  // Only initialize with mock data in development, otherwise use empty arrays
-  const [issues, setIssues] = useState<Issue[]>(isDevelopment ? mockIssues : []);
-  const [users, setUsers] = useState<User[]>(isDevelopment ? mockUsers : []);
+  // Start with empty arrays - data will be loaded from API when user logs in
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [projects, setProjects] = useState<ApiProject[]>([]);
   const [useApi, setUseApi] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -258,6 +260,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         userId: comment.user_id,
         userName: comment.user?.name || userList.find(u => u.id === comment.user_id)?.name || 'Usuario',
         text: comment.text,
+        attachments: comment.attachments,
         createdAt: comment.created_at,
       })),
     };
@@ -339,8 +342,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (token && useApi && user) {
         try {
           const apiIssues = await api.getIssues();
-          // Convert issues with current users list
-          const convertedIssues = apiIssues.map(issue => convertApiIssue(issue, users));
+          // Load users first if not already loaded, then convert issues
+          let usersList = users;
+          if (usersList.length === 0) {
+            try {
+              const apiUsers = await api.getUsers();
+              usersList = apiUsers.map(u => ({
+                id: u.id,
+                name: u.name,
+                email: u.email,
+                role: u.role,
+                avatar: u.avatar,
+              }));
+              setUsers(usersList);
+            } catch (err) {
+              console.error('Error loading users for issue conversion:', err);
+            }
+          }
+          // Convert issues with users list
+          const convertedIssues = apiIssues.map(issue => convertApiIssue(issue, usersList));
           setIssues(convertedIssues);
         } catch (error) {
           console.error('Error loading issues:', error);
@@ -403,12 +423,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }));
           setUsers(convertedUsers);
         })
-        .catch(() => {
-          // Don't fallback to mock data in production - keep empty array
-          if (isDevelopment) {
-            // Only use mock data in development if API fails
-            setUsers(mockUsers);
-          }
+        .catch((error) => {
+          console.error('Error loading users:', error);
+          // Don't fallback to mock data - keep empty array
+          // This ensures we always try to use API data when authenticated
         });
     }
   }, [useApi]);
@@ -488,12 +506,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addComment = async (issueId: string, text: string) => {
+  const addComment = async (issueId: string, text: string, attachments?: Array<{ type: 'link' | 'image' | 'file'; url: string; name?: string }>) => {
     if (!user) return;
     
     if (useApi) {
       try {
-        await api.createComment(issueId, text);
+        await api.createComment(issueId, text, attachments);
         // Reload issues to get updated comments
         const apiIssues = await api.getIssues();
         const convertedIssues = apiIssues.map(issue => convertApiIssue(issue, users));
@@ -514,6 +532,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     userId: user.id,
                     userName: user.name,
                     text,
+                    attachments,
                     createdAt: new Date().toISOString(),
                   },
                 ],
@@ -692,6 +711,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshIssue = async (issueId: string): Promise<void> => {
+    if (!useApi) return;
+    try {
+      const apiIssue = await api.getIssue(issueId);
+      const converted = convertApiIssue(apiIssue, users);
+      setIssues((prev) => prev.map((i) => (i.id === issueId ? converted : i)));
+    } catch (error) {
+      console.error('Error refreshing issue:', error);
+    }
+  };
+
   const deleteProject = async (projectId: string): Promise<void> => {
     if (useApi) {
       try {
@@ -726,6 +756,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         deleteIssue,
         deleteUser,
         deleteProject,
+        refreshIssue,
         users,
         showExpiringTasksModal,
         setShowExpiringTasksModal,

@@ -111,6 +111,7 @@ export interface ApiIssue {
 }
 
 export interface ApiComment {
+  attachments?: ApiAttachment[];
   id: string;
   user_id: string;
   text: string;
@@ -313,10 +314,10 @@ class ApiService {
     });
   }
 
-  async createComment(issueId: string, text: string): Promise<ApiComment> {
+  async createComment(issueId: string, text: string, attachments?: ApiAttachment[]): Promise<ApiComment> {
     return this.request<ApiComment>(`/issues/${issueId}/comments`, {
       method: 'POST',
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, attachments: attachments || [] }),
     });
   }
 
@@ -406,6 +407,95 @@ class ApiService {
     return this.request<void>(`/clients/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  async uploadFile(
+    file: File,
+    options?: { clientId?: string; projectId?: string }
+  ): Promise<ApiAttachment> {
+    const token = this.getToken();
+    const formData = new FormData();
+    formData.append('file', file);
+    if (options?.clientId) formData.append('client_id', options.clientId);
+    if (options?.projectId) formData.append('project_id', options.projectId);
+
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    // Don't set Content-Type header - browser will set it with boundary for FormData
+
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE_URL}/files/upload`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+    } catch (fetchError) {
+      const errorMessage = fetchError instanceof Error ? fetchError.message : 'Network error';
+      console.error('File upload network error:', errorMessage);
+      // Don't clear token on network errors - only on actual 401 responses
+      throw new Error(`Error de red al subir el archivo: ${errorMessage}. Verifica que el servidor esté ejecutándose.`);
+    }
+
+    if (!response.ok) {
+      // Handle 401 Unauthorized - only clear token on actual auth failure
+      if (response.status === 401) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+        }
+        throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+      }
+
+      let errorMessage = `Error ${response.status}: ${response.statusText}`;
+      try {
+        const error = await response.json();
+        errorMessage = error.error || errorMessage;
+      } catch {
+        // If response is not JSON, use status text
+        const text = await response.text().catch(() => '');
+        if (text) {
+          errorMessage = text;
+        }
+      }
+      console.error('File upload error:', errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    return {
+      type: data.type as 'image' | 'file',
+      url: `${API_BASE_URL}/files/${data.path}`,
+      name: data.name,
+    };
+  }
+
+  getFileUrl(path: string): string {
+    return `${API_BASE_URL}/files/${path}`;
+  }
+
+  /**
+   * Download a file from a URL (e.g. attachment URL) with auth.
+   * Uses fetch + blob so the download works cross-origin (avoids OpaqueResponseBlocking).
+   */
+  async downloadFile(url: string, fileName: string): Promise<void> {
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(url, { headers });
+    if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = fileName || 'download';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
   }
 }
 
