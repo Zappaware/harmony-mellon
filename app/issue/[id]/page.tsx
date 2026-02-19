@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useApp, Issue } from '@/context/AppContext';
 import { api } from '@/services/api';
-import { User, Calendar, MessageSquare, Send, Clock, Trash2, FolderKanban, Pencil } from 'lucide-react';
+import { User, Calendar, MessageSquare, Send, Clock, Trash2, FolderKanban, Pencil, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/Badge';
 import { Avatar } from '@/components/Avatar';
 import { PageHeader } from '@/components/PageHeader';
@@ -35,6 +35,9 @@ export default function DetalleIssue() {
   const [showStatusConfirmDialog, setShowStatusConfirmDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<Issue['status'] | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [forbiddenMessage, setForbiddenMessage] = useState<string | null>(null);
+
+  const FORBIDDEN_COMPLETE_MSG = 'Solo el creador de la tarea puede marcarla como completada tras revisarla. La tarea está en revisión esperando la aprobación del creador.';
 
   const issue = issues.find((i) => i.id === id);
 
@@ -57,9 +60,10 @@ export default function DetalleIssue() {
       setPendingStatus(null);
       // Reload page to show updated status
       window.location.reload();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error updating status:', error);
-      alert('Error al actualizar el estado. Por favor, intenta de nuevo.');
+      const msg = error instanceof Error ? error.message : '';
+      setForbiddenMessage(msg.includes('Solo el creador') ? msg : 'Error al actualizar el estado. Por favor, intenta de nuevo.');
       setIsUpdatingStatus(false);
     }
   };
@@ -84,6 +88,10 @@ export default function DetalleIssue() {
 
   const assignedUser = users.find((u) => u.id === issue.assignedTo);
   const createdByUser = users.find((u) => u.id === issue.createdBy);
+  // Only the creator can move to Completada; assignee cannot
+  const onlyCreatorCanComplete = Boolean(
+    currentUser && issue.assignedTo === currentUser.id && issue.createdBy !== currentUser.id
+  );
 
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,9 +133,13 @@ export default function DetalleIssue() {
                     onChange={(e) => {
                       const newStatus = e.target.value as Issue['status'];
                       if (newStatus !== issue.status) {
+                        if (newStatus === 'done' && onlyCreatorCanComplete) {
+                          setForbiddenMessage(FORBIDDEN_COMPLETE_MSG);
+                          e.target.value = issue.status;
+                          return;
+                        }
                         setPendingStatus(newStatus);
                         setShowStatusConfirmDialog(true);
-                        // Reset select to current value until confirmed
                         e.target.value = issue.status;
                       }
                     }}
@@ -143,7 +155,9 @@ export default function DetalleIssue() {
                     <option value="todo">Por Hacer</option>
                     <option value="in-progress">En Progreso</option>
                     <option value="review">En Revisión</option>
-                    <option value="done">Completada</option>
+                    <option value="done" disabled={onlyCreatorCanComplete} title={onlyCreatorCanComplete ? 'Solo el creador puede marcar como completada' : undefined}>
+                      Completada
+                    </option>
                   </select>
                 </div>
               </div>
@@ -362,6 +376,25 @@ export default function DetalleIssue() {
           }}
           issue={issue}
         />
+
+        <AlertDialog open={forbiddenMessage !== null} onOpenChange={(open) => !open && setForbiddenMessage(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-amber-700">
+                <AlertCircle className="h-5 w-5 shrink-0" />
+                No puedes completar esta tarea
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-600 pt-1">
+                {forbiddenMessage}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={() => setForbiddenMessage(null)} className="bg-indigo-600 hover:bg-indigo-700">
+                Entendido
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </LayoutWithSidebar>
   );

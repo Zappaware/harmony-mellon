@@ -260,7 +260,10 @@ function KanbanContent() {
     newStatus: Issue['status'];
     issueTitle: string;
   } | null>(null);
-  const { updateIssueStatus } = useApp();
+  const [forbiddenMessage, setForbiddenMessage] = useState<string | null>(null);
+  const { updateIssueStatus, user: currentUser } = useApp();
+
+  const FORBIDDEN_COMPLETE_MSG = 'Solo el creador de la tarea puede marcarla como completada tras revisarla. La tarea está en revisión esperando la aprobación del creador.';
   
   const getStatusLabel = (status: Issue['status']) => {
     const labels: Record<Issue['status'], string> = {
@@ -274,15 +277,19 @@ function KanbanContent() {
 
   const handleStatusChangeRequest = (issueId: string, oldStatus: Issue['status'], newStatus: Issue['status']) => {
     const issue = filteredIssues.find(i => i.id === issueId);
-    if (issue) {
-      setPendingStatusChange({
-        issueId,
-        oldStatus,
-        newStatus,
-        issueTitle: issue.title,
-      });
-      setShowStatusConfirmDialog(true);
+    if (!issue) return;
+    // Only the creator can move to Completada; assignee cannot
+    if (newStatus === 'done' && issue.assignedTo === currentUser?.id && issue.createdBy !== currentUser?.id) {
+      setForbiddenMessage(FORBIDDEN_COMPLETE_MSG);
+      return;
     }
+    setPendingStatusChange({
+      issueId,
+      oldStatus,
+      newStatus,
+      issueTitle: issue.title,
+    });
+    setShowStatusConfirmDialog(true);
   };
 
   const handleStatusChangeConfirm = async () => {
@@ -291,9 +298,11 @@ function KanbanContent() {
       await updateIssueStatus(pendingStatusChange.issueId, pendingStatusChange.newStatus);
       setShowStatusConfirmDialog(false);
       setPendingStatusChange(null);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error updating issue status:', error);
-      alert('Error al actualizar el estado. Por favor, intenta de nuevo.');
+      const msg = error instanceof Error ? error.message : '';
+      const isForbidden = msg.includes('Solo el creador');
+      setForbiddenMessage(isForbidden ? msg : 'Error al actualizar el estado. Por favor, intenta de nuevo.');
     }
   };
   
@@ -429,6 +438,25 @@ function KanbanContent() {
               className="bg-indigo-600 hover:bg-indigo-700"
             >
               Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={forbiddenMessage !== null} onOpenChange={(open) => !open && setForbiddenMessage(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-700">
+              <AlertCircle className="h-5 w-5 shrink-0" />
+              No puedes completar esta tarea
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600 pt-1">
+              {forbiddenMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setForbiddenMessage(null)} className="bg-indigo-600 hover:bg-indigo-700">
+              Entendido
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
