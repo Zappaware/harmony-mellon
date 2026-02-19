@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useApp, Issue } from '@/context/AppContext';
-import { api } from '@/services/api';
+import { api, type ApiAttachment } from '@/services/api';
 import { User, Calendar, MessageSquare, Send, Clock, Trash2, FolderKanban, Pencil, AlertCircle, Plus, Paperclip, Download } from 'lucide-react';
 import { Badge } from '@/components/Badge';
 import { Avatar } from '@/components/Avatar';
@@ -37,7 +37,7 @@ export default function DetalleIssue() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [forbiddenMessage, setForbiddenMessage] = useState<string | null>(null);
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
-  const [pendingIssueAttachments, setPendingIssueAttachments] = useState<Array<{ type: 'image' | 'file'; url: string; name?: string }>>([]);
+  const [pendingIssueAttachments, setPendingIssueAttachments] = useState<ApiAttachment[]>([]);
   const [downloadingUrl, setDownloadingUrl] = useState<string | null>(null);
 
   const handleDownload = async (url: string, fileName: string) => {
