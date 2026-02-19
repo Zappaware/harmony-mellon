@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"mellon-harmony-api/internal/models"
 	"mellon-harmony-api/internal/service"
 	"net/http"
 
@@ -29,11 +30,18 @@ func (h *CommentHandler) GetComments(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, comments)
+	// Convert to response format with parsed attachments
+	responses := make([]models.CommentResponse, len(comments))
+	for i, comment := range comments {
+		responses[i] = comment.ToResponse()
+	}
+
+	c.JSON(http.StatusOK, responses)
 }
 
 type CreateCommentRequest struct {
-	Text string `json:"text" binding:"required"`
+	Text       string                  `json:"text" binding:"required"`
+	Attachments []models.Attachment    `json:"attachments,omitempty"`
 }
 
 func (h *CommentHandler) CreateComment(c *gin.Context) {
@@ -52,13 +60,13 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 		return
 	}
 
-	comment, err := h.commentService.CreateComment(issueID, userID, req.Text)
+	comment, err := h.commentService.CreateComment(issueID, userID, req.Text, req.Attachments)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, comment)
+	c.JSON(http.StatusCreated, comment.ToResponse())
 }
 
 type UpdateCommentRequest struct {

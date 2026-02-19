@@ -9,7 +9,7 @@ import (
 
 type CommentService interface {
 	GetComments(issueID uuid.UUID) ([]models.Comment, error)
-	CreateComment(issueID, userID uuid.UUID, text string) (*models.Comment, error)
+	CreateComment(issueID, userID uuid.UUID, text string, attachments []models.Attachment) (*models.Comment, error)
 	UpdateComment(id uuid.UUID, text string) (*models.Comment, error)
 	DeleteComment(id uuid.UUID) error
 }
@@ -32,7 +32,7 @@ func (s *commentService) GetComments(issueID uuid.UUID) ([]models.Comment, error
 	return s.commentRepo.GetByIssueID(issueID)
 }
 
-func (s *commentService) CreateComment(issueID, userID uuid.UUID, text string) (*models.Comment, error) {
+func (s *commentService) CreateComment(issueID, userID uuid.UUID, text string, attachments []models.Attachment) (*models.Comment, error) {
 	// Verify issue exists
 	_, err := s.issueRepo.GetByID(issueID)
 	if err != nil {
@@ -43,6 +43,13 @@ func (s *commentService) CreateComment(issueID, userID uuid.UUID, text string) (
 		IssueID: issueID,
 		UserID:  userID,
 		Text:    text,
+	}
+
+	// Set attachments if provided
+	if len(attachments) > 0 {
+		if err := comment.SetAttachments(attachments); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := s.commentRepo.Create(comment); err != nil {
