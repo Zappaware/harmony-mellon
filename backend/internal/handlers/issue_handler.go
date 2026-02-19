@@ -132,6 +132,10 @@ func (h *IssueHandler) CreateIssue(c *gin.Context) {
 
 	if req.AssignedTo != nil {
 		if id, err := uuid.Parse(*req.AssignedTo); err == nil {
+			if id == userID {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "No se puede asignar la tarea al mismo usuario que la crea. El creador y el asignado deben ser diferentes."})
+				return
+			}
 			issue.AssignedTo = &id
 		}
 	}
@@ -282,8 +286,21 @@ func (h *IssueHandler) UpdateIssue(c *gin.Context) {
 		}
 	}
 
-	// Get old issue for comparison
+	// Get old issue for comparison and validation
 	oldIssue, _ := h.issueService.GetIssue(id)
+	if oldIssue == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Issue not found"})
+		return
+	}
+
+	// Prevent assigning the issue to its creator (creator and assignee must be different)
+	if req.AssignedTo != nil {
+		newAssigneeID, err := uuid.Parse(*req.AssignedTo)
+		if err == nil && newAssigneeID == oldIssue.CreatedBy {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "No se puede asignar la tarea al creador. El creador y el asignado deben ser diferentes."})
+			return
+		}
+	}
 
 	issue, err := h.issueService.UpdateIssue(id, updates)
 	if err != nil {
@@ -417,7 +434,25 @@ func (h *IssueHandler) UpdateIssueStatus(c *gin.Context) {
 		return
 	}
 
-	// Get old issue to compare status
+	// Get current user who made the update
+	currentUserIDStr, _ := c.Get("user_id")
+	currentUserID, _ := uuid.Parse(currentUserIDStr.(string))
+	currentUser, _ := h.userRepo.GetByID(currentUserID)
+
+	// Get existing issue to validate: only the creator can move to Done (assignee cannot)
+	existingIssue, _ := h.issueService.GetIssue(id)
+	if existingIssue != nil && req.Status == models.StatusDone {
+		assigneeIsCurrentUser := existingIssue.AssignedTo != nil && *existingIssue.AssignedTo == currentUserID
+		creatorIsCurrentUser := existingIssue.CreatedBy == currentUserID
+		if assigneeIsCurrentUser && !creatorIsCurrentUser {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "Solo el creador de la tarea puede marcarla como completada tras revisarla. Está en revisión esperando la aprobación del creador.",
+			})
+			return
+		}
+	}
+
+	// Get old issue to compare status (for notifications)
 	oldIssue, _ := h.issueService.GetIssue(id)
 
 	issue, err := h.issueService.UpdateIssueStatus(id, req.Status)
@@ -425,11 +460,6 @@ func (h *IssueHandler) UpdateIssueStatus(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	// Get current user who made the update
-	currentUserIDStr, _ := c.Get("user_id")
-	currentUserID, _ := uuid.Parse(currentUserIDStr.(string))
-	currentUser, _ := h.userRepo.GetByID(currentUserID)
 
 	// Notify users if status changed
 	if oldIssue != nil && oldIssue.Status != req.Status && h.notificationService != nil {
@@ -461,6 +491,30 @@ func (h *IssueHandler) UpdateIssueStatus(c *gin.Context) {
 			if issue.AssignedTo != nil && *issue.AssignedTo != currentUserID && *issue.AssignedTo != issue.CreatedBy {
 				if err := h.notificationService.CreateNotification(*issue.AssignedTo, models.NotificationTypeStatus, title, message, issueID); err != nil {
 					log.Printf("Failed to notify issue assignee about status change: %v", err)
+				}
+			}
+
+			// When moved to Review: notify the issue creator that it's waiting for their approval (they can move to Completada after review)
+			if req.Status == models.StatusReview && issue.CreatedBy != currentUserID {
+				reviewTitle := "Tarea en revisión: " + issue.Title
+				reviewMessage := "Una tarea que creaste está en revisión y espera tu aprobación. Revísala y muévela a Completada cuando esté lista."
+				if currentUser != nil {
+					reviewMessage = currentUser.Name + " ha movido la tarea a revisión. Revísala y muévela a Completada cuando des tu aprobación."
+				}
+				if err := h.notificationService.CreateNotification(issue.CreatedBy, models.NotificationTypeStatus, reviewTitle, reviewMessage, issueID); err != nil {
+					log.Printf("Failed to notify issue creator about review: %v", err)
+				}
+			}
+
+			// When creator moves to Done: notify the assignee that the task has been approved and marked completada
+			if req.Status == models.StatusDone && issue.CreatedBy == currentUserID && issue.AssignedTo != nil && *issue.AssignedTo != currentUserID {
+				doneTitle := "Tarea completada: " + issue.Title
+				doneMessage := "El creador ha aprobado y marcado la tarea como completada."
+				if currentUser != nil {
+					doneMessage = currentUser.Name + " ha revisado y marcado la tarea como completada."
+				}
+				if err := h.notificationService.CreateNotification(*issue.AssignedTo, models.NotificationTypeComplete, doneTitle, doneMessage, issueID); err != nil {
+					log.Printf("Failed to notify assignee about task completed: %v", err)
 				}
 			}
 
