@@ -79,6 +79,8 @@ SMTP_FROM=tu-email@gmail.com
 SMTP_FROM_NAME=Mellon Harmony
 ```
 
+**Production (e.g. Railway):** Set `FRONTEND_URL` on the **API service** to your frontend origin so CORS allows browser requests (e.g. file uploads). Example: `FRONTEND_URL=https://harmony-mellon.up.railway.app`. Multiple origins: comma-separated (e.g. `https://app.example.com,https://staging.example.com`).
+
 5. **Configure Email (Optional but Recommended)**
    - For quick setup: See [SETUP-EMAIL.md](./SETUP-EMAIL.md)
    - For custom domain (e.g., mellon.mx): See [CUSTOM-DOMAIN-EMAIL.md](./CUSTOM-DOMAIN-EMAIL.md)

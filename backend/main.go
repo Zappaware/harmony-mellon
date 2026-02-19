@@ -8,6 +8,7 @@ import (
 	"mellon-harmony-api/internal/middleware"
 	"mellon-harmony-api/internal/repository"
 	"mellon-harmony-api/internal/service"
+	"strings"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -94,12 +95,18 @@ func main() {
 		"http://localhost:3000",
 		"http://localhost:3001",
 	}
-	
-	// Add frontend URL from environment if provided
+	// Add frontend URL(s) from environment; supports comma-separated list (e.g. production + staging)
 	if cfg.FrontendURL != "" {
-		allowedOrigins = append(allowedOrigins, cfg.FrontendURL)
+		for _, origin := range strings.Split(cfg.FrontendURL, ",") {
+			origin = strings.TrimSpace(origin)
+			if origin != "" {
+				allowedOrigins = append(allowedOrigins, origin)
+			}
+		}
 	}
-	
+	if cfg.Environment == "production" && len(allowedOrigins) <= 2 {
+		log.Println("⚠️  CORS: FRONTEND_URL is not set. Set FRONTEND_URL to your frontend origin (e.g. https://harmony-mellon.up.railway.app) so uploads and API calls from the browser are allowed.")
+	}
 	// Allow all origins in development, or specific origins in production
 	corsConfig := cors.Config{
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
