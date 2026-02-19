@@ -28,9 +28,33 @@ func main() {
 		log.Fatal("Failed to run migrations:", err)
 	}
 
-	// Seed initial users
-	if err := database.SeedUsers(db); err != nil {
-		log.Printf("Warning: Failed to seed users: %v", err)
+	// Seed initial data only in development mode
+	if cfg.Environment == "development" {
+		log.Println("Development mode detected - seeding initial data...")
+		
+		// Seed users
+		if err := database.SeedUsers(db); err != nil {
+			log.Printf("Warning: Failed to seed users: %v", err)
+		}
+		
+		// Seed clients
+		if err := database.SeedClients(db); err != nil {
+			log.Printf("Warning: Failed to seed clients: %v", err)
+		}
+		
+		// Seed projects (depends on clients)
+		if err := database.SeedProjects(db); err != nil {
+			log.Printf("Warning: Failed to seed projects: %v", err)
+		}
+		
+		// Seed issues (depends on users and projects)
+		if err := database.SeedIssues(db); err != nil {
+			log.Printf("Warning: Failed to seed issues: %v", err)
+		}
+		
+		log.Println("Seeding complete!")
+	} else {
+		log.Println("Production mode - skipping data seeding")
 	}
 
 	// Initialize repositories
@@ -49,6 +73,7 @@ func main() {
 	commentService := service.NewCommentService(commentRepo, userRepo, issueRepo)
 	clientService := service.NewClientService(clientRepo, userRepo)
 	projectService := service.NewProjectService(projectRepo, userRepo)
+	fileService := service.NewFileService(cfg.UploadDir)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandlerWithUserService(authService, userService)
@@ -58,6 +83,7 @@ func main() {
 	commentHandler := handlers.NewCommentHandler(commentService)
 	clientHandler := handlers.NewClientHandler(clientService, userRepo, notificationService)
 	projectHandler := handlers.NewProjectHandler(projectService, userRepo, notificationService, projectRepo)
+	fileHandler := handlers.NewFileHandler(fileService)
 
 	// Setup router
 	router := gin.Default()
@@ -80,6 +106,7 @@ func main() {
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
+		MaxAge:           12 * 3600, // 12 hours
 	}
 	
 	// In production, use specific origins; in development, allow all
@@ -153,6 +180,10 @@ func main() {
 		protected.PATCH("/notifications/:id/read", notificationHandler.MarkAsRead)
 		protected.PATCH("/notifications/read-all", notificationHandler.MarkAllAsRead)
 		protected.DELETE("/notifications/:id", notificationHandler.DeleteNotification)
+
+		// File routes
+		protected.POST("/files/upload", fileHandler.UploadFile)
+		protected.GET("/files/*path", fileHandler.ServeFile)
 	}
 
 	// Start server

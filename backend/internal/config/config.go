@@ -13,6 +13,7 @@ type Config struct {
 	JWTSecret   string
 	FrontendURL string
 	Environment string
+	UploadDir   string
 }
 
 func Load() *Config {
@@ -57,6 +58,7 @@ func Load() *Config {
 		JWTSecret:   jwtSecret,
 		FrontendURL: getEnv("FRONTEND_URL", ""),
 		Environment: environment,
+		UploadDir:   getEnv("UPLOAD_DIR", "uploads"),
 	}
 }
 
