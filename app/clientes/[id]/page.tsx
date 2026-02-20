@@ -47,6 +47,11 @@ const PROJECT_TYPES = [
   { type: 'Campaña' as const, label: 'Campaña', icon: Megaphone, color: 'bg-sky-100 text-sky-800' },
 ] as const;
 
+const MONTH_LABELS: Record<number, string> = {
+  1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
+  7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre',
+};
+
 export default function ClienteDetailPage() {
   const params = useParams();
   const clientId = params.id as string;
@@ -62,6 +67,8 @@ export default function ClienteDetailPage() {
   const [projectIdForNewIssue, setProjectIdForNewIssue] = useState<string | null>(null);
   const [projectToDelete, setProjectToDelete] = useState<ApiProject | null>(null);
   const [isDeletingProject, setIsDeletingProject] = useState(false);
+  const [filterMonth, setFilterMonth] = useState<number | ''>('');
+  const [filterYear, setFilterYear] = useState<number | ''>('');
 
   const canCreate = currentUser?.role === 'admin' || currentUser?.role === 'team_lead';
 
@@ -89,13 +96,33 @@ export default function ClienteDetailPage() {
     return client.projects!;
   }, [client]);
 
+  const filteredProjects = useMemo(() => {
+    if (filterMonth === '' || filterYear === '') return clientProjects;
+    return clientProjects.filter(
+      (p) => p.planning_month === filterMonth && p.planning_year === filterYear
+    );
+  }, [clientProjects, filterMonth, filterYear]);
+
   const projectsByType = useMemo(() => {
     const map: Record<string, ApiProject[]> = { Planner: [], Branding: [], Campaña: [] };
-    for (const p of clientProjects) {
+    for (const p of filteredProjects) {
       const t = p.type || 'Campaña';
       if (t in map) map[t].push(p);
     }
     return map;
+  }, [filteredProjects]);
+
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    for (const p of clientProjects) {
+      if (p.planning_year != null) years.add(p.planning_year);
+    }
+    const arr = Array.from(years).sort((a, b) => a - b);
+    if (arr.length === 0) {
+      const y = new Date().getFullYear();
+      return [y - 1, y, y + 1];
+    }
+    return arr;
   }, [clientProjects]);
 
   const openCreateProject = (type: 'Planner' | 'Branding' | 'Campaña') => {
@@ -284,6 +311,41 @@ export default function ClienteDetailPage() {
             </div>
           </div>
         )}
+
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          <span className="text-sm font-medium text-gray-700">Periodo:</span>
+          <select
+            value={filterMonth}
+            onChange={(e) => setFilterMonth(e.target.value === '' ? '' : Number(e.target.value))}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            aria-label="Filtrar por mes"
+          >
+            <option value="">Todos los meses</option>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
+              <option key={m} value={m}>{MONTH_LABELS[m]}</option>
+            ))}
+          </select>
+          <select
+            value={filterYear}
+            onChange={(e) => setFilterYear(e.target.value === '' ? '' : Number(e.target.value))}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            aria-label="Filtrar por año"
+          >
+            <option value="">Todos los años</option>
+            {availableYears.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+          {(filterMonth !== '' || filterYear !== '') && (
+            <button
+              type="button"
+              onClick={() => { setFilterMonth(''); setFilterYear(''); }}
+              className="text-sm text-indigo-600 hover:text-indigo-700"
+            >
+              Ver todos
+            </button>
+          )}
+        </div>
 
         {PROJECT_TYPES.map(({ type, label, icon: Icon, color }) => {
           const typeProjects = projectsByType[type] || [];
