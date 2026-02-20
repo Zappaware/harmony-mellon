@@ -53,7 +53,7 @@ export default function DetalleIssue() {
     }
   };
 
-  const FORBIDDEN_COMPLETE_MSG = 'Solo el creador de la tarea puede marcarla como completada tras revisarla. La tarea está en revisión esperando la aprobación del creador.';
+  const FORBIDDEN_COMPLETE_MSG = 'Solo un líder o administrador puede mover la tarea de Revisión a Completada.';
 
   const issue = issues.find((i) => i.id === id);
 
@@ -79,7 +79,7 @@ export default function DetalleIssue() {
     } catch (error: unknown) {
       console.error('Error updating status:', error);
       const msg = error instanceof Error ? error.message : '';
-      setForbiddenMessage(msg.includes('Solo el creador') ? msg : 'Error al actualizar el estado. Por favor, intenta de nuevo.');
+      setForbiddenMessage(msg.includes('Solo el creador') || msg.includes('Solo un líder') ? msg : 'Error al actualizar el estado. Por favor, intenta de nuevo.');
       setIsUpdatingStatus(false);
     }
   };
@@ -104,9 +104,9 @@ export default function DetalleIssue() {
 
   const assignedUser = users.find((u) => u.id === issue.assignedTo);
   const createdByUser = users.find((u) => u.id === issue.createdBy);
-  // Only the creator can move to Completada; assignee cannot
-  const onlyCreatorCanComplete = Boolean(
-    currentUser && issue.assignedTo === currentUser.id && issue.createdBy !== currentUser.id
+  // Only team_lead or admin can move from Revisión to Completada
+  const onlyLeaderOrAdminCanComplete = Boolean(
+    currentUser && currentUser.role !== 'admin' && currentUser.role !== 'team_lead'
   );
 
   const handleAddComment = async (e: React.FormEvent) => {
@@ -200,7 +200,7 @@ export default function DetalleIssue() {
                     onChange={(e) => {
                       const newStatus = e.target.value as Issue['status'];
                       if (newStatus !== issue.status) {
-                        if (newStatus === 'done' && onlyCreatorCanComplete) {
+                        if (newStatus === 'done' && onlyLeaderOrAdminCanComplete) {
                           setForbiddenMessage(FORBIDDEN_COMPLETE_MSG);
                           e.target.value = issue.status;
                           return;
@@ -222,7 +222,7 @@ export default function DetalleIssue() {
                     <option value="todo">Por Hacer</option>
                     <option value="in-progress">En Progreso</option>
                     <option value="review">En Revisión</option>
-                    <option value="done" disabled={onlyCreatorCanComplete} title={onlyCreatorCanComplete ? 'Solo el creador puede marcar como completada' : undefined}>
+                    <option value="done" disabled={onlyLeaderOrAdminCanComplete} title={onlyLeaderOrAdminCanComplete ? 'Solo un líder o administrador puede marcar como completada' : undefined}>
                       Completada
                     </option>
                   </select>

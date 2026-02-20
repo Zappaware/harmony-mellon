@@ -263,7 +263,7 @@ function KanbanContent() {
   const [forbiddenMessage, setForbiddenMessage] = useState<string | null>(null);
   const { updateIssueStatus, user: currentUser } = useApp();
 
-  const FORBIDDEN_COMPLETE_MSG = 'Solo el creador de la tarea puede marcarla como completada tras revisarla. La tarea está en revisión esperando la aprobación del creador.';
+  const FORBIDDEN_COMPLETE_MSG = 'Solo un líder o administrador puede mover la tarea de Revisión a Completada.';
   
   const getStatusLabel = (status: Issue['status']) => {
     const labels: Record<Issue['status'], string> = {
@@ -278,8 +278,8 @@ function KanbanContent() {
   const handleStatusChangeRequest = (issueId: string, oldStatus: Issue['status'], newStatus: Issue['status']) => {
     const issue = filteredIssues.find(i => i.id === issueId);
     if (!issue) return;
-    // Only the creator can move to Completada; assignee cannot
-    if (newStatus === 'done' && issue.assignedTo === currentUser?.id && issue.createdBy !== currentUser?.id) {
+    // Only team_lead or admin can move to Completada
+    if (newStatus === 'done' && currentUser && currentUser.role !== 'admin' && currentUser.role !== 'team_lead') {
       setForbiddenMessage(FORBIDDEN_COMPLETE_MSG);
       return;
     }
@@ -301,7 +301,7 @@ function KanbanContent() {
     } catch (error: unknown) {
       console.error('Error updating issue status:', error);
       const msg = error instanceof Error ? error.message : '';
-      const isForbidden = msg.includes('Solo el creador');
+      const isForbidden = msg.includes('Solo el creador') || msg.includes('Solo un líder');
       setForbiddenMessage(isForbidden ? msg : 'Error al actualizar el estado. Por favor, intenta de nuevo.');
     }
   };
