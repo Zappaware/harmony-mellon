@@ -506,7 +506,7 @@ export interface ApiProject {
   id: string;
   name: string;
   description: string;
-  type?: 'Campaña' | 'Planner' | 'Branding';
+  type?: string;
   progress: number;
   status: string;
   client_id?: string;
@@ -528,7 +528,7 @@ export interface ApiProject {
 export interface CreateProjectRequest {
   name: string;
   description?: string;
-  type?: 'Campaña' | 'Planner' | 'Branding';
+  type?: string;
   status?: string;
   client_id?: string;
   start_date?: string;

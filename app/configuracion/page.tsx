@@ -1,11 +1,12 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import { Tag, AlertTriangle, Sliders, Plus, Edit } from 'lucide-react';
+import { Tag, AlertTriangle, Sliders, Plus, Edit, FolderKanban, Trash2 } from 'lucide-react';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { DEFAULT_PROJECT_TYPES, getCustomProjectTypes, setCustomProjectTypes } from '@/lib/projectTypes';
 
 interface Estado {
   id: number;
@@ -39,8 +40,11 @@ export default function Configuracion() {
   const [showEstadoModal, setShowEstadoModal] = useState(false);
   const [showPrioridadModal, setShowPrioridadModal] = useState(false);
   const [showParametrosModal, setShowParametrosModal] = useState(false);
+  const [showProjectTypeModal, setShowProjectTypeModal] = useState(false);
   const [newEstado, setNewEstado] = useState({ nombre: '', color: '#6b7280' });
   const [newPrioridad, setNewPrioridad] = useState({ nombre: '', color: '#10b981' });
+  const [customProjectTypes, setCustomProjectTypesState] = useState<string[]>([]);
+  const [newProjectTypeName, setNewProjectTypeName] = useState('');
   
   const defaultParametros = {
     nombreOrganizacion: 'Mellon',
@@ -62,6 +66,28 @@ export default function Configuracion() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    setCustomProjectTypesState(getCustomProjectTypes());
+  }, []);
+
+  const handleAddProjectType = () => {
+    const name = newProjectTypeName.trim();
+    if (!name) return;
+    const custom = getCustomProjectTypes();
+    if (custom.includes(name)) return;
+    const next = [...custom, name];
+    setCustomProjectTypes(next);
+    setCustomProjectTypesState(next);
+    setNewProjectTypeName('');
+    setShowProjectTypeModal(false);
+  };
+
+  const handleRemoveProjectType = (name: string) => {
+    const next = getCustomProjectTypes().filter((t) => t !== name);
+    setCustomProjectTypes(next);
+    setCustomProjectTypesState(next);
+  };
 
   const handleAddEstado = () => {
     if (newEstado.nombre.trim()) {
@@ -228,6 +254,45 @@ export default function Configuracion() {
               >
                 <Plus className="w-4 h-4" />
                 Agregar Prioridad
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow">
+            <div className="p-6 border-b border-gray-200 flex items-center gap-2">
+              <FolderKanban className="w-6 h-6 text-gray-600" />
+              <h2 className="text-xl text-gray-800">Tipos de proyecto</h2>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-gray-600 mb-3">Por defecto: Planner, Branding, Campaña. Añade tipos personalizados para usar en clientes.</p>
+              <div className="space-y-2 mb-4">
+                {DEFAULT_PROJECT_TYPES.map((t) => (
+                  <div key={t} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span className="text-gray-800 font-medium">{t}</span>
+                    <span className="text-xs text-gray-500">Por defecto</span>
+                  </div>
+                ))}
+                {customProjectTypes.map((t) => (
+                  <div key={t} className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg">
+                    <span className="text-gray-800 font-medium">{t}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveProjectType(t)}
+                      className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                      aria-label={`Eliminar tipo ${t}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowProjectTypeModal(true)}
+                className="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Agregar tipo de proyecto
               </button>
             </div>
           </div>
@@ -497,6 +562,50 @@ export default function Configuracion() {
                 className="bg-indigo-600 hover:bg-indigo-700"
               >
                 Guardar Cambios
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showProjectTypeModal} onOpenChange={setShowProjectTypeModal}>
+        <DialogContent className="!max-w-[90vw] sm:!max-w-[320px] md:!max-w-[340px] !p-4 sm:!p-5 !w-auto">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-sm sm:text-base">Agregar tipo de proyecto</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label htmlFor="project-type-name" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
+                Nombre del tipo
+              </label>
+              <Input
+                id="project-type-name"
+                type="text"
+                value={newProjectTypeName}
+                onChange={(e) => setNewProjectTypeName(e.target.value)}
+                placeholder="Ej: Eventos, Consultoría"
+                className="w-full h-9 sm:h-10 text-sm"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 px-4 text-sm"
+                onClick={() => {
+                  setShowProjectTypeModal(false);
+                  setNewProjectTypeName('');
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                className="h-9 px-4 text-sm"
+                onClick={handleAddProjectType}
+                disabled={!newProjectTypeName.trim()}
+              >
+                Agregar
               </Button>
             </div>
           </div>

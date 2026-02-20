@@ -55,7 +55,7 @@ interface CreateIssueData {
 interface CreateProjectData {
   name: string;
   description?: string;
-  type?: 'Campaña' | 'Planner' | 'Branding';
+  type?: string;
   status?: string;
   client_id?: string;
   startDate?: string;

@@ -40,12 +40,16 @@ import { CreateProjectModal } from '@/components/CreateProjectModal';
 import { CreateIssueModal } from '@/components/CreateIssueModal';
 import { CreateClientModal } from '@/components/CreateClientModal';
 import { Badge } from '@/components/Badge';
+import { getAllProjectTypes } from '@/lib/projectTypes';
 
-const PROJECT_TYPES = [
-  { type: 'Planner' as const, label: 'Planner', icon: LayoutList, color: 'bg-violet-100 text-violet-800' },
-  { type: 'Branding' as const, label: 'Branding', icon: Palette, color: 'bg-amber-100 text-amber-800' },
-  { type: 'Campaña' as const, label: 'Campaña', icon: Megaphone, color: 'bg-sky-100 text-sky-800' },
-] as const;
+const TYPE_STYLE: Record<string, { icon: typeof LayoutList; color: string }> = {
+  Planner: { icon: LayoutList, color: 'bg-violet-100 text-violet-800' },
+  Branding: { icon: Palette, color: 'bg-amber-100 text-amber-800' },
+  Campaña: { icon: Megaphone, color: 'bg-sky-100 text-sky-800' },
+};
+function getTypeStyle(type: string) {
+  return TYPE_STYLE[type] ?? { icon: FolderPlus, color: 'bg-gray-100 text-gray-800' };
+}
 
 const MONTH_LABELS: Record<number, string> = {
   1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
@@ -63,7 +67,8 @@ export default function ClienteDetailPage() {
   const [createIssueModalOpen, setCreateIssueModalOpen] = useState(false);
   const [editClientModalOpen, setEditClientModalOpen] = useState(false);
   const [infoClientModalOpen, setInfoClientModalOpen] = useState(false);
-  const [projectTypeToAdd, setProjectTypeToAdd] = useState<'Planner' | 'Branding' | 'Campaña' | null>(null);
+  const [projectTypeToAdd, setProjectTypeToAdd] = useState<string | null>(null);
+  const [personalizedProjectOpen, setPersonalizedProjectOpen] = useState(false);
   const [projectIdForNewIssue, setProjectIdForNewIssue] = useState<string | null>(null);
   const [projectToDelete, setProjectToDelete] = useState<ApiProject | null>(null);
   const [isDeletingProject, setIsDeletingProject] = useState(false);
@@ -103,14 +108,22 @@ export default function ClienteDetailPage() {
     );
   }, [clientProjects, filterMonth, filterYear]);
 
+  const sectionTypes = useMemo(() => {
+    const known = getAllProjectTypes();
+    const fromProjects = new Set(filteredProjects.map((p) => p.type).filter(Boolean) as string[]);
+    return [...known, ...Array.from(fromProjects).filter((t) => !known.includes(t))];
+  }, [filteredProjects]);
+
   const projectsByType = useMemo(() => {
-    const map: Record<string, ApiProject[]> = { Planner: [], Branding: [], Campaña: [] };
+    const map: Record<string, ApiProject[]> = {};
+    for (const t of sectionTypes) map[t] = [];
     for (const p of filteredProjects) {
       const t = p.type || 'Campaña';
-      if (t in map) map[t].push(p);
+      if (!map[t]) map[t] = [];
+      map[t].push(p);
     }
     return map;
-  }, [filteredProjects]);
+  }, [filteredProjects, sectionTypes]);
 
   const availableYears = useMemo(() => {
     const years = new Set<number>();
@@ -125,8 +138,15 @@ export default function ClienteDetailPage() {
     return arr;
   }, [clientProjects]);
 
-  const openCreateProject = (type: 'Planner' | 'Branding' | 'Campaña') => {
+  const openCreateProject = (type: string) => {
     setProjectTypeToAdd(type);
+    setPersonalizedProjectOpen(false);
+    setCreateProjectModalOpen(true);
+  };
+
+  const openCreateProjectPersonalized = () => {
+    setProjectTypeToAdd(null);
+    setPersonalizedProjectOpen(true);
     setCreateProjectModalOpen(true);
   };
 
@@ -140,6 +160,7 @@ export default function ClienteDetailPage() {
     setClient(c);
     setCreateProjectModalOpen(false);
     setProjectTypeToAdd(null);
+    setPersonalizedProjectOpen(false);
   };
 
   const handleIssueCreated = async () => {
@@ -194,47 +215,60 @@ export default function ClienteDetailPage() {
   return (
     <LayoutWithSidebar>
       <div className="p-4 md:p-8">
-        <Link
-          href="/clientes"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Volver a clientes</span>
-        </Link>
-
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0">
-              <Building2 className="w-8 h-8 text-indigo-600" />
+        {/* Header: same pattern as client list — pr-12 md:pr-16 for bell, plus in row */}
+        <header className="mb-6 md:mb-8 pr-12 md:pr-16">
+          <Link
+            href="/clientes"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Volver a clientes</span>
+          </Link>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0">
+                <Building2 className="w-8 h-8 text-indigo-600" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-2xl md:text-3xl text-gray-800 truncate">{client.name}</h1>
+                {client.description && (
+                  <p className="text-gray-600 mt-1 line-clamp-2">{client.description}</p>
+                )}
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl md:text-3xl text-gray-800">{client.name}</h1>
-              {client.description && (
-                <p className="text-gray-600 mt-1">{client.description}</p>
+            <div className="flex items-center gap-2 shrink-0">
+              {canCreate && (
+                <button
+                  type="button"
+                  onClick={openCreateProjectPersonalized}
+                  className="inline-flex items-center justify-center w-10 h-10 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 transition-colors"
+                  title="Añadir proyecto"
+                  aria-label="Añadir proyecto"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              )}
+              <button
+                onClick={() => setInfoClientModalOpen(true)}
+                className="inline-flex items-center justify-center w-10 h-10 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                title="Ver información del cliente"
+                aria-label="Ver información del cliente"
+              >
+                <Info className="w-5 h-5" />
+              </button>
+              {canCreate && (
+                <button
+                  onClick={() => setEditClientModalOpen(true)}
+                  className="inline-flex items-center justify-center w-10 h-10 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                  title="Editar cliente"
+                  aria-label="Editar cliente"
+                >
+                  <Pencil className="w-5 h-5" />
+                </button>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setInfoClientModalOpen(true)}
-              className="inline-flex items-center justify-center w-10 h-10 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-              title="Ver información del cliente"
-              aria-label="Ver información del cliente"
-            >
-              <Info className="w-5 h-5" />
-            </button>
-            {canCreate && (
-              <button
-                onClick={() => setEditClientModalOpen(true)}
-                className="inline-flex items-center justify-center w-10 h-10 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                title="Editar cliente"
-                aria-label="Editar cliente"
-              >
-                <Pencil className="w-5 h-5" />
-              </button>
-            )}
-          </div>
-        </div>
+        </header>
 
         {infoClientModalOpen && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setInfoClientModalOpen(false)}>
@@ -347,17 +381,19 @@ export default function ClienteDetailPage() {
           )}
         </div>
 
-        {PROJECT_TYPES.map(({ type, label, icon: Icon, color }) => {
+        {sectionTypes.map((type) => {
           const typeProjects = projectsByType[type] || [];
+          const { icon: Icon, color } = getTypeStyle(type);
           return (
             <section key={type} className="mb-10">
               <div className="flex items-center gap-2 mb-4">
                 <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${color}`}>
                   <Icon className="w-4 h-4" />
-                  {label}
+                  {type}
                 </span>
                 {canCreate && (
                   <button
+                    type="button"
                     onClick={() => openCreateProject(type)}
                     className="text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
                   >
@@ -368,13 +404,13 @@ export default function ClienteDetailPage() {
               </div>
 
               {typeProjects.length === 0 && !canCreate && (
-                <p className="text-sm text-gray-500 py-4">No hay proyectos de tipo {label}.</p>
+                <p className="text-sm text-gray-500 py-4">No hay proyectos de tipo {type}.</p>
               )}
 
               {typeProjects.map((project) => {
                 const projectIssues = issues.filter((i) => i.projectId === project.id);
                 const approvedCount = projectIssues.filter((i) => i.approvedAt).length;
-                const showScore = (type === 'Planner' || type === 'Branding') && projectIssues.length > 0;
+                const showScore = ['Planner', 'Branding'].includes(type) && projectIssues.length > 0;
                 return (
                   <div key={project.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
                     <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
@@ -431,7 +467,7 @@ export default function ClienteDetailPage() {
                                 issue={issue}
                                 assignedUser={issue.assignedTo ? users.find((u) => u.id === issue.assignedTo) : undefined}
                                 showProject={false}
-                                showApprovedStar={type === 'Planner' || type === 'Branding'}
+                                showApprovedStar={['Planner', 'Branding'].includes(type)}
                               />
                             </li>
                           ))}
@@ -447,11 +483,13 @@ export default function ClienteDetailPage() {
 
         <CreateProjectModal
           isOpen={createProjectModalOpen}
-          onClose={() => { setCreateProjectModalOpen(false); setProjectTypeToAdd(null); }}
+          onClose={() => { setCreateProjectModalOpen(false); setProjectTypeToAdd(null); setPersonalizedProjectOpen(false); }}
           onSuccess={handleProjectCreated}
           projectToEdit={undefined}
           initialClientId={clientId}
           initialType={projectTypeToAdd ?? undefined}
+          projectTypes={getAllProjectTypes()}
+          allowOtherType={personalizedProjectOpen}
         />
 
         <CreateIssueModal

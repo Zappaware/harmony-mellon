@@ -5,6 +5,9 @@ import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
 import { api, ApiClient } from '@/services/api';
+import { getCustomProjectTypes, setCustomProjectTypes } from '@/lib/projectTypes';
+
+const OTHER_TYPE_VALUE = '__other__';
 
 interface CreateProjectModalProps {
   isOpen: boolean;
@@ -12,12 +15,14 @@ interface CreateProjectModalProps {
   onSuccess?: () => void;
   initialStartDate?: string;
   initialClientId?: string;
-  initialType?: 'Campaña' | 'Planner' | 'Branding';
+  initialType?: string;
+  projectTypes?: string[];
+  allowOtherType?: boolean;
   projectToEdit?: {
     id: string;
     name: string;
     description?: string;
-    type?: 'Campaña' | 'Planner' | 'Branding';
+    type?: string;
     status?: string;
     client_id?: string;
     start_date?: string;
@@ -35,14 +40,15 @@ const MONTHS = [
   { value: 10, label: 'Octubre' }, { value: 11, label: 'Noviembre' }, { value: 12, label: 'Diciembre' },
 ];
 
-export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDate, initialClientId, initialType, projectToEdit }: CreateProjectModalProps) {
+export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDate, initialClientId, initialType, projectTypes: projectTypesProp, allowOtherType, projectToEdit }: CreateProjectModalProps) {
   const { createProject, updateProject } = useApp();
   const isEditMode = !!projectToEdit;
   const currentYear = new Date().getFullYear();
+  const typeOptions = projectTypesProp ?? ['Campaña', 'Planner', 'Branding'];
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    type: (initialType ?? 'Campaña') as 'Campaña' | 'Planner' | 'Branding',
+    type: initialType ?? 'Campaña',
     status: 'planning' as string,
     clientId: initialClientId || '',
     startDate: initialStartDate || '',
@@ -51,6 +57,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
     planningMonth: '' as string,
     planningYear: '' as string,
   });
+  const [otherTypeName, setOtherTypeName] = useState('');
   const [clients, setClients] = useState<ApiClient[]>([]);
   const [isLoadingClients, setIsLoadingClients] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,6 +80,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
       }));
     }
   }, [isOpen, initialClientId, initialType]);
+  const effectiveType = formData.type === OTHER_TYPE_VALUE ? otherTypeName.trim() : formData.type;
 
   // Load clients when modal opens and populate form if editing
   useEffect(() => {
@@ -160,7 +168,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
         await updateProject(projectToEdit.id, {
           name: formData.name,
           description: formData.description || undefined,
-          type: formData.type,
+          type: effectiveType || formData.type,
           status: formData.status,
           client_id: formData.clientId || undefined,
           startDate: formData.startDate || undefined,
@@ -175,10 +183,14 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
         });
       } else {
         // Create new project
+        const typeToUse = effectiveType || formData.type;
+        if (formData.type === OTHER_TYPE_VALUE && otherTypeName.trim() && !getCustomProjectTypes().includes(otherTypeName.trim())) {
+          setCustomProjectTypes([...getCustomProjectTypes(), otherTypeName.trim()]);
+        }
         await createProject({
           name: formData.name,
           description: formData.description || undefined,
-          type: formData.type,
+          type: typeToUse,
           status: formData.status,
           client_id: formData.clientId || undefined,
           startDate: formData.startDate || undefined,
@@ -193,6 +205,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
         });
 
         // Reset form only for new projects
+        setOtherTypeName('');
         setFormData({
           name: '',
           description: '',
@@ -230,11 +243,12 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
   };
 
   const isProjectFormValid = isEditMode
-    ? formData.name.trim() !== ''
+    ? formData.name.trim() !== '' && (formData.type !== OTHER_TYPE_VALUE || otherTypeName.trim() !== '')
     : formData.name.trim() !== '' &&
       formData.startDate !== '' &&
       formData.deadline !== '' &&
-      formData.clientId !== '';
+      formData.clientId !== '' &&
+      (formData.type !== OTHER_TYPE_VALUE || otherTypeName.trim() !== '');
 
   const colorOptions = [
     { value: 'bg-blue-500', label: 'Azul', color: 'bg-blue-500' },
@@ -311,10 +325,28 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="Campaña">Campaña</option>
-              <option value="Planner">Planner</option>
-              <option value="Branding">Branding</option>
+              {typeOptions.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+              {allowOtherType && (
+                <option value={OTHER_TYPE_VALUE}>Otro (personalizado)</option>
+              )}
             </select>
+            {formData.type === OTHER_TYPE_VALUE && (
+              <div className="mt-2">
+                <label htmlFor="otherTypeName" className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre del tipo
+                </label>
+                <input
+                  id="otherTypeName"
+                  type="text"
+                  value={otherTypeName}
+                  onChange={(e) => setOtherTypeName(e.target.value)}
+                  placeholder="Ej: Eventos, Consultoría"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
