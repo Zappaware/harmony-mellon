@@ -52,7 +52,24 @@ func (r *projectRepository) Update(project *models.Project) error {
 }
 
 func (r *projectRepository) Delete(id uuid.UUID) error {
-	return r.db.Delete(&models.Project{}, id).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var issueIDs []uuid.UUID
+		if err := tx.Model(&models.Issue{}).Where("project_id = ?", id).Pluck("id", &issueIDs).Error; err != nil {
+			return err
+		}
+		if len(issueIDs) > 0 {
+			if err := tx.Where("issue_id IN ?", issueIDs).Delete(&models.Comment{}).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Where("project_id = ?", id).Delete(&models.Issue{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("project_id = ?", id).Delete(&models.ProjectMember{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&models.Project{}, id).Error
+	})
 }
 
 func (r *projectRepository) AddMember(projectID, userID uuid.UUID, role string) error {

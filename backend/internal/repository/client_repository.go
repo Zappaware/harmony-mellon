@@ -49,5 +49,35 @@ func (r *clientRepository) Update(client *models.Client) error {
 }
 
 func (r *clientRepository) Delete(id uuid.UUID) error {
-	return r.db.Delete(&models.Client{}, id).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var projectIDs []uuid.UUID
+		if err := tx.Model(&models.Project{}).Where("client_id = ?", id).Pluck("id", &projectIDs).Error; err != nil {
+			return err
+		}
+		for _, projectID := range projectIDs {
+			var issueIDs []uuid.UUID
+			if err := tx.Model(&models.Issue{}).Where("project_id = ?", projectID).Pluck("id", &issueIDs).Error; err != nil {
+				return err
+			}
+			if len(issueIDs) > 0 {
+				if err := tx.Where("issue_id IN ?", issueIDs).Delete(&models.Comment{}).Error; err != nil {
+					return err
+				}
+			}
+			if err := tx.Where("project_id = ?", projectID).Delete(&models.Issue{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("project_id = ?", projectID).Delete(&models.ProjectMember{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Delete(&models.Project{}, projectID).Error; err != nil {
+				return err
+			}
+		}
+		// Delete any issues linked only to this client (no project or project already removed)
+		if err := tx.Where("client_id = ?", id).Delete(&models.Issue{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&models.Client{}, id).Error
+	})
 }
