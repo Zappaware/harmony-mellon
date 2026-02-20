@@ -227,59 +227,60 @@ func SeedProjects(db *gorm.DB) error {
 	}
 
 	now := time.Now()
+	// Only Planner, Branding, or Campaña project types
 	projects := []struct {
-		name        string
-		description string
-		projectType models.ProjectType
-		status      models.ProjectStatus
-		progress    int
-		color       string
-		clientIndex int
-		daysOffset  int // Days from now for start date
-		deadlineDays int // Days from now for deadline
+		name         string
+		description  string
+		projectType   models.ProjectType
+		status       models.ProjectStatus
+		progress     int
+		color        string
+		clientIndex  int
+		daysOffset   int
+		deadlineDays int
 	}{
 		{
-			name:        "Website Redesign",
-			description: "Complete redesign of the main corporate website with modern UI/UX",
-			projectType: models.ProjectTypeCampana,
-			status:      models.ProjectStatusInProgress,
-			progress:    45,
-			color:       "#3B82F6",
-			clientIndex: 0,
-			daysOffset:  -30,
+			name:         "Campaña Web 2025",
+			description:  "Campaña de lanzamiento y rediseño web",
+			projectType:  models.ProjectTypeCampana,
+			status:       models.ProjectStatusInProgress,
+			progress:     45,
+			color:        "#3B82F6",
+			clientIndex:  0,
+			daysOffset:   -30,
 			deadlineDays: 60,
 		},
 		{
-			name:        "Mobile App Development",
-			description: "Development of a new mobile application for iOS and Android platforms",
-			projectType: models.ProjectTypeBranding,
-			status:      models.ProjectStatusPlanning,
-			progress:    20,
-			color:       "#10B981",
-			clientIndex: 1,
-			daysOffset:  -10,
+			name:         "Branding Corporativo",
+			description:  "Identidad de marca, brief y plan de comunicación",
+			projectType:  models.ProjectTypeBranding,
+			status:       models.ProjectStatusPlanning,
+			progress:     20,
+			color:        "#10B981",
+			clientIndex:  1,
+			daysOffset:   -10,
 			deadlineDays: 120,
 		},
 		{
-			name:        "Marketing Campaign Q1",
-			description: "First quarter marketing campaign including social media, email, and content marketing",
-			projectType: models.ProjectTypeCampana,
-			status:      models.ProjectStatusInProgress,
-			progress:    65,
-			color:       "#F59E0B",
-			clientIndex: 1,
-			daysOffset:  -45,
+			name:         "Campaña Redes Q1",
+			description:  "Campaña en redes sociales y email marketing",
+			projectType:  models.ProjectTypeCampana,
+			status:       models.ProjectStatusInProgress,
+			progress:     65,
+			color:        "#F59E0B",
+			clientIndex:  1,
+			daysOffset:   -45,
 			deadlineDays: 15,
 		},
 		{
-			name:        "Product Launch Planner",
-			description: "Strategic planning and execution for new product launch",
-			projectType: models.ProjectTypePlanner,
-			status:      models.ProjectStatusPlanning,
-			progress:    15,
-			color:       "#8B5CF6",
-			clientIndex: 2,
-			daysOffset:  0,
+			name:         "Planner Estratégico",
+			description:  "Planificación con reportes, estrategia, diseño y fotos",
+			projectType:  models.ProjectTypePlanner,
+			status:       models.ProjectStatusPlanning,
+			progress:     15,
+			color:        "#8B5CF6",
+			clientIndex:  2,
+			daysOffset:   0,
 			deadlineDays: 90,
 		},
 	}
@@ -377,75 +378,156 @@ func SeedIssues(db *gorm.DB) error {
 	}
 
 	now := time.Now()
+	// Tasks use obligatory and some optional task types per project type:
+	// Campaña (index 0, 2): task_type "tarea"
+	// Branding (index 1): brief, propuesta, plan_comunicacion, presentacion
+	// Planner (index 3): reportes, estrategia, diseño, fotos
 	issues := []struct {
-		title       string
-		description string
-		status      models.IssueStatus
-		priority    models.IssuePriority
-		projectIndex int
+		title           string
+		description     string
+		status          models.IssueStatus
+		priority        models.IssuePriority
+		projectIndex    int
+		taskType        string
 		assignedToEmail string
-		daysOffset  int
-		dueDays     int
+		daysOffset      int
+		dueDays         int
 	}{
+		// Campaña project 0 - tareas
 		{
-			title:       "Design homepage mockup",
-			description: "Create initial design mockup for the new homepage layout including wireframes and visual design",
-			status:      models.StatusInProgress,
-			priority:    models.PriorityHigh,
-			projectIndex: 0,
+			title:           "Tarea: Landing page",
+			description:     "Diseño y contenido de la landing de la campaña web",
+			status:          models.StatusInProgress,
+			priority:        models.PriorityHigh,
+			projectIndex:    0,
+			taskType:        string(models.TaskTypeTarea),
 			assignedToEmail: "user@example.com",
-			daysOffset: -5,
-			dueDays: 10,
+			daysOffset:      -5,
+			dueDays:         10,
 		},
 		{
-			title:       "Implement user authentication",
-			description: "Develop user authentication system with login, registration, and password reset functionality",
-			status:      models.StatusTodo,
-			priority:    models.PriorityHigh,
-			projectIndex: 1,
+			title:           "Tarea: Formulario de contacto",
+			description:     "Implementar formulario y validaciones",
+			status:          models.StatusTodo,
+			priority:        models.PriorityMedium,
+			projectIndex:    0,
+			taskType:        string(models.TaskTypeTarea),
 			assignedToEmail: "user@example.com",
-			daysOffset: 0,
-			dueDays: 30,
+			daysOffset:      0,
+			dueDays:         15,
+		},
+		// Branding project 1 - obligatory types
+		{
+			title:           "Brief de marca",
+			description:     "Documento brief con objetivos y audiencia",
+			status:          models.StatusTodo,
+			priority:        models.PriorityHigh,
+			projectIndex:    1,
+			taskType:        string(models.TaskTypeBrief),
+			assignedToEmail: "user@example.com",
+			daysOffset:      0,
+			dueDays:         14,
 		},
 		{
-			title:       "Create social media content calendar",
-			description: "Plan and schedule social media posts for the next month across all platforms",
-			status:      models.StatusReview,
-			priority:    models.PriorityMedium,
-			projectIndex: 2,
+			title:           "Propuesta creativa",
+			description:     "Propuesta de identidad visual y naming",
+			status:          models.StatusTodo,
+			priority:        models.PriorityHigh,
+			projectIndex:    1,
+			taskType:        string(models.TaskTypePropuesta),
+			assignedToEmail: "user@example.com",
+			daysOffset:      0,
+			dueDays:         21,
+		},
+		{
+			title:           "Plan de comunicación",
+			description:     "Plan de canales y mensajes de marca",
+			status:          models.StatusReview,
+			priority:        models.PriorityMedium,
+			projectIndex:    1,
+			taskType:        string(models.TaskTypePlanComunicacion),
 			assignedToEmail: "teamlead@example.com",
-			daysOffset: -10,
-			dueDays: 5,
+			daysOffset:      -7,
+			dueDays:         7,
 		},
 		{
-			title:       "Review competitor analysis",
-			description: "Analyze competitor products and prepare a comprehensive report with recommendations",
-			status:      models.StatusTodo,
-			priority:    models.PriorityLow,
-			projectIndex: 3,
+			title:           "Presentación final",
+			description:     "Presentación para cliente con entregables",
+			status:          models.StatusTodo,
+			priority:        models.PriorityMedium,
+			projectIndex:    1,
+			taskType:        string(models.TaskTypePresentacion),
 			assignedToEmail: "user@example.com",
-			daysOffset: 0,
-			dueDays: 20,
+			daysOffset:      0,
+			dueDays:         30,
 		},
+		// Campaña project 2 - tareas
 		{
-			title:       "Setup development environment",
-			description: "Configure development environment for the mobile app project including dependencies and tools",
-			status:      models.StatusDone,
-			priority:    models.PriorityMedium,
-			projectIndex: 1,
+			title:           "Tarea: Calendario redes",
+			description:     "Calendario de publicaciones para redes sociales",
+			status:          models.StatusReview,
+			priority:        models.PriorityMedium,
+			projectIndex:    2,
+			taskType:        string(models.TaskTypeTarea),
 			assignedToEmail: "teamlead@example.com",
-			daysOffset: -20,
-			dueDays: -5,
+			daysOffset:      -10,
+			dueDays:         5,
 		},
 		{
-			title:       "Write API documentation",
-			description: "Document all API endpoints with examples, request/response formats, and error codes",
-			status:      models.StatusInProgress,
-			priority:    models.PriorityMedium,
-			projectIndex: 0,
+			title:           "Tarea: Copy email marketing",
+			description:     "Textos para envío de email marketing Q1",
+			status:          models.StatusTodo,
+			priority:        models.PriorityLow,
+			projectIndex:    2,
+			taskType:        string(models.TaskTypeTarea),
 			assignedToEmail: "user@example.com",
-			daysOffset: -3,
-			dueDays: 15,
+			daysOffset:      0,
+			dueDays:         10,
+		},
+		// Planner project 3 - obligatory types
+		{
+			title:           "Reportes de avance",
+			description:     "Reportes semanales de avance del plan",
+			status:          models.StatusTodo,
+			priority:        models.PriorityMedium,
+			projectIndex:    3,
+			taskType:        string(models.TaskTypeReportes),
+			assignedToEmail: "user@example.com",
+			daysOffset:      0,
+			dueDays:         20,
+		},
+		{
+			title:           "Estrategia de lanzamiento",
+			description:     "Documento de estrategia y fases",
+			status:          models.StatusInProgress,
+			priority:        models.PriorityHigh,
+			projectIndex:    3,
+			taskType:        string(models.TaskTypeEstrategia),
+			assignedToEmail: "teamlead@example.com",
+			daysOffset:      -5,
+			dueDays:         14,
+		},
+		{
+			title:           "Diseño de materiales",
+			description:     "Diseño de piezas gráficas del plan",
+			status:          models.StatusTodo,
+			priority:        models.PriorityMedium,
+			projectIndex:    3,
+			taskType:        string(models.TaskTypeDiseno),
+			assignedToEmail: "user@example.com",
+			daysOffset:      0,
+			dueDays:         25,
+		},
+		{
+			title:           "Fotos y contenido visual",
+			description:     "Sesión de fotos y selección de contenido visual",
+			status:          models.StatusTodo,
+			priority:        models.PriorityLow,
+			projectIndex:    3,
+			taskType:        string(models.TaskTypeFotos),
+			assignedToEmail: "user@example.com",
+			daysOffset:      0,
+			dueDays:         30,
 		},
 	}
 
@@ -479,7 +561,8 @@ func SeedIssues(db *gorm.DB) error {
 		if projectIndex >= len(projects) {
 			projectIndex = 0
 		}
-		projectID := projects[projectIndex].ID
+		proj := projects[projectIndex]
+		projectID := proj.ID
 
 		startDate := now.AddDate(0, 0, i.daysOffset)
 		dueDate := now.AddDate(0, 0, i.dueDays)
@@ -491,8 +574,12 @@ func SeedIssues(db *gorm.DB) error {
 			Priority:    i.priority,
 			CreatedBy:   adminUser.ID,
 			ProjectID:   &projectID,
+			TaskType:    i.taskType,
 			StartDate:   &startDate,
 			DueDate:     &dueDate,
+		}
+		if proj.ClientID != nil {
+			issue.ClientID = proj.ClientID
 		}
 
 		if assignedUser != nil {
