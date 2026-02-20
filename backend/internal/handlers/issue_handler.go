@@ -465,7 +465,12 @@ func (h *IssueHandler) UpdateIssueStatus(c *gin.Context) {
 	// Get old issue to compare status (for notifications)
 	oldIssue, _ := h.issueService.GetIssue(id)
 
-	issue, err := h.issueService.UpdateIssueStatus(id, req.Status)
+	var approvedAt *time.Time
+	if req.Status == models.StatusDone && currentUser != nil && (currentUser.Role == models.RoleAdmin || currentUser.Role == models.RoleTeamLead) {
+		now := time.Now()
+		approvedAt = &now
+	}
+	issue, err := h.issueService.UpdateIssueStatus(id, req.Status, approvedAt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
