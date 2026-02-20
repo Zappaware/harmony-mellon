@@ -34,9 +34,11 @@ type Project struct {
 	Status      ProjectStatus `gorm:"type:varchar(50);default:'planning'" json:"status"`
 	StartDate   *time.Time `json:"start_date,omitempty"`
 	Deadline    *time.Time `json:"deadline,omitempty"`
-	Color       string    `gorm:"type:varchar(20)" json:"color"`
-	ClientID    *uuid.UUID `gorm:"type:uuid" json:"client_id,omitempty"`
-	CreatedBy   uuid.UUID `gorm:"type:uuid;not null" json:"created_by"`
+	Color         string    `gorm:"type:varchar(20)" json:"color"`
+	PlanningMonth *int      `gorm:"type:int" json:"planning_month,omitempty"` // 1-12, for filtering Planner/Branding/Campaña by period
+	PlanningYear  *int      `gorm:"type:int" json:"planning_year,omitempty"`
+	ClientID      *uuid.UUID `gorm:"type:uuid" json:"client_id,omitempty"`
+	CreatedBy     uuid.UUID `gorm:"type:uuid;not null" json:"created_by"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`

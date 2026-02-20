@@ -55,14 +55,16 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 }
 
 type CreateProjectRequest struct {
-	Name        string                `json:"name" binding:"required"`
-	Description string                `json:"description"`
-	Type        models.ProjectType    `json:"type"`
-	Status      models.ProjectStatus  `json:"status"`
-	ClientID    *string               `json:"client_id"`
-	StartDate   *string               `json:"start_date"`
-	Deadline    *string               `json:"deadline"`
-	Color       string                `json:"color"`
+	Name          string                `json:"name" binding:"required"`
+	Description   string                `json:"description"`
+	Type          models.ProjectType    `json:"type"`
+	Status        models.ProjectStatus  `json:"status"`
+	ClientID      *string               `json:"client_id"`
+	StartDate     *string               `json:"start_date"`
+	Deadline      *string               `json:"deadline"`
+	Color         string                `json:"color"`
+	PlanningMonth *int                  `json:"planning_month"` // 1-12
+	PlanningYear  *int                  `json:"planning_year"`
 }
 
 func (h *ProjectHandler) CreateProject(c *gin.Context) {
@@ -84,13 +86,15 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	}
 
 	project := &models.Project{
-		Name:        req.Name,
-		Description: req.Description,
-		Type:        req.Type,
-		Progress:    0, // Progress starts at 0, calculated from issues
-		Status:      req.Status,
-		Color:       req.Color,
-		CreatedBy:   userID,
+		Name:          req.Name,
+		Description:   req.Description,
+		Type:          req.Type,
+		Progress:      0,
+		Status:        req.Status,
+		Color:         req.Color,
+		PlanningMonth: req.PlanningMonth,
+		PlanningYear:  req.PlanningYear,
+		CreatedBy:     userID,
 	}
 
 	// Set ClientID if provided
@@ -155,14 +159,16 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 }
 
 type UpdateProjectRequest struct {
-	Name        *string               `json:"name"`
-	Description *string               `json:"description"`
-	Type        *models.ProjectType   `json:"type"`
-	Progress    *int                  `json:"progress"`
-	Status      *models.ProjectStatus `json:"status"`
-	StartDate   *string               `json:"start_date"`
-	Deadline    *string               `json:"deadline"`
-	Color       *string               `json:"color"`
+	Name          *string               `json:"name"`
+	Description   *string               `json:"description"`
+	Type          *models.ProjectType   `json:"type"`
+	Progress      *int                  `json:"progress"`
+	Status        *models.ProjectStatus `json:"status"`
+	StartDate     *string               `json:"start_date"`
+	Deadline      *string               `json:"deadline"`
+	Color         *string               `json:"color"`
+	PlanningMonth *int                  `json:"planning_month"`
+	PlanningYear  *int                  `json:"planning_year"`
 }
 
 func (h *ProjectHandler) UpdateProject(c *gin.Context) {
@@ -196,6 +202,12 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 	}
 	if req.Color != nil {
 		updates["color"] = *req.Color
+	}
+	if req.PlanningMonth != nil {
+		updates["planning_month"] = *req.PlanningMonth
+	}
+	if req.PlanningYear != nil {
+		updates["planning_year"] = *req.PlanningYear
 	}
 
 	if req.StartDate != nil {

@@ -65,6 +65,12 @@ func (s *projectService) UpdateProject(id uuid.UUID, updates map[string]interfac
 	if color, ok := updates["color"].(string); ok {
 		project.Color = color
 	}
+	if planningMonth, ok := updates["planning_month"].(int); ok {
+		project.PlanningMonth = &planningMonth
+	}
+	if planningYear, ok := updates["planning_year"].(int); ok {
+		project.PlanningYear = &planningYear
+	}
 
 	if err := s.projectRepo.Update(project); err != nil {
 		return nil, err
