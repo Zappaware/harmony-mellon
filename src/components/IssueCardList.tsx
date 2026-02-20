@@ -32,7 +32,7 @@ export function IssueCardList({ issue, assignedUser, showProject, showApprovedSt
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-3 mb-2">
             {assignedUser && (
-              <Avatar name={assignedUser.name} size="sm" />
+              <Avatar name={assignedUser.name} size="sm" src={assignedUser.avatar} />
             )}
             <div className="flex-1">
               <h3 className="text-gray-800 mb-1 truncate">{issue.title}</h3>

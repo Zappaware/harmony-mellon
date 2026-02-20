@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { Loading } from '@/components/Loading';
-import { api, ApiClient, ApiProject } from '@/services/api';
+import { api, ApiClient, ApiProject, getFileDisplayUrl } from '@/services/api';
 import { useApp } from '@/context/AppContext';
 import { IssueCardList } from '@/components/IssueCardList';
 import { CreateProjectModal } from '@/components/CreateProjectModal';
@@ -226,8 +226,23 @@ export default function ClienteDetailPage() {
           </Link>
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-center gap-4 min-w-0">
-              <div className="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0">
-                <Building2 className="w-8 h-8 text-indigo-600" />
+              <div className="w-14 h-14 min-w-14 min-h-14 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative">
+                {client.logo ? (
+                  <>
+                    <img
+                      src={getFileDisplayUrl(client.logo) ?? ''}
+                      alt={client.name}
+                      className="w-full h-full object-cover min-w-full min-h-full absolute inset-0"
+                      width={56}
+                      height={56}
+                      loading="eager"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }}
+                    />
+                    <Building2 className="w-8 h-8 text-indigo-600 hidden" aria-hidden />
+                  </>
+                ) : (
+                  <Building2 className="w-8 h-8 text-indigo-600" />
+                )}
               </div>
               <div className="min-w-0">
                 <h1 className="text-2xl md:text-3xl text-gray-800 truncate">{client.name}</h1>

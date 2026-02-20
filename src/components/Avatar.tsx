@@ -1,4 +1,7 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
+import { getFileDisplayUrl } from '@/services/api';
 
 interface AvatarProps {
   name: string;
@@ -8,6 +11,10 @@ interface AvatarProps {
 }
 
 export function Avatar({ name, size = 'md', src, className = '' }: AvatarProps) {
+  const [imgError, setImgError] = useState(false);
+  const displaySrc = getFileDisplayUrl(src);
+  const showImg = displaySrc && !imgError;
+
   const sizeClasses = {
     sm: 'w-8 h-8 text-xs',
     md: 'w-10 h-10 text-sm',
@@ -39,12 +46,17 @@ export function Avatar({ name, size = 'md', src, className = '' }: AvatarProps) 
     return colors[index];
   };
 
-  if (src) {
+  if (showImg) {
     return (
       <img
-        src={src}
+        src={displaySrc}
         alt={name}
-        className={`${sizeClasses[size]} rounded-full object-cover ${className}`}
+        className={`${sizeClasses[size]} shrink-0 rounded-full object-cover ${className}`}
+        width={size === 'xl' ? 64 : size === 'lg' ? 48 : size === 'sm' ? 32 : 40}
+        height={size === 'xl' ? 64 : size === 'lg' ? 48 : size === 'sm' ? 32 : 40}
+        loading="lazy"
+        decoding="async"
+        onError={() => setImgError(true)}
       />
     );
   }
@@ -53,7 +65,7 @@ export function Avatar({ name, size = 'md', src, className = '' }: AvatarProps) 
     <div
       className={`${sizeClasses[size]} ${getColorFromName(
         name
-      )} rounded-full flex items-center justify-center text-white ${className}`}
+      )} rounded-full flex items-center justify-center text-white shrink-0 ${className}`}
     >
       {getInitials(name)}
     </div>

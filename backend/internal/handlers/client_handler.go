@@ -64,6 +64,7 @@ type CreateClientRequest struct {
 	ContactName  *string `json:"contact_name"`
 	ContactEmail *string `json:"contact_email"`
 	ContactPhone *string `json:"contact_phone"`
+	Logo         *string `json:"logo"`
 }
 
 func (h *ClientHandler) CreateClient(c *gin.Context) {
@@ -93,6 +94,7 @@ func (h *ClientHandler) CreateClient(c *gin.Context) {
 		ContactName:  req.ContactName,
 		ContactEmail: req.ContactEmail,
 		ContactPhone: req.ContactPhone,
+		Logo:         req.Logo,
 		CreatedBy:    userID,
 	}
 
@@ -138,6 +140,7 @@ type UpdateClientRequest struct {
 	ContactName  *string `json:"contact_name"`
 	ContactEmail *string `json:"contact_email"`
 	ContactPhone *string `json:"contact_phone"`
+	Logo         *string `json:"logo"`
 }
 
 func (h *ClientHandler) UpdateClient(c *gin.Context) {
@@ -186,6 +189,9 @@ func (h *ClientHandler) UpdateClient(c *gin.Context) {
 	}
 	if req.ContactPhone != nil {
 		updates["contact_phone"] = req.ContactPhone
+	}
+	if req.Logo != nil {
+		updates["logo"] = req.Logo
 	}
 
 	client, err := h.clientService.UpdateClient(id, updates)

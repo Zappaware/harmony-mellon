@@ -110,6 +110,78 @@ func (s *FileService) SaveFile(fileHeader *multipart.FileHeader, clientID, proje
 	return filepath.ToSlash(filepath.Join(s.uploadDir, clientID, projectID, subdir, uniqueName)), nil
 }
 
+// SaveAvatarFile saves an uploaded image as a user avatar under uploads/avatars/{userID}/
+// userID must be a valid UUID. Returns path with forward slashes (e.g. uploads/avatars/user_id/unique.jpg).
+func (s *FileService) SaveAvatarFile(fileHeader *multipart.FileHeader, userID string) (string, error) {
+	if fileHeader.Size > MaxFileSize {
+		return "", fmt.Errorf("file size exceeds maximum allowed size of %d bytes", MaxFileSize)
+	}
+	if !strings.HasPrefix(fileHeader.Header.Get("Content-Type"), "image/") {
+		return "", fmt.Errorf("avatar must be an image file")
+	}
+	userID = safeFolderName(userID)
+	if userID == UnclassifiedFolder {
+		return "", fmt.Errorf("valid user_id required for avatar upload")
+	}
+	dir := filepath.Join(s.uploadDir, "avatars", userID)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create upload directory: %w", err)
+	}
+	file, err := fileHeader.Open()
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+	ext := filepath.Ext(fileHeader.Filename)
+	uniqueName := generateUniqueFilename(ext)
+	filePath := filepath.Join(dir, uniqueName)
+	dst, err := os.Create(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create file: %w", err)
+	}
+	defer dst.Close()
+	if _, err := io.Copy(dst, file); err != nil {
+		return "", fmt.Errorf("failed to save file: %w", err)
+	}
+	return filepath.ToSlash(filepath.Join(s.uploadDir, "avatars", userID, uniqueName)), nil
+}
+
+// SaveClientLogoFile saves an uploaded image as a client logo under uploads/logos/{clientID}/
+// clientID must be a valid UUID. Returns path with forward slashes (e.g. uploads/logos/client_id/unique.jpg).
+func (s *FileService) SaveClientLogoFile(fileHeader *multipart.FileHeader, clientID string) (string, error) {
+	if fileHeader.Size > MaxFileSize {
+		return "", fmt.Errorf("file size exceeds maximum allowed size of %d bytes", MaxFileSize)
+	}
+	if !strings.HasPrefix(fileHeader.Header.Get("Content-Type"), "image/") {
+		return "", fmt.Errorf("logo must be an image file")
+	}
+	clientID = safeFolderName(clientID)
+	if clientID == UnclassifiedFolder {
+		return "", fmt.Errorf("valid client_id required for logo upload")
+	}
+	dir := filepath.Join(s.uploadDir, "logos", clientID)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create upload directory: %w", err)
+	}
+	file, err := fileHeader.Open()
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+	ext := filepath.Ext(fileHeader.Filename)
+	uniqueName := generateUniqueFilename(ext)
+	filePath := filepath.Join(dir, uniqueName)
+	dst, err := os.Create(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create file: %w", err)
+	}
+	defer dst.Close()
+	if _, err := io.Copy(dst, file); err != nil {
+		return "", fmt.Errorf("failed to save file: %w", err)
+	}
+	return filepath.ToSlash(filepath.Join(s.uploadDir, "logos", clientID, uniqueName)), nil
+}
+
 // DeleteFile deletes a file from the upload directory
 func (s *FileService) DeleteFile(filePath string) error {
 	// Ensure the file is within the upload directory for security

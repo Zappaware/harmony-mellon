@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Upload, Trash2, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { api } from '@/services/api';
+import { api, getFileDisplayUrl } from '@/services/api';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function isValidEmail(value: string): boolean {
@@ -26,6 +26,7 @@ export interface ApiClientForModal {
   contact_name?: string;
   contact_email?: string;
   contact_phone?: string;
+  logo?: string;
 }
 
 interface CreateClientModalProps {
@@ -46,7 +47,9 @@ export function CreateClientModal({ isOpen, onClose, onSuccess, clientToEdit }: 
     contactName: '',
     contactEmail: '',
     contactPhone: '',
+    logo: '',
   });
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,7 +64,9 @@ export function CreateClientModal({ isOpen, onClose, onSuccess, clientToEdit }: 
         contactName: clientToEdit.contact_name || '',
         contactEmail: clientToEdit.contact_email || '',
         contactPhone: clientToEdit.contact_phone || '',
+        logo: clientToEdit.logo || '',
       });
+      setLogoFile(null);
     } else if (isOpen && !clientToEdit) {
       setFormData({
         name: '',
@@ -72,11 +77,42 @@ export function CreateClientModal({ isOpen, onClose, onSuccess, clientToEdit }: 
         contactName: '',
         contactEmail: '',
         contactPhone: '',
+        logo: '',
       });
+      setLogoFile(null);
     }
   }, [isOpen, clientToEdit]);
 
   if (!isOpen) return null;
+
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Por favor, selecciona una imagen válida (JPG, PNG, GIF)');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('La imagen es demasiado grande. Máximo 5MB');
+      return;
+    }
+    setLogoFile(file);
+    if (clientToEdit?.id) {
+      try {
+        const attachment = await api.uploadFile(file, {
+          uploadPurpose: 'client_logo',
+          clientId: clientToEdit.id,
+        });
+        setFormData(prev => ({ ...prev, logo: attachment.url }));
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Error al subir el logo');
+        setLogoFile(null);
+      }
+    } else {
+      setFormData(prev => ({ ...prev, logo: URL.createObjectURL(file) }));
+    }
+    e.target.value = '';
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,6 +121,14 @@ export function CreateClientModal({ isOpen, onClose, onSuccess, clientToEdit }: 
 
     try {
       if (isEditMode && clientToEdit) {
+        let logoUrl = formData.logo || undefined;
+        if (logoFile) {
+          const attachment = await api.uploadFile(logoFile, {
+            uploadPurpose: 'client_logo',
+            clientId: clientToEdit.id,
+          });
+          logoUrl = attachment.url;
+        }
         await api.updateClient(clientToEdit.id, {
           name: formData.name,
           description: formData.description || undefined,
@@ -94,21 +138,29 @@ export function CreateClientModal({ isOpen, onClose, onSuccess, clientToEdit }: 
           contact_name: formData.contactName || undefined,
           contact_email: formData.contactEmail || undefined,
           contact_phone: formData.contactPhone || undefined,
+          logo: logoUrl,
         });
         toast.success('Cliente actualizado', {
           description: `"${formData.name}" ha sido actualizado.`,
         });
       } else {
-        await api.createClient({
-        name: formData.name,
-        description: formData.description || undefined,
-        email: formData.email || undefined,
-        phone: formData.phone || undefined,
-        address: formData.address || undefined,
-        contact_name: formData.contactName || undefined,
-        contact_email: formData.contactEmail || undefined,
-        contact_phone: formData.contactPhone || undefined,
-      });
+        const created = await api.createClient({
+          name: formData.name,
+          description: formData.description || undefined,
+          email: formData.email || undefined,
+          phone: formData.phone || undefined,
+          address: formData.address || undefined,
+          contact_name: formData.contactName || undefined,
+          contact_email: formData.contactEmail || undefined,
+          contact_phone: formData.contactPhone || undefined,
+        });
+        if (logoFile && created.id) {
+          const attachment = await api.uploadFile(logoFile, {
+            uploadPurpose: 'client_logo',
+            clientId: created.id,
+          });
+          await api.updateClient(created.id, { logo: attachment.url });
+        }
         toast.success('Cliente creado exitosamente', {
           description: `El cliente "${formData.name}" ha sido creado.`,
         });
@@ -124,7 +176,9 @@ export function CreateClientModal({ isOpen, onClose, onSuccess, clientToEdit }: 
           contactName: '',
           contactEmail: '',
           contactPhone: '',
+          logo: '',
         });
+        setLogoFile(null);
       }
       onSuccess?.();
       onClose();
@@ -178,6 +232,64 @@ export function CreateClientModal({ isOpen, onClose, onSuccess, clientToEdit }: 
               {error}
             </div>
           )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Logo del Cliente
+            </label>
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 min-w-16 min-h-16 rounded-xl border-2 border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50 shrink-0 relative">
+                {formData.logo ? (
+                  <>
+                    <img
+                      src={getFileDisplayUrl(formData.logo) ?? formData.logo}
+                      alt="Logo"
+                      className="w-full h-full object-cover min-w-full min-h-full absolute inset-0"
+                      width={64}
+                      height={64}
+                      onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }}
+                    />
+                    <Building2 className="w-8 h-8 text-gray-400 hidden" aria-hidden />
+                  </>
+                ) : (
+                  <Building2 className="w-8 h-8 text-gray-400" />
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <input
+                  type="file"
+                  id="client-logo"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="client-logo"
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer text-sm font-medium w-fit"
+                >
+                  <Upload className="w-4 h-4" />
+                  {formData.logo ? 'Cambiar logo' : 'Subir logo'}
+                </label>
+                {formData.logo && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, logo: '' }));
+                      setLogoFile(null);
+                      if (formData.logo?.startsWith('blob:')) URL.revokeObjectURL(formData.logo);
+                      const input = document.getElementById('client-logo') as HTMLInputElement;
+                      if (input) input.value = '';
+                    }}
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium w-fit"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Eliminar logo
+                  </button>
+                )}
+                <p className="text-xs text-gray-500">JPG, PNG o GIF. Máximo 5MB</p>
+              </div>
+            </div>
+          </div>
 
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">

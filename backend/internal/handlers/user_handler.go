@@ -56,13 +56,11 @@ type UpdateUserRequest struct {
 }
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {
-	// Check if user is admin
+	userIDStr, _ := c.Get("user_id")
+	currentUserID := userIDStr.(string)
 	userRole, _ := c.Get("user_role")
 	role, ok := userRole.(string)
-	if !ok || role != string(models.RoleAdmin) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Solo los administradores pueden actualizar usuarios"})
-		return
-	}
+	isAdmin := ok && role == string(models.RoleAdmin)
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -74,6 +72,21 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Users can update their own profile (name, email, avatar). Only admins can update other users or change roles.
+	isSelfUpdate := currentUserID == id.String()
+	if !isSelfUpdate && !isAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Solo los administradores pueden actualizar otros usuarios"})
+		return
+	}
+	if isSelfUpdate && !isAdmin && req.Role != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Solo los administradores pueden cambiar el rol"})
+		return
+	}
+	// Non-admins updating self: only allow name, email, avatar
+	if isSelfUpdate && !isAdmin {
+		req.Role = nil
 	}
 
 	user, err := h.userService.UpdateUser(id, req.Name, req.Email, req.Role, req.Avatar)

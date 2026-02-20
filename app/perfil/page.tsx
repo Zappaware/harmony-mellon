@@ -5,7 +5,7 @@ import { useApp } from '@/context/AppContext';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { Avatar } from '@/components/Avatar';
 import { User, Mail, Shield, UserCircle, Calendar, Edit, Save, X, Upload, Trash2, Camera } from 'lucide-react';
-import { api } from '@/services/api';
+import { api, getFileDisplayUrl } from '@/services/api';
 import { DateDisplay } from '@/components/DateDisplay';
 
 export default function PerfilPage() {
@@ -111,7 +111,7 @@ export default function PerfilPage() {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -126,23 +126,20 @@ export default function PerfilPage() {
     }
 
     try {
-      // Convert file to base64
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setFormData(prev => ({
-          ...prev,
-          avatar: base64String,
-        }));
-        setError(null);
-      };
-      reader.onerror = () => {
-        setError('Error al leer el archivo');
-      };
-      reader.readAsDataURL(file);
+      setError(null);
+      const attachment = await api.uploadFile(file, {
+        uploadPurpose: 'avatar',
+        userId: user.id,
+      });
+      setFormData(prev => ({
+        ...prev,
+        avatar: attachment.url,
+      }));
     } catch (err) {
-      setError('Error al procesar la imagen');
-      console.error('File processing error:', err);
+      setError(err instanceof Error ? err.message : 'Error al subir la imagen');
+      console.error('File upload error:', err);
+    } finally {
+      e.target.value = '';
     }
   };
 
@@ -161,11 +158,11 @@ export default function PerfilPage() {
           <div className="bg-white rounded-lg shadow-lg p-6 md:p-8 mb-6">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
               <div className="flex-shrink-0 flex flex-col items-center gap-4">
-                <div className="relative">
+                <div className="relative w-16 h-16 min-w-16 min-h-16">
                   <Avatar 
                     name={user.name} 
                     size="xl" 
-                    src={formData.avatar || userDetails?.avatar || user.avatar} 
+                    src={getFileDisplayUrl(formData.avatar || userDetails?.avatar || user.avatar)} 
                   />
                   {isEditing && (
                     <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
@@ -189,9 +186,9 @@ export default function PerfilPage() {
                       className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer text-sm font-medium"
                     >
                       <Upload className="w-4 h-4" />
-                      {formData.avatar && formData.avatar.startsWith('data:image') ? 'Cambiar Foto' : 'Subir Foto'}
+                      {formData.avatar ? 'Cambiar Foto' : 'Subir Foto'}
                     </label>
-                    {formData.avatar && formData.avatar.startsWith('data:image') && (
+                    {formData.avatar && (
                       <button
                         type="button"
                         onClick={() => {
@@ -205,13 +202,15 @@ export default function PerfilPage() {
                         Eliminar Foto
                       </button>
                     )}
-                    {formData.avatar && formData.avatar.startsWith('data:image') && (
-                      <div className="mt-2 p-2 bg-gray-50 rounded-lg">
+                    {formData.avatar && (
+                      <div className="mt-2 p-2 bg-gray-50 rounded-lg flex flex-col items-center">
                         <p className="text-xs text-gray-600 mb-2 text-center">Vista previa:</p>
                         <img
-                          src={formData.avatar}
+                          src={getFileDisplayUrl(formData.avatar) ?? ''}
                           alt="Vista previa"
-                          className="w-20 h-20 rounded-full object-cover border-2 border-gray-300 mx-auto"
+                          className="w-20 h-20 min-w-20 min-h-20 rounded-full object-cover border-2 border-gray-300"
+                          width={80}
+                          height={80}
                         />
                       </div>
                     )}

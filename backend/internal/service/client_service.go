@@ -69,6 +69,9 @@ func (s *clientService) UpdateClient(id uuid.UUID, updates map[string]interface{
 	if contactPhone, ok := updates["contact_phone"].(*string); ok {
 		client.ContactPhone = contactPhone
 	}
+	if logo, ok := updates["logo"].(*string); ok {
+		client.Logo = logo
+	}
 
 	if err := s.clientRepo.Update(client); err != nil {
 		return nil, err

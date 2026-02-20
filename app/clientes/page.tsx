@@ -6,7 +6,7 @@ import { Building2, ChevronRight, Plus, Search, Trash2, Users } from 'lucide-rea
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { CreateClientModal } from '@/components/CreateClientModal';
 import { Loading } from '@/components/Loading';
-import { api, ApiClient } from '@/services/api';
+import { api, ApiClient, getFileDisplayUrl } from '@/services/api';
 import { useApp } from '@/context/AppContext';
 import {
   AlertDialog,
@@ -158,8 +158,23 @@ function ClientesContent() {
                         href={`/clientes/${client.id}`}
                         className="flex items-center gap-4 flex-1 min-w-0"
                       >
-                        <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center shrink-0">
-                          <Building2 className="w-5 h-5 text-indigo-600" />
+                        <div className="w-10 h-10 min-w-10 min-h-10 bg-indigo-100 rounded-lg flex items-center justify-center shrink-0 overflow-hidden relative">
+                          {client.logo ? (
+                            <>
+                              <img
+                                src={getFileDisplayUrl(client.logo) ?? ''}
+                                alt={client.name}
+                                className="w-full h-full object-cover min-w-full min-h-full absolute inset-0"
+                                width={40}
+                                height={40}
+                                loading="lazy"
+                                onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }}
+                              />
+                              <Building2 className="w-5 h-5 text-indigo-600 hidden" aria-hidden />
+                            </>
+                          ) : (
+                            <Building2 className="w-5 h-5 text-indigo-600" />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-medium text-gray-900 group-hover:text-indigo-600 truncate">

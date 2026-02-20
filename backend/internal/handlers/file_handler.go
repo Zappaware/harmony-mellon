@@ -29,29 +29,50 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 		return
 	}
 
-	// Validate file type
-	ext := strings.ToLower(filepath.Ext(file.Filename))
-	allowedExts := []string{".jpg", ".jpeg", ".png", ".gif", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt", ".zip", ".rar"}
-	isAllowed := false
-	for _, allowedExt := range allowedExts {
-		if ext == allowedExt {
-			isAllowed = true
-			break
+	// Optional: upload_purpose = "avatar" | "client_logo" | "attachment" (default)
+	uploadPurpose := c.PostForm("upload_purpose")
+	if uploadPurpose == "" {
+		uploadPurpose = "attachment"
+	}
+
+	var filePath string
+	switch uploadPurpose {
+	case "avatar":
+		userID := c.PostForm("user_id")
+		if userID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "user_id required for avatar upload"})
+			return
 		}
-	}
-	if !isAllowed {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "File type not allowed"})
-		return
+		filePath, err = h.fileService.SaveAvatarFile(file, userID)
+	case "client_logo":
+		clientID := c.PostForm("client_id")
+		if clientID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "client_id required for client logo upload"})
+			return
+		}
+		filePath, err = h.fileService.SaveClientLogoFile(file, clientID)
+	default:
+		// Validate file type for attachment uploads
+		ext := strings.ToLower(filepath.Ext(file.Filename))
+		allowedExts := []string{".jpg", ".jpeg", ".png", ".gif", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt", ".zip", ".rar"}
+		isAllowed := false
+		for _, allowedExt := range allowedExts {
+			if ext == allowedExt {
+				isAllowed = true
+				break
+			}
+		}
+		if !isAllowed {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "File type not allowed"})
+			return
+		}
+		clientID := c.PostForm("client_id")
+		projectID := c.PostForm("project_id")
+		filePath, err = h.fileService.SaveFile(file, clientID, projectID)
 	}
 
-	// Optional: client_id and project_id for folder structure (uploads/client_id/project_id/images|files)
-	clientID := c.PostForm("client_id")
-	projectID := c.PostForm("project_id")
-
-	// Save the file under uploads/{client_id}/{project_id}/images|files
-	filePath, err := h.fileService.SaveFile(file, clientID, projectID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
