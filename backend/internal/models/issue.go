@@ -65,6 +65,7 @@ type Issue struct {
 	TaskType    string       `gorm:"type:varchar(50)" json:"task_type,omitempty"` // reportes, estrategia, diseño, fotos, brief, propuesta, plan_comunicacion, presentacion, tarea
 	StartDate   *time.Time   `json:"start_date,omitempty"`
 	DueDate     *time.Time   `json:"due_date,omitempty"`
+	ApprovedAt  *time.Time   `json:"approved_at,omitempty"` // Set when a team_lead or admin marks the task as done (star/score)
 	Attachments string       `gorm:"type:text" json:"-"` // JSON string stored in DB
 	CreatedAt   time.Time    `json:"created_at"`
 	UpdatedAt   time.Time    `json:"updated_at"`
@@ -125,6 +126,7 @@ type IssueResponse struct {
 	TaskType    string       `json:"task_type,omitempty"`
 	StartDate   *time.Time   `json:"start_date,omitempty"`
 	DueDate     *time.Time   `json:"due_date,omitempty"`
+	ApprovedAt  *time.Time   `json:"approved_at,omitempty"`
 	Attachments []Attachment `json:"attachments,omitempty"`
 	CreatedAt   time.Time    `json:"created_at"`
 	UpdatedAt   time.Time    `json:"updated_at"`
@@ -150,6 +152,7 @@ func (i *Issue) ToResponse() IssueResponse {
 		TaskType:    i.TaskType,
 		StartDate:   i.StartDate,
 		DueDate:     i.DueDate,
+		ApprovedAt:  i.ApprovedAt,
 		Attachments: i.GetAttachments(),
 		CreatedAt:   i.CreatedAt,
 		UpdatedAt:   i.UpdatedAt,

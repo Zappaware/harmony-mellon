@@ -14,7 +14,7 @@ type IssueService interface {
 	GetIssuesByAssignedTo(userID uuid.UUID) ([]models.Issue, error)
 	CreateIssue(issue *models.Issue) error
 	UpdateIssue(id uuid.UUID, updates map[string]interface{}) (*models.Issue, error)
-	UpdateIssueStatus(id uuid.UUID, status models.IssueStatus) (*models.Issue, error)
+	UpdateIssueStatus(id uuid.UUID, status models.IssueStatus, approvedAt *time.Time) (*models.Issue, error)
 	DeleteIssue(id uuid.UUID) error
 }
 
@@ -92,13 +92,16 @@ func (s *issueService) UpdateIssue(id uuid.UUID, updates map[string]interface{})
 	return s.issueRepo.GetByID(id)
 }
 
-func (s *issueService) UpdateIssueStatus(id uuid.UUID, status models.IssueStatus) (*models.Issue, error) {
+func (s *issueService) UpdateIssueStatus(id uuid.UUID, status models.IssueStatus, approvedAt *time.Time) (*models.Issue, error) {
 	issue, err := s.issueRepo.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
 
 	issue.Status = status
+	if status == models.StatusDone && approvedAt != nil {
+		issue.ApprovedAt = approvedAt
+	}
 	if err := s.issueRepo.Update(issue); err != nil {
 		return nil, err
 	}
