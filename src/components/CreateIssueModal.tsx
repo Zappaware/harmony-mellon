@@ -34,9 +34,8 @@ interface CreateIssueModalProps {
 }
 
 export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate, initialProjectId, initialClientId }: CreateIssueModalProps) {
-  const { users, projects, createIssue, user: currentUser } = useApp();
-  // Creator cannot be assignee: exclude current user from assignee list
-  const assignableUsers = currentUser ? users.filter((u) => u.id !== currentUser.id) : users;
+  const { users, projects, createIssue } = useApp();
+  const assignableUsers = users;
   const [clients, setClients] = useState<ApiClient[]>([]);
   const [formData, setFormData] = useState({
     title: '',
@@ -177,6 +176,16 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
+  const isTaskFormValid =
+    formData.title.trim() !== '' &&
+    formData.description.trim() !== '' &&
+    formData.assignedTo !== '' &&
+    formData.projectId !== '' &&
+    formData.clientId !== '' &&
+    formData.taskType !== '' &&
+    formData.startDate !== '' &&
+    formData.dueDate !== '';
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
@@ -250,7 +259,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
 
             <div>
               <label htmlFor="assignedTo" className="block text-sm font-medium text-gray-700 mb-2">
-                Asignar a
+                Asignar a <span className="text-red-500">*</span>
               </label>
               <select
                 id="assignedTo"
@@ -273,7 +282,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
             <div>
               <label htmlFor="projectId" className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
                 <FolderKanban className="w-4 h-4" />
-                Proyecto
+                Proyecto <span className="text-red-500">*</span>
               </label>
               <select
                 id="projectId"
@@ -294,7 +303,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
             <div>
               <label htmlFor="clientId" className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
                 <Building2 className="w-4 h-4" />
-                Cliente
+                Cliente <span className="text-red-500">*</span>
               </label>
               <select
                 id="clientId"
@@ -319,7 +328,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
               return (
                 <div>
                   <label htmlFor="taskType" className="block text-sm font-medium text-gray-700 mb-2">
-                    Tipo de tarea
+                    Tipo de tarea <span className="text-red-500">*</span>
                   </label>
                   <select
                     id="taskType"
@@ -343,7 +352,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha de Inicio
+                Fecha de Inicio <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
@@ -357,7 +366,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
 
             <div>
               <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha de Vencimiento
+                Fecha de Vencimiento <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
@@ -522,7 +531,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
             <button
               type="submit"
               className="w-full sm:w-auto px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isTaskFormValid}
             >
               {isSubmitting ? 'Creando...' : 'Crear Tarea'}
             </button>
