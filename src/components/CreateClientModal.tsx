@@ -5,6 +5,17 @@ import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function isValidEmail(value: string): boolean {
+  if (!value.trim()) return true;
+  return EMAIL_REGEX.test(value.trim());
+}
+function isValidPhone(value: string): boolean {
+  if (!value.trim()) return true;
+  const digits = value.replace(/\D/g, '');
+  return digits.length <= 10 && digits.length >= 1;
+}
+
 interface CreateClientModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -82,6 +93,17 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
     }));
   };
 
+  const emailValid = isValidEmail(formData.email);
+  const phoneValid = isValidPhone(formData.phone);
+  const contactEmailValid = isValidEmail(formData.contactEmail);
+  const contactPhoneValid = isValidPhone(formData.contactPhone);
+  const isClientFormValid =
+    formData.name.trim() !== '' &&
+    emailValid &&
+    phoneValid &&
+    contactEmailValid &&
+    contactPhoneValid;
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -145,14 +167,17 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${!emailValid ? 'border-red-500' : 'border-gray-300'}`}
                 placeholder="empresa@ejemplo.com"
               />
+              {!emailValid && formData.email.trim() && (
+                <p className="text-red-500 text-xs mt-1">Formato de email no válido</p>
+              )}
             </div>
 
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                Teléfono de la Empresa
+                Teléfono de la Empresa (solo números, máx. 10)
               </label>
               <input
                 type="tel"
@@ -160,9 +185,12 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="+1 234 567 8900"
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${!phoneValid ? 'border-red-500' : 'border-gray-300'}`}
+                placeholder="1234567890"
               />
+              {!phoneValid && formData.phone.trim() && (
+                <p className="text-red-500 text-xs mt-1">Solo números, máximo 10 dígitos</p>
+              )}
             </div>
           </div>
 
@@ -211,14 +239,17 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
                     name="contactEmail"
                     value={formData.contactEmail}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${!contactEmailValid ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="contacto@ejemplo.com"
                   />
+                  {!contactEmailValid && formData.contactEmail.trim() && (
+                    <p className="text-red-500 text-xs mt-1">Formato de email no válido</p>
+                  )}
                 </div>
 
                 <div>
                   <label htmlFor="contactPhone" className="block text-sm font-medium text-gray-700 mb-2">
-                    Teléfono del Contacto
+                    Teléfono del Contacto (solo números, máx. 10)
                   </label>
                   <input
                     type="tel"
@@ -226,9 +257,12 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
                     name="contactPhone"
                     value={formData.contactPhone}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="+1 234 567 8900"
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${!contactPhoneValid ? 'border-red-500' : 'border-gray-300'}`}
+                    placeholder="1234567890"
                   />
+                  {!contactPhoneValid && formData.contactPhone.trim() && (
+                    <p className="text-red-500 text-xs mt-1">Solo números, máximo 10 dígitos</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -246,7 +280,7 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
             <button
               type="submit"
               className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isClientFormValid}
             >
               {isSubmitting ? 'Creando...' : 'Crear Cliente'}
             </button>
