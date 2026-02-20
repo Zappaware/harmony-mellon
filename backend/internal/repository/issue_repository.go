@@ -55,6 +55,9 @@ func (r *issueRepository) GetAll(filters map[string]interface{}) ([]models.Issue
 	if projectID, ok := filters["project_id"]; ok {
 		query = query.Where("project_id = ?", projectID)
 	}
+	if clientID, ok := filters["client_id"]; ok {
+		query = query.Where("client_id = ?", clientID)
+	}
 
 	err := query.Order("created_at DESC").Find(&issues).Error
 	return issues, err

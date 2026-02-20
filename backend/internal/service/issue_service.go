@@ -72,6 +72,9 @@ func (s *issueService) UpdateIssue(id uuid.UUID, updates map[string]interface{})
 	} else if _, present := updates["client_id"]; present {
 		issue.ClientID = nil
 	}
+	if taskType, ok := updates["task_type"].(string); ok {
+		issue.TaskType = taskType
+	}
 	if startDate, ok := updates["start_date"].(*time.Time); ok {
 		issue.StartDate = startDate
 	}

@@ -59,6 +59,11 @@ func (h *IssueHandler) GetIssues(c *gin.Context) {
 				filters["project_id"] = id
 			}
 		}
+		if clientID := c.Query("client_id"); clientID != "" {
+			if id, err := uuid.Parse(clientID); err == nil {
+				filters["client_id"] = id
+			}
+		}
 	}
 
 	issues, err := h.issueService.GetIssues(filters)
@@ -98,6 +103,7 @@ type CreateIssueRequest struct {
 	AssignedTo  *string               `json:"assigned_to"`
 	ProjectID   *string               `json:"project_id"`
 	ClientID    *string               `json:"client_id"`
+	TaskType    string                `json:"task_type"`
 	StartDate   *string               `json:"start_date"`
 	DueDate     *string               `json:"due_date"`
 	Attachments []models.Attachment   `json:"attachments"`
@@ -150,6 +156,10 @@ func (h *IssueHandler) CreateIssue(c *gin.Context) {
 		if id, err := uuid.Parse(*req.ClientID); err == nil {
 			issue.ClientID = &id
 		}
+	}
+
+	if req.TaskType != "" {
+		issue.TaskType = req.TaskType
 	}
 
 	if req.StartDate != nil {
@@ -222,6 +232,7 @@ type UpdateIssueRequest struct {
 	AssignedTo  *string               `json:"assigned_to"`
 	ProjectID   *string               `json:"project_id"`
 	ClientID    *string               `json:"client_id"`
+	TaskType    *string               `json:"task_type"`
 	StartDate   *string               `json:"start_date"`
 	DueDate     *string               `json:"due_date"`
 	Attachments *[]models.Attachment  `json:"attachments"`
@@ -266,6 +277,9 @@ func (h *IssueHandler) UpdateIssue(c *gin.Context) {
 		} else if id, err := uuid.Parse(*req.ClientID); err == nil {
 			updates["client_id"] = &id
 		}
+	}
+	if req.TaskType != nil {
+		updates["task_type"] = *req.TaskType
 	}
 
 	if req.StartDate != nil {
