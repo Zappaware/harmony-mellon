@@ -241,13 +241,14 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
               </label>
               {(() => {
                 const assigneeUser = users.find((u) => u.id === issue.assignedTo);
-                const reassignLocked =
+                const reassignLocked = Boolean(
                   issue.assignedTo &&
                   assigneeUser &&
                   (assigneeUser.role === 'team_lead' || assigneeUser.role === 'admin') &&
                   currentUser &&
                   currentUser.role !== 'admin' &&
-                  currentUser.role !== 'team_lead';
+                  currentUser.role !== 'team_lead'
+                );
                 return (
                   <>
                     <select
