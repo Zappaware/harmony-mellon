@@ -12,7 +12,25 @@ import {
   Megaphone,
   FolderPlus,
   Star,
+  Pencil,
+  Trash2,
+  Mail,
+  Phone,
+  MapPin,
+  User,
+  Info,
+  X,
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { Loading } from '@/components/Loading';
 import { api, ApiClient, ApiProject } from '@/services/api';
@@ -20,6 +38,7 @@ import { useApp } from '@/context/AppContext';
 import { IssueCardList } from '@/components/IssueCardList';
 import { CreateProjectModal } from '@/components/CreateProjectModal';
 import { CreateIssueModal } from '@/components/CreateIssueModal';
+import { CreateClientModal } from '@/components/CreateClientModal';
 import { Badge } from '@/components/Badge';
 
 const PROJECT_TYPES = [
@@ -31,14 +50,18 @@ const PROJECT_TYPES = [
 export default function ClienteDetailPage() {
   const params = useParams();
   const clientId = params.id as string;
-  const { issues, users, user: currentUser } = useApp();
+  const { issues, users, user: currentUser, deleteProject: deleteProjectFromContext } = useApp();
 
   const [client, setClient] = useState<ApiClient | null>(null);
   const [loading, setLoading] = useState(true);
   const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false);
   const [createIssueModalOpen, setCreateIssueModalOpen] = useState(false);
+  const [editClientModalOpen, setEditClientModalOpen] = useState(false);
+  const [infoClientModalOpen, setInfoClientModalOpen] = useState(false);
   const [projectTypeToAdd, setProjectTypeToAdd] = useState<'Planner' | 'Branding' | 'Campaña' | null>(null);
   const [projectIdForNewIssue, setProjectIdForNewIssue] = useState<string | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<ApiProject | null>(null);
+  const [isDeletingProject, setIsDeletingProject] = useState(false);
 
   const canCreate = currentUser?.role === 'admin' || currentUser?.role === 'team_lead';
 
@@ -92,9 +115,30 @@ export default function ClienteDetailPage() {
     setProjectTypeToAdd(null);
   };
 
-  const handleIssueCreated = () => {
+  const handleIssueCreated = async () => {
     setCreateIssueModalOpen(false);
     setProjectIdForNewIssue(null);
+    const c = await api.getClient(clientId);
+    setClient(c);
+  };
+
+  const handleClientUpdated = async () => {
+    const c = await api.getClient(clientId);
+    setClient(c);
+    setEditClientModalOpen(false);
+  };
+
+  const handleDeleteProject = async () => {
+    if (!projectToDelete || !deleteProjectFromContext) return;
+    setIsDeletingProject(true);
+    try {
+      await deleteProjectFromContext(projectToDelete.id);
+      const c = await api.getClient(clientId);
+      setClient(c);
+      setProjectToDelete(null);
+    } finally {
+      setIsDeletingProject(false);
+    }
   };
 
   if (loading) {
@@ -131,17 +175,115 @@ export default function ClienteDetailPage() {
           <span className="text-sm">Volver a clientes</span>
         </Link>
 
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0">
-            <Building2 className="w-8 h-8 text-indigo-600" />
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0">
+              <Building2 className="w-8 h-8 text-indigo-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl text-gray-800">{client.name}</h1>
+              {client.description && (
+                <p className="text-gray-600 mt-1">{client.description}</p>
+              )}
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl md:text-3xl text-gray-800">{client.name}</h1>
-            {client.description && (
-              <p className="text-gray-600 mt-1">{client.description}</p>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setInfoClientModalOpen(true)}
+              className="inline-flex items-center justify-center w-10 h-10 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              title="Ver información del cliente"
+              aria-label="Ver información del cliente"
+            >
+              <Info className="w-5 h-5" />
+            </button>
+            {canCreate && (
+              <button
+                onClick={() => setEditClientModalOpen(true)}
+                className="inline-flex items-center justify-center w-10 h-10 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                title="Editar cliente"
+                aria-label="Editar cliente"
+              >
+                <Pencil className="w-5 h-5" />
+              </button>
             )}
           </div>
         </div>
+
+        {infoClientModalOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setInfoClientModalOpen(false)}>
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-sm max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-800">Información del cliente</h2>
+                <button
+                  type="button"
+                  onClick={() => setInfoClientModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label="Cerrar"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                {client.description && (
+                  <div>
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Descripción</span>
+                    <p className="text-gray-700 mt-1">{client.description}</p>
+                  </div>
+                )}
+                {(client.email || client.phone || client.address) && (
+                  <div className="space-y-2">
+                    {client.email && (
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <Mail className="w-4 h-4 text-gray-400 shrink-0" />
+                        <a href={`mailto:${client.email}`} className="text-indigo-600 hover:underline break-all">{client.email}</a>
+                      </div>
+                    )}
+                    {client.phone && (
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <Phone className="w-4 h-4 text-gray-400 shrink-0" />
+                        <span>{client.phone}</span>
+                      </div>
+                    )}
+                    {client.address && (
+                      <div className="flex items-start gap-2 text-gray-700">
+                        <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                        <span>{client.address}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {(client.contact_name || client.contact_email || client.contact_phone) && (
+                  <div className="pt-3 border-t border-gray-100">
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Persona de contacto</span>
+                    <div className="mt-2 space-y-2">
+                      {client.contact_name && (
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <User className="w-4 h-4 text-gray-400 shrink-0" />
+                          <span>{client.contact_name}</span>
+                        </div>
+                      )}
+                      {client.contact_email && (
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <Mail className="w-4 h-4 text-gray-400 shrink-0" />
+                          <a href={`mailto:${client.contact_email}`} className="text-indigo-600 hover:underline break-all">{client.contact_email}</a>
+                        </div>
+                      )}
+                      {client.contact_phone && (
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <Phone className="w-4 h-4 text-gray-400 shrink-0" />
+                          <span>{client.contact_phone}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {!client.description && !client.email && !client.phone && !client.address && !client.contact_name && !client.contact_email && !client.contact_phone && (
+                  <p className="text-gray-500 text-sm">No hay información adicional.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {PROJECT_TYPES.map(({ type, label, icon: Icon, color }) => {
           const typeProjects = projectsByType[type] || [];
@@ -152,7 +294,7 @@ export default function ClienteDetailPage() {
                   <Icon className="w-4 h-4" />
                   {label}
                 </span>
-                {canCreate && typeProjects.length === 0 && (
+                {canCreate && (
                   <button
                     onClick={() => openCreateProject(type)}
                     className="text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
@@ -184,15 +326,27 @@ export default function ClienteDetailPage() {
                           </span>
                         )}
                       </div>
-                      {canCreate && (
-                        <button
-                          onClick={() => openCreateIssue(project.id)}
-                          className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                          Nueva tarea
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {canCreate && (
+                          <>
+                            <button
+                              onClick={() => openCreateIssue(project.id)}
+                              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Nueva tarea
+                            </button>
+                            <button
+                              onClick={() => setProjectToDelete(project)}
+                              className="inline-flex items-center justify-center w-9 h-9 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Eliminar proyecto"
+                              aria-label="Eliminar proyecto"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <div>
                       {projectIssues.length === 0 ? (
@@ -245,6 +399,39 @@ export default function ClienteDetailPage() {
           initialProjectId={projectIdForNewIssue ?? undefined}
           initialClientId={clientId}
         />
+
+        <CreateClientModal
+          isOpen={editClientModalOpen}
+          onClose={() => setEditClientModalOpen(false)}
+          onSuccess={handleClientUpdated}
+          clientToEdit={client}
+        />
+
+        <AlertDialog open={projectToDelete !== null} onOpenChange={(open) => !open && setProjectToDelete(null)}>
+          <AlertDialogContent className="bg-red-600 border-red-600 text-white">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-white">¿Eliminar proyecto?</AlertDialogTitle>
+              <AlertDialogDescription className="text-white">
+                Esta operación eliminará el proyecto &quot;{projectToDelete?.name}&quot; y <strong>todas las tareas</strong> relacionadas con él. Esta acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="gap-2 sm:gap-2">
+              <AlertDialogCancel
+                disabled={isDeletingProject}
+                className="bg-transparent border-2 border-white text-white hover:bg-red-500 hover:text-white hover:border-white"
+              >
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => { e.preventDefault(); handleDeleteProject(); }}
+                disabled={isDeletingProject}
+                className="bg-white text-red-600 hover:bg-gray-100"
+              >
+                {isDeletingProject ? 'Eliminando...' : 'Eliminar'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </LayoutWithSidebar>
   );
