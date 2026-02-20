@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
-import { CheckCircle2, Clock, AlertCircle, TrendingUp, FolderKanban, Users, Mail } from 'lucide-react';
+import { CheckCircle2, Clock, AlertCircle, TrendingUp, FolderKanban, Users, Mail, CalendarPlus } from 'lucide-react';
 import Link from 'next/link';
 import { addDays, parseISO } from 'date-fns';
 import { StatCard } from '@/components/StatCard';
@@ -11,6 +11,7 @@ import { Loading } from '@/components/Loading';
 import { Avatar } from '@/components/Avatar';
 import { ExpiringTasksModal } from '@/components/ExpiringTasksModal';
 import type { Issue } from '@/context/AppContext';
+import { api, ApiClient } from '@/services/api';
 import {
   Dialog,
   DialogContent,
@@ -291,17 +292,82 @@ function getHighPriorityExpiringIssues(issues: Issue[]): Issue[] {
     });
 }
 
+const MONTH_NAMES: Record<number, string> = {
+  1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
+  7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre',
+};
+
+const BULK_TYPES = ['Planner', 'Branding', 'Campaña'];
+
 function DashboardAdmin() {
   const { issues, users, projects, isLoading } = useApp();
   const [showUsersModal, setShowUsersModal] = useState(false);
   const [showProjectsModal, setShowProjectsModal] = useState(false);
   const [showHighPriorityExpiringModal, setShowHighPriorityExpiringModal] = useState(false);
+  const [showBulkMonthlyModal, setShowBulkMonthlyModal] = useState(false);
   const [highlightPriorityCard, setHighlightPriorityCard] = useState(true);
+  const [clients, setClients] = useState<ApiClient[]>([]);
+  const [bulkMonth, setBulkMonth] = useState(() => new Date().getMonth() + 1);
+  const [bulkYear, setBulkYear] = useState(() => new Date().getFullYear());
+  const [bulkClientIds, setBulkClientIds] = useState<string[]>([]);
+  const [bulkTypes, setBulkTypes] = useState<string[]>(['Planner']);
+  const [bulkAddClientMembers, setBulkAddClientMembers] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
+  const [bulkResult, setBulkResult] = useState<{ created: number; names: string[] } | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setHighlightPriorityCard(false), 3000);
     return () => clearTimeout(t);
   }, []);
+
+  useEffect(() => {
+    if (!showBulkMonthlyModal) return;
+    let cancelled = false;
+    api.getClients().then((list) => { if (!cancelled) setClients(list); }).catch(() => { if (!cancelled) setClients([]); });
+    return () => { cancelled = true; };
+  }, [showBulkMonthlyModal]);
+
+  const openBulkMonthly = () => {
+    setBulkResult(null);
+    setBulkError(null);
+    setBulkMonth(new Date().getMonth() + 1);
+    setBulkYear(new Date().getFullYear());
+    setBulkClientIds([]);
+    setBulkTypes(['Planner']);
+    setBulkAddClientMembers(false);
+    setShowBulkMonthlyModal(true);
+  };
+
+  const toggleBulkType = (type: string) => {
+    setBulkTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  };
+
+  const handleBulkCreateMonthly = async () => {
+    if (bulkTypes.length === 0) {
+      setBulkError('Selecciona al menos un tipo de proyecto.');
+      return;
+    }
+    setBulkLoading(true);
+    setBulkError(null);
+    setBulkResult(null);
+    try {
+      const res = await api.bulkCreateMonthlyProjects({
+        month: bulkMonth,
+        year: bulkYear,
+        client_ids: bulkClientIds.length > 0 ? bulkClientIds : undefined,
+        types: bulkTypes,
+        add_client_members: bulkAddClientMembers,
+      });
+      setBulkResult({ created: res.created, names: res.projects.map((p) => p.name) });
+    } catch (e) {
+      setBulkError(e instanceof Error ? e.message : 'Error al crear proyectos');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   if (isLoading) {
     return <Loading fullScreen message="Cargando métricas..." />;
@@ -413,12 +479,29 @@ function DashboardAdmin() {
             );
           }
           
-          return (
-            <Link key={stat.label} href={href}>
+return (
+    <Link key={stat.label} href={href}>
               {CardContent}
             </Link>
           );
         })}
+      </div>
+
+      {/* Crear proyectos del mes - admin only */}
+      <div className="mb-6 md:mb-8">
+        <button
+          type="button"
+          onClick={openBulkMonthly}
+          className="w-full md:max-w-xs flex items-center gap-3 bg-white rounded-lg shadow p-4 md:p-6 hover:shadow-lg transition-shadow text-left border border-gray-200"
+        >
+          <div className="w-12 h-12 bg-indigo-500 rounded-lg flex items-center justify-center">
+            <CalendarPlus className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <p className="font-medium text-gray-800">Crear proyectos del mes</p>
+            <p className="text-sm text-gray-600">Planner, Branding, Campaña por cliente</p>
+          </div>
+        </button>
       </div>
 
       {/* Avance general: total issues vs completadas */}
@@ -599,6 +682,116 @@ function DashboardAdmin() {
                 );
               })
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Crear proyectos del mes */}
+      <Dialog open={showBulkMonthlyModal} onOpenChange={(open) => { setShowBulkMonthlyModal(open); if (!open) { setBulkResult(null); setBulkError(null); } }}>
+        <DialogContent className="max-w-[95vw] md:max-w-lg max-h-[90vh] overflow-y-auto p-4 md:p-6">
+          <DialogHeader className="pb-3">
+            <DialogTitle className="text-lg md:text-xl">Crear proyectos del mes</DialogTitle>
+            <DialogDescription className="text-xs md:text-sm">
+              Crea proyectos Planner, Branding y/o Campaña para uno o todos los clientes. Los existentes se omiten.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mes</label>
+                <select
+                  value={bulkMonth}
+                  onChange={(e) => setBulkMonth(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
+                    <option key={m} value={m}>{MONTH_NAMES[m]}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Año</label>
+                <input
+                  type="number"
+                  min={2020}
+                  max={2030}
+                  value={bulkYear}
+                  onChange={(e) => setBulkYear(Number(e.target.value) || bulkYear)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Clientes (vacío = todos)</label>
+              <select
+                multiple
+                value={bulkClientIds}
+                onChange={(e) => setBulkClientIds(Array.from(e.target.selectedOptions, (o) => o.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[80px]"
+              >
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Mantén Ctrl/Cmd para seleccionar varios</p>
+            </div>
+            <div>
+              <span className="block text-sm font-medium text-gray-700 mb-2">Tipos de proyecto</span>
+              <div className="flex flex-wrap gap-3">
+                {BULK_TYPES.map((t) => (
+                  <label key={t} className="inline-flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={bulkTypes.includes(t)}
+                      onChange={() => toggleBulkType(t)}
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700">{t}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <label className="inline-flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={bulkAddClientMembers}
+                onChange={(e) => setBulkAddClientMembers(e.target.checked)}
+                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <span className="text-sm text-gray-700">Añadir equipo del cliente a cada proyecto</span>
+            </label>
+            {bulkError && (
+              <p className="text-sm text-red-600">{bulkError}</p>
+            )}
+            {bulkResult && (
+              <div className="rounded-lg bg-green-50 border border-green-200 p-3">
+                <p className="text-sm font-medium text-green-800">Se crearon {bulkResult.created} proyecto(s)</p>
+                {bulkResult.names.length > 0 && (
+                  <ul className="mt-2 text-xs text-green-700 list-disc list-inside max-h-32 overflow-y-auto">
+                    {bulkResult.names.map((name) => (
+                      <li key={name}>{name}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowBulkMonthlyModal(false)}
+                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                Cerrar
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkCreateMonthly}
+                disabled={bulkLoading}
+                className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {bulkLoading ? 'Creando...' : 'Crear proyectos'}
+              </button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
