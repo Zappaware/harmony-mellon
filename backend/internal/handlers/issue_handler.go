@@ -138,10 +138,6 @@ func (h *IssueHandler) CreateIssue(c *gin.Context) {
 
 	if req.AssignedTo != nil {
 		if id, err := uuid.Parse(*req.AssignedTo); err == nil {
-			if id == userID {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "No se puede asignar la tarea al mismo usuario que la crea. El creador y el asignado deben ser diferentes."})
-				return
-			}
 			issue.AssignedTo = &id
 		}
 	}
@@ -307,12 +303,19 @@ func (h *IssueHandler) UpdateIssue(c *gin.Context) {
 		return
 	}
 
-	// Prevent assigning the issue to its creator (creator and assignee must be different)
-	if req.AssignedTo != nil {
-		newAssigneeID, err := uuid.Parse(*req.AssignedTo)
-		if err == nil && newAssigneeID == oldIssue.CreatedBy {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "No se puede asignar la tarea al creador. El creador y el asignado deben ser diferentes."})
-			return
+	// Reassign lock: if current assignee is team_lead or admin, only team_lead or admin can change assignee
+	currentUserIDStr, _ := c.Get("user_id")
+	currentUserID, _ := uuid.Parse(currentUserIDStr.(string))
+	currentUser, _ := h.userRepo.GetByID(currentUserID)
+	if req.AssignedTo != nil && oldIssue.AssignedTo != nil {
+		currentAssignee, _ := h.userRepo.GetByID(*oldIssue.AssignedTo)
+		if currentAssignee != nil && (currentAssignee.Role == models.RoleAdmin || currentAssignee.Role == models.RoleTeamLead) {
+			if currentUser == nil || (currentUser.Role != models.RoleAdmin && currentUser.Role != models.RoleTeamLead) {
+				c.JSON(http.StatusForbidden, gin.H{
+					"error": "Esta tarea está asignada a un líder o administrador. Solo un líder o administrador puede reasignarla a otro miembro.",
+				})
+				return
+			}
 		}
 	}
 
@@ -348,11 +351,6 @@ func (h *IssueHandler) UpdateIssue(c *gin.Context) {
 	if req.DueDate != nil {
 		changes = append(changes, "Fecha de vencimiento actualizada")
 	}
-
-	// Get current user who made the update
-	currentUserIDStr, _ := c.Get("user_id")
-	currentUserID, _ := uuid.Parse(currentUserIDStr.(string))
-	currentUser, _ := h.userRepo.GetByID(currentUserID)
 
 	// Send notifications and emails (non-blocking)
 	if len(changes) > 0 {
@@ -453,14 +451,12 @@ func (h *IssueHandler) UpdateIssueStatus(c *gin.Context) {
 	currentUserID, _ := uuid.Parse(currentUserIDStr.(string))
 	currentUser, _ := h.userRepo.GetByID(currentUserID)
 
-	// Get existing issue to validate: only the creator can move to Done (assignee cannot)
+	// Only team_lead or admin can move a task from Revisión to Completada
 	existingIssue, _ := h.issueService.GetIssue(id)
 	if existingIssue != nil && req.Status == models.StatusDone {
-		assigneeIsCurrentUser := existingIssue.AssignedTo != nil && *existingIssue.AssignedTo == currentUserID
-		creatorIsCurrentUser := existingIssue.CreatedBy == currentUserID
-		if assigneeIsCurrentUser && !creatorIsCurrentUser {
+		if currentUser == nil || (currentUser.Role != models.RoleAdmin && currentUser.Role != models.RoleTeamLead) {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error": "Solo el creador de la tarea puede marcarla como completada tras revisarla. Está en revisión esperando la aprobación del creador.",
+				"error": "Solo un líder o administrador puede mover la tarea de Revisión a Completada.",
 			})
 			return
 		}
