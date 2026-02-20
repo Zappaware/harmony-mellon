@@ -102,6 +102,7 @@ export interface ApiIssue {
   created_by: string;
   project_id?: string;
   client_id?: string;
+  task_type?: string;
   start_date?: string;
   due_date?: string;
   attachments?: ApiAttachment[];
@@ -130,6 +131,7 @@ export interface CreateIssueRequest {
   assigned_to?: string;
   project_id?: string;
   client_id?: string;
+  task_type?: string;
   start_date?: string;
   due_date?: string;
   attachments?: ApiAttachment[];
@@ -503,7 +505,7 @@ export interface ApiProject {
   id: string;
   name: string;
   description: string;
-  type?: 'Campaña' | 'Planner' | 'Producciones';
+  type?: 'Campaña' | 'Planner' | 'Branding';
   progress: number;
   status: string;
   client_id?: string;
@@ -523,7 +525,7 @@ export interface ApiProject {
 export interface CreateProjectRequest {
   name: string;
   description?: string;
-  type?: 'Campaña' | 'Planner' | 'Producciones';
+  type?: 'Campaña' | 'Planner' | 'Branding';
   status?: string;
   client_id?: string;
   start_date?: string;

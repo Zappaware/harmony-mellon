@@ -21,6 +21,7 @@ export interface Issue {
   createdBy: string;
   projectId?: string;
   clientId?: string;
+  taskType?: string;
   startDate?: string;
   dueDate?: string;
   attachments?: Array<{ type: 'link' | 'image' | 'file'; url: string; name?: string }>;
@@ -44,6 +45,7 @@ interface CreateIssueData {
   assignedTo?: string;
   projectId?: string;
   clientId?: string;
+  taskType?: string;
   startDate?: string;
   dueDate?: string;
   attachments?: Array<{ type: 'link' | 'image' | 'file'; url: string; name?: string }>;
@@ -52,7 +54,7 @@ interface CreateIssueData {
 interface CreateProjectData {
   name: string;
   description?: string;
-  type?: 'Campaña' | 'Planner' | 'Producciones';
+  type?: 'Campaña' | 'Planner' | 'Branding';
   status?: string;
   client_id?: string;
   startDate?: string;
@@ -251,6 +253,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       createdBy: apiIssue.created_by,
       projectId: apiIssue.project_id,
       clientId: apiIssue.client_id,
+      taskType: apiIssue.task_type,
       startDate: apiIssue.start_date,
       dueDate: apiIssue.due_date,
       attachments: apiIssue.attachments,
@@ -557,6 +560,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           assigned_to: data.assignedTo,
           project_id: data.projectId || undefined,
           client_id: data.clientId || undefined,
+          task_type: data.taskType || undefined,
           start_date: startDate,
           due_date: dueDate,
           attachments: data.attachments,
