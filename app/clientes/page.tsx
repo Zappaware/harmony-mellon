@@ -207,20 +207,24 @@ function ClientesContent() {
       />
 
       <AlertDialog open={clientToDelete !== null} onOpenChange={(open) => !open && setClientToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-red-600 border-red-600 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer. Esto eliminará permanentemente el cliente{' '}
-              <strong>{clients.find(c => c.id === clientToDelete)?.name}</strong>.
+            <AlertDialogTitle className="text-white">¿Eliminar cliente?</AlertDialogTitle>
+            <AlertDialogDescription className="text-white">
+              Esta operación eliminará el cliente <strong>{clients.find(c => c.id === clientToDelete)?.name}</strong> y <strong>todas las tareas y proyectos</strong> relacionados con él. Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
+          <AlertDialogFooter className="gap-2 sm:gap-2">
+            <AlertDialogCancel
               disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-transparent border-2 border-white text-white hover:bg-red-500 hover:text-white hover:border-white"
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDelete(); }}
+              disabled={isDeleting}
+              className="bg-white text-red-600 hover:bg-gray-100"
             >
               {isDeleting ? 'Eliminando...' : 'Eliminar'}
             </AlertDialogAction>
