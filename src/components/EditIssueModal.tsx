@@ -6,6 +6,24 @@ import { toast } from 'sonner';
 import { api, ApiAttachment, ApiClient } from '@/services/api';
 import { Issue, useApp } from '@/context/AppContext';
 
+const TASK_TYPES: Record<string, { value: string; label: string }[]> = {
+  Planner: [
+    { value: 'reportes', label: 'Reportes' },
+    { value: 'estrategia', label: 'Estrategia' },
+    { value: 'diseño', label: 'Diseño' },
+    { value: 'fotos', label: 'Fotos' },
+  ],
+  Branding: [
+    { value: 'brief', label: 'Brief' },
+    { value: 'propuesta', label: 'Propuesta' },
+    { value: 'plan_comunicacion', label: 'Plan de comunicación' },
+    { value: 'presentacion', label: 'Presentación' },
+  ],
+  Campaña: [
+    { value: 'tarea', label: 'Tarea' },
+  ],
+};
+
 interface EditIssueModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -23,6 +41,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
     assignedTo: '',
     projectId: '',
     clientId: '',
+    taskType: '',
     startDate: '',
     dueDate: '',
   });
@@ -46,6 +65,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
         assignedTo: assignee,
         projectId: issue.projectId || '',
         clientId: issue.clientId || '',
+        taskType: issue.taskType || '',
         startDate: issue.startDate || '',
         dueDate: issue.dueDate || '',
       });
@@ -72,6 +92,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
         ...prev,
         projectId: issueDetails.project_id || prev.projectId,
         clientId: issueDetails.client_id || prev.clientId,
+        taskType: issueDetails.task_type || prev.taskType,
       }));
     } catch (err) {
       console.error('Error loading issue details:', err);
@@ -93,6 +114,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
         assigned_to: formData.assignedTo || undefined,
         project_id: formData.projectId || undefined,
         client_id: formData.clientId || undefined,
+        task_type: formData.taskType || undefined,
         start_date: formData.startDate || undefined,
         due_date: formData.dueDate || undefined,
         attachments: attachments.length > 0 ? attachments : undefined,
@@ -277,6 +299,33 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
                 ))}
               </select>
             </div>
+
+            {(() => {
+              const selectedProject = projects.find((p) => p.id === formData.projectId);
+              const projectType = selectedProject?.type || 'Campaña';
+              const options = TASK_TYPES[projectType] || TASK_TYPES.Campaña;
+              return (
+                <div>
+                  <label htmlFor="taskType" className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipo de tarea
+                  </label>
+                  <select
+                    id="taskType"
+                    name="taskType"
+                    value={formData.taskType}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">{projectType === 'Campaña' ? 'Tarea libre (opcional)' : 'Seleccionar...'}</option>
+                    {options.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })()}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

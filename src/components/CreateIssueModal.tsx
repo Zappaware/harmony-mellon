@@ -6,15 +6,34 @@ import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
 import { ApiAttachment, api, ApiClient } from '@/services/api';
 
+const TASK_TYPES: Record<string, { value: string; label: string }[]> = {
+  Planner: [
+    { value: 'reportes', label: 'Reportes' },
+    { value: 'estrategia', label: 'Estrategia' },
+    { value: 'diseño', label: 'Diseño' },
+    { value: 'fotos', label: 'Fotos' },
+  ],
+  Branding: [
+    { value: 'brief', label: 'Brief' },
+    { value: 'propuesta', label: 'Propuesta' },
+    { value: 'plan_comunicacion', label: 'Plan de comunicación' },
+    { value: 'presentacion', label: 'Presentación' },
+  ],
+  Campaña: [
+    { value: 'tarea', label: 'Tarea' },
+  ],
+};
+
 interface CreateIssueModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
   initialStartDate?: string;
   initialProjectId?: string;
+  initialClientId?: string;
 }
 
-export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate, initialProjectId }: CreateIssueModalProps) {
+export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate, initialProjectId, initialClientId }: CreateIssueModalProps) {
   const { users, projects, createIssue, user: currentUser } = useApp();
   // Creator cannot be assignee: exclude current user from assignee list
   const assignableUsers = currentUser ? users.filter((u) => u.id !== currentUser.id) : users;
@@ -25,7 +44,8 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
     priority: 'medium' as 'low' | 'medium' | 'high',
     assignedTo: '',
     projectId: initialProjectId || '',
-    clientId: '',
+    clientId: initialClientId || '',
+    taskType: '',
     startDate: initialStartDate || '',
     dueDate: '',
   });
@@ -52,6 +72,22 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
     }
   }, [initialProjectId]);
 
+  // Update clientId when initialClientId changes
+  useEffect(() => {
+    if (initialClientId) {
+      setFormData(prev => ({ ...prev, clientId: initialClientId }));
+    }
+  }, [initialClientId]);
+
+  // Reset task type when project changes (task types depend on project type)
+  const prevProjectIdRef = React.useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (prevProjectIdRef.current !== undefined && prevProjectIdRef.current !== formData.projectId) {
+      setFormData(prev => ({ ...prev, taskType: '' }));
+    }
+    prevProjectIdRef.current = formData.projectId;
+  }, [formData.projectId]);
+
   // Load clients when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -74,6 +110,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
         assignedTo: formData.assignedTo || undefined,
         projectId: formData.projectId || undefined,
         clientId: formData.clientId || undefined,
+        taskType: formData.taskType || undefined,
         startDate: formData.startDate || undefined,
         dueDate: formData.dueDate || undefined,
         attachments: attachments.length > 0 ? attachments : undefined,
@@ -92,6 +129,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
         assignedTo: '',
         projectId: '',
         clientId: '',
+        taskType: '',
         startDate: initialStartDate || '',
         dueDate: '',
       });
@@ -273,6 +311,33 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
                 ))}
               </select>
             </div>
+
+            {(() => {
+              const selectedProject = projects.find((p) => p.id === formData.projectId);
+              const projectType = selectedProject?.type || 'Campaña';
+              const options = TASK_TYPES[projectType] || TASK_TYPES.Campaña;
+              return (
+                <div>
+                  <label htmlFor="taskType" className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipo de tarea
+                  </label>
+                  <select
+                    id="taskType"
+                    name="taskType"
+                    value={formData.taskType}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">{projectType === 'Campaña' ? 'Tarea libre (opcional)' : 'Seleccionar...'}</option>
+                    {options.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })()}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
