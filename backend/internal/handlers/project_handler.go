@@ -57,7 +57,7 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 type CreateProjectRequest struct {
 	Name          string                `json:"name" binding:"required"`
 	Description   string                `json:"description"`
-	Type          models.ProjectType    `json:"type"`
+	Type          string                `json:"type"`
 	Status        models.ProjectStatus  `json:"status"`
 	ClientID      *string               `json:"client_id"`
 	StartDate     *string               `json:"start_date"`
@@ -122,7 +122,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	}
 
 	if project.Type == "" {
-		project.Type = models.ProjectTypeCampana
+		project.Type = "Campaña"
 	}
 
 	if err := h.projectService.CreateProject(project); err != nil {
@@ -161,7 +161,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 type UpdateProjectRequest struct {
 	Name          *string               `json:"name"`
 	Description   *string               `json:"description"`
-	Type          *models.ProjectType   `json:"type"`
+	Type          *string               `json:"type"`
 	Progress      *int                  `json:"progress"`
 	Status        *models.ProjectStatus `json:"status"`
 	StartDate     *string               `json:"start_date"`

@@ -231,7 +231,7 @@ func SeedProjects(db *gorm.DB) error {
 	projects := []struct {
 		name         string
 		description  string
-		projectType   models.ProjectType
+		projectType  string
 		status       models.ProjectStatus
 		progress     int
 		color        string
@@ -242,7 +242,7 @@ func SeedProjects(db *gorm.DB) error {
 		{
 			name:         "Campaña Web 2025",
 			description:  "Campaña de lanzamiento y rediseño web",
-			projectType:  models.ProjectTypeCampana,
+			projectType:  "Campaña",
 			status:       models.ProjectStatusInProgress,
 			progress:     45,
 			color:        "#3B82F6",
@@ -253,7 +253,7 @@ func SeedProjects(db *gorm.DB) error {
 		{
 			name:         "Branding Corporativo",
 			description:  "Identidad de marca, brief y plan de comunicación",
-			projectType:  models.ProjectTypeBranding,
+			projectType:  "Branding",
 			status:       models.ProjectStatusPlanning,
 			progress:     20,
 			color:        "#10B981",
@@ -264,7 +264,7 @@ func SeedProjects(db *gorm.DB) error {
 		{
 			name:         "Campaña Redes Q1",
 			description:  "Campaña en redes sociales y email marketing",
-			projectType:  models.ProjectTypeCampana,
+			projectType:  "Campaña",
 			status:       models.ProjectStatusInProgress,
 			progress:     65,
 			color:        "#F59E0B",
@@ -275,7 +275,7 @@ func SeedProjects(db *gorm.DB) error {
 		{
 			name:         "Planner Estratégico",
 			description:  "Planificación con reportes, estrategia, diseño y fotos",
-			projectType:  models.ProjectTypePlanner,
+			projectType:  "Planner",
 			status:       models.ProjectStatusPlanning,
 			progress:     15,
 			color:        "#8B5CF6",
