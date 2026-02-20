@@ -18,6 +18,7 @@ import {
   Phone,
   MapPin,
   User,
+  Users,
   Info,
   X,
 } from 'lucide-react';
@@ -33,7 +34,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { Loading } from '@/components/Loading';
-import { api, ApiClient, ApiProject, getFileDisplayUrl } from '@/services/api';
+import { api, ApiClient, ApiClientMember, ApiProject, getFileDisplayUrl } from '@/services/api';
 import { useApp } from '@/context/AppContext';
 import { IssueCardList } from '@/components/IssueCardList';
 import { CreateProjectModal } from '@/components/CreateProjectModal';
@@ -74,6 +75,8 @@ export default function ClienteDetailPage() {
   const [isDeletingProject, setIsDeletingProject] = useState(false);
   const [filterMonth, setFilterMonth] = useState<number | ''>('');
   const [filterYear, setFilterYear] = useState<number | ''>('');
+  const [teamAddUserId, setTeamAddUserId] = useState('');
+  const [teamLoading, setTeamLoading] = useState(false);
 
   const canCreate = currentUser?.role === 'admin' || currentUser?.role === 'team_lead';
 
@@ -174,6 +177,38 @@ export default function ClienteDetailPage() {
     const c = await api.getClient(clientId);
     setClient(c);
     setEditClientModalOpen(false);
+  };
+
+  const clientMembers = client?.client_members ?? [];
+  const usersNotInTeam = users.filter((u) => !clientMembers.some((m) => m.user_id === u.id));
+
+  const handleAddClientMember = async () => {
+    if (!teamAddUserId || teamLoading) return;
+    setTeamLoading(true);
+    try {
+      await api.addClientMember(clientId, teamAddUserId);
+      const c = await api.getClient(clientId);
+      setClient(c);
+      setTeamAddUserId('');
+    } catch (e) {
+      console.error('Error adding team member:', e);
+    } finally {
+      setTeamLoading(false);
+    }
+  };
+
+  const handleRemoveClientMember = async (member: ApiClientMember) => {
+    if (teamLoading) return;
+    setTeamLoading(true);
+    try {
+      await api.removeClientMember(clientId, member.user_id);
+      const c = await api.getClient(clientId);
+      setClient(c);
+    } catch (e) {
+      console.error('Error removing team member:', e);
+    } finally {
+      setTeamLoading(false);
+    }
   };
 
   const handleDeleteProject = async () => {
@@ -395,6 +430,65 @@ export default function ClienteDetailPage() {
             </button>
           )}
         </div>
+
+        {canCreate && (
+          <section className="mb-8">
+            <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <Users className="w-5 h-5 text-indigo-600" />
+              Equipo del cliente
+            </h2>
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <div className="flex flex-wrap items-center gap-3 mb-3">
+                <select
+                  value={teamAddUserId}
+                  onChange={(e) => setTeamAddUserId(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[180px]"
+                  aria-label="Añadir usuario al equipo"
+                >
+                  <option value="">Seleccionar usuario...</option>
+                  {usersNotInTeam.map((u) => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleAddClientMember}
+                  disabled={!teamAddUserId || teamLoading}
+                  className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Añadir
+                </button>
+              </div>
+              {clientMembers.length === 0 ? (
+                <p className="text-sm text-gray-500">Ningún usuario en el equipo.</p>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {clientMembers.map((m) => (
+                    <li key={m.id} className="flex items-center justify-between py-2 first:pt-0">
+                      <span className="text-gray-800">
+                        {m.user?.name ?? m.user_id}
+                        {m.user?.email && (
+                          <span className="text-gray-500 text-sm ml-2">({m.user.email})</span>
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveClientMember(m)}
+                        disabled={teamLoading}
+                        className="text-gray-500 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors disabled:opacity-50"
+                        title="Quitar del equipo"
+                        aria-label="Quitar del equipo"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+        )}
 
         {sectionTypes.map((type) => {
           const typeProjects = projectsByType[type] || [];
