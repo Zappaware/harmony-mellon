@@ -370,6 +370,25 @@ class ApiService {
     });
   }
 
+  async bulkCreateMonthlyProjects(params: {
+    month: number;
+    year: number;
+    client_ids?: string[];
+    types?: string[];
+    add_client_members?: boolean;
+  }): Promise<{ message: string; created: number; projects: ApiProject[] }> {
+    return this.request('/projects/bulk-monthly', {
+      method: 'POST',
+      body: JSON.stringify({
+        month: params.month,
+        year: params.year,
+        client_ids: params.client_ids ?? [],
+        types: params.types ?? ['Planner'],
+        add_client_members: params.add_client_members ?? false,
+      }),
+    });
+  }
+
   // Notification methods
   async getNotifications(): Promise<ApiNotification[]> {
     return this.request<ApiNotification[]>('/notifications');
@@ -422,6 +441,23 @@ class ApiService {
 
   async deleteClient(id: string): Promise<void> {
     return this.request<void>(`/clients/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getClientMembers(clientId: string): Promise<ApiClientMember[]> {
+    return this.request<ApiClientMember[]>(`/clients/${clientId}/members`);
+  }
+
+  async addClientMember(clientId: string, userId: string): Promise<void> {
+    return this.request<void>(`/clients/${clientId}/members`, {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId }),
+    });
+  }
+
+  async removeClientMember(clientId: string, userId: string): Promise<void> {
+    return this.request<void>(`/clients/${clientId}/members/${userId}`, {
       method: 'DELETE',
     });
   }
@@ -584,6 +620,13 @@ export interface ApiNotification {
   created_at: string;
 }
 
+export interface ApiClientMember {
+  id: string;
+  client_id: string;
+  user_id: string;
+  user?: ApiUser;
+}
+
 export interface ApiClient {
   id: string;
   name: string;
@@ -600,6 +643,7 @@ export interface ApiClient {
   updated_at: string;
   creator?: ApiUser;
   projects?: ApiProject[];
+  client_members?: ApiClientMember[];
 }
 
 export interface CreateClientRequest {
