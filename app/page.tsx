@@ -111,6 +111,11 @@ export default function Login() {
               required
               suppressHydrationWarning
             />
+            <div className="mt-2 text-right">
+              <Link href="/recuperar-contrasena" className="text-sm text-indigo-600 hover:text-indigo-700">
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
           </div>
 
           {apiConfigError && (

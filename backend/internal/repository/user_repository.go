@@ -2,6 +2,7 @@ package repository
 
 import (
 	"mellon-harmony-api/internal/models"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -11,6 +12,7 @@ type UserRepository interface {
 	Create(user *models.User) error
 	GetByID(id uuid.UUID) (*models.User, error)
 	GetByEmail(email string) (*models.User, error)
+	GetByPasswordResetToken(token string) (*models.User, error)
 	GetAll() ([]models.User, error)
 	Update(user *models.User) error
 	Delete(id uuid.UUID) error
@@ -40,6 +42,15 @@ func (r *userRepository) GetByID(id uuid.UUID) (*models.User, error) {
 func (r *userRepository) GetByEmail(email string) (*models.User, error) {
 	var user models.User
 	err := r.db.Where("email = ?", email).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *userRepository) GetByPasswordResetToken(token string) (*models.User, error) {
+	var user models.User
+	err := r.db.Where("password_reset_token = ? AND password_reset_expires_at > ?", token, time.Now()).First(&user).Error
 	if err != nil {
 		return nil, err
 	}

@@ -14,6 +14,13 @@ type Config struct {
 	FrontendURL string
 	Environment string
 	UploadDir   string
+	// SMTP for sending emails (e.g. password reset)
+	SMTPHost     string
+	SMTPPort     string
+	SMTPUser     string
+	SMTPPassword string
+	SMTPFrom     string
+	SMTPFromName string
 }
 
 func Load() *Config {
@@ -53,12 +60,18 @@ func Load() *Config {
 	}
 
 	return &Config{
-		Port:        getEnv("PORT", "8080"),
-		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/mellon_harmony?sslmode=disable"),
-		JWTSecret:   jwtSecret,
-		FrontendURL: getEnv("FRONTEND_URL", ""),
-		Environment: environment,
-		UploadDir:   getEnv("UPLOAD_DIR", "uploads"),
+		Port:         getEnv("PORT", "8080"),
+		DatabaseURL:  getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/mellon_harmony?sslmode=disable"),
+		JWTSecret:    jwtSecret,
+		FrontendURL:  getEnv("FRONTEND_URL", ""),
+		Environment:  environment,
+		UploadDir:    getEnv("UPLOAD_DIR", "uploads"),
+		SMTPHost:     getEnv("SMTP_HOST", ""),
+		SMTPPort:     getEnv("SMTP_PORT", "587"),
+		SMTPUser:     getEnv("SMTP_USER", ""),
+		SMTPPassword: getEnv("SMTP_PASSWORD", ""),
+		SMTPFrom:     getEnv("SMTP_FROM", ""),
+		SMTPFromName: getEnv("SMTP_FROM_NAME", "Mellon Harmony"),
 	}
 }
 

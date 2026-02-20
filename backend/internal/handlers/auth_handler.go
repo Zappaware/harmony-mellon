@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"mellon-harmony-api/internal/models"
 	"mellon-harmony-api/internal/service"
 	"net/http"
@@ -31,10 +32,19 @@ type LoginRequest struct {
 }
 
 type RegisterRequest struct {
-	Name     string           `json:"name" binding:"required"`
-	Email    string           `json:"email" binding:"required,email"`
-	Password string           `json:"password" binding:"required,min=6"`
-	Role     models.UserRole  `json:"role"`
+	Name     string          `json:"name" binding:"required"`
+	Email    string          `json:"email" binding:"required,email"`
+	Password string          `json:"password" binding:"required,min=6"`
+	Role     models.UserRole `json:"role"`
+}
+
+type ForgotPasswordRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+type ResetPasswordRequest struct {
+	Token    string `json:"token" binding:"required"`
+	Password string `json:"password" binding:"required,min=6"`
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
@@ -120,4 +130,40 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	// In a real implementation, you might want to blacklist the token
 	// For now, we'll just return success
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+}
+
+func (h *AuthHandler) ForgotPassword(c *gin.Context) {
+	var req ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	err := h.authService.RequestPasswordReset(req.Email)
+	if err != nil {
+		if errors.Is(err, service.ErrEmailNotConfigured) {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "El servidor no tiene configurado el envío de correos. Contacta al administrador."})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Si existe una cuenta con ese correo, recibirás un enlace para restablecer la contraseña."})
+}
+
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+	var req ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	err := h.authService.ResetPassword(req.Token, req.Password)
+	if err != nil {
+		if errors.Is(err, service.ErrInvalidResetToken) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Contraseña actualizada. Ya puedes iniciar sesión."})
 }

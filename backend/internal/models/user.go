@@ -21,10 +21,12 @@ type User struct {
 	Email     string    `gorm:"uniqueIndex;not null" json:"email"`
 	Password  string    `gorm:"not null" json:"-"`
 	Role      UserRole  `gorm:"type:varchar(20);default:'user'" json:"role"`
-	Avatar    *string   `json:"avatar,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	Avatar                 *string         `json:"avatar,omitempty"`
+	PasswordResetToken     *string         `gorm:"type:varchar(255);index" json:"-"`
+	PasswordResetExpiresAt  *time.Time      `json:"-"`
+	CreatedAt               time.Time      `json:"created_at"`
+	UpdatedAt                time.Time      `json:"updated_at"`
+	DeletedAt               gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {

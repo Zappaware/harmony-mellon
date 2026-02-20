@@ -169,7 +169,7 @@ class ApiService {
       headers['Authorization'] = `Bearer ${token}`;
     } else {
       // Log warning if no token for protected endpoints
-      if (endpoint !== '/auth/login' && endpoint !== '/auth/register') {
+      if (endpoint !== '/auth/login' && endpoint !== '/auth/register' && endpoint !== '/auth/forgot-password' && endpoint !== '/auth/reset-password') {
         console.warn(`No token found for request to ${endpoint}`);
       }
     }
@@ -242,6 +242,20 @@ class ApiService {
     return this.request<{ token: string; user: ApiUser }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ name, email, password, role: role || 'user' }),
+    });
+  }
+
+  async requestPasswordReset(email: string): Promise<void> {
+    await this.request<{ message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async resetPassword(token: string, password: string): Promise<void> {
+    await this.request<{ message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
     });
   }
 
@@ -414,11 +428,13 @@ class ApiService {
 
   async uploadFile(
     file: File,
-    options?: { clientId?: string; projectId?: string }
+    options?: { clientId?: string; projectId?: string; uploadPurpose?: 'avatar' | 'client_logo' | 'attachment'; userId?: string }
   ): Promise<ApiAttachment> {
     const token = this.getToken();
     const formData = new FormData();
     formData.append('file', file);
+    if (options?.uploadPurpose) formData.append('upload_purpose', options.uploadPurpose);
+    if (options?.userId) formData.append('user_id', options.userId);
     if (options?.clientId) formData.append('client_id', options.clientId);
     if (options?.projectId) formData.append('project_id', options.projectId);
 
@@ -502,6 +518,18 @@ class ApiService {
   }
 }
 
+/**
+ * Returns a URL suitable for use in img src for avatar/logo/file.
+ * If url is already absolute (http/https/blob), returns as-is.
+ * Otherwise treats as API file path and returns full URL (so images load without auth).
+ */
+export function getFileDisplayUrl(url: string | undefined | null): string | undefined {
+  if (!url || !url.trim()) return undefined;
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) return url;
+  const path = url.startsWith('uploads/') ? url : `uploads/${url}`;
+  return `${API_BASE_URL}/files/${path}`;
+}
+
 export interface ApiProject {
   id: string;
   name: string;
@@ -566,6 +594,7 @@ export interface ApiClient {
   contact_name?: string;
   contact_email?: string;
   contact_phone?: string;
+  logo?: string;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -582,6 +611,7 @@ export interface CreateClientRequest {
   contact_name?: string;
   contact_email?: string;
   contact_phone?: string;
+  logo?: string;
 }
 
 export const api = new ApiService();

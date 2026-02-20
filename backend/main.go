@@ -66,8 +66,18 @@ func main() {
 	projectRepo := repository.NewProjectRepository(db)
 	notificationRepo := repository.NewNotificationRepository(db)
 
+	// Initialize email service for password reset
+	emailService := service.NewEmailService(service.EmailConfig{
+		Host:     cfg.SMTPHost,
+		Port:     cfg.SMTPPort,
+		User:     cfg.SMTPUser,
+		Password: cfg.SMTPPassword,
+		From:     cfg.SMTPFrom,
+		FromName: cfg.SMTPFromName,
+	})
+
 	// Initialize services
-	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
+	authService := service.NewAuthService(userRepo, cfg.JWTSecret, emailService, cfg.FrontendURL)
 	userService := service.NewUserService(userRepo)
 	notificationService := service.NewNotificationService(notificationRepo)
 	issueService := service.NewIssueService(issueRepo, userRepo)
@@ -135,6 +145,10 @@ func main() {
 	{
 		api.POST("/auth/login", authHandler.Login)
 		api.POST("/auth/register", authHandler.Register)
+		api.POST("/auth/forgot-password", authHandler.ForgotPassword)
+		api.POST("/auth/reset-password", authHandler.ResetPassword)
+		// Serve uploaded files (avatars, logos, attachments) without auth so <img> tags can load
+		api.GET("/files/*path", fileHandler.ServeFile)
 	}
 
 	// Protected routes
@@ -188,9 +202,8 @@ func main() {
 		protected.PATCH("/notifications/read-all", notificationHandler.MarkAllAsRead)
 		protected.DELETE("/notifications/:id", notificationHandler.DeleteNotification)
 
-		// File routes
+		// File routes (upload requires auth; GET is public above)
 		protected.POST("/files/upload", fileHandler.UploadFile)
-		protected.GET("/files/*path", fileHandler.ServeFile)
 	}
 
 	// Start server
