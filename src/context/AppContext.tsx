@@ -61,6 +61,8 @@ interface CreateProjectData {
   startDate?: string;
   deadline?: string;
   color?: string;
+  planning_month?: number; // 1-12
+  planning_year?: number;
 }
 
 interface CreateUserData {
@@ -607,6 +609,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           start_date: startDate,
           deadline: deadline,
           color: data.color,
+          planning_month: data.planning_month,
+          planning_year: data.planning_year,
         });
         // Project created successfully - the page will reload projects via onSuccess callback
       } catch (error) {
@@ -634,7 +638,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           updateData.deadline = data.deadline ? new Date(data.deadline).toISOString() : null;
         }
         if (data.color !== undefined) updateData.color = data.color;
-        
+        if (data.planning_month !== undefined) updateData.planning_month = data.planning_month;
+        if (data.planning_year !== undefined) updateData.planning_year = data.planning_year;
+
         await api.updateProject(projectId, updateData);
         // Reload projects to get updated data
         const apiProjects = await api.getProjects();

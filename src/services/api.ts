@@ -513,6 +513,8 @@ export interface ApiProject {
   start_date?: string;
   deadline?: string;
   color?: string;
+  planning_month?: number; // 1-12
+  planning_year?: number;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -532,6 +534,8 @@ export interface CreateProjectRequest {
   start_date?: string;
   deadline?: string;
   color?: string;
+  planning_month?: number; // 1-12
+  planning_year?: number;
 }
 
 export interface CreateUserRequest {

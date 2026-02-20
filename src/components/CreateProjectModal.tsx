@@ -23,12 +23,22 @@ interface CreateProjectModalProps {
     start_date?: string;
     deadline?: string;
     color?: string;
+    planning_month?: number;
+    planning_year?: number;
   };
 }
+
+const MONTHS = [
+  { value: 1, label: 'Enero' }, { value: 2, label: 'Febrero' }, { value: 3, label: 'Marzo' },
+  { value: 4, label: 'Abril' }, { value: 5, label: 'Mayo' }, { value: 6, label: 'Junio' },
+  { value: 7, label: 'Julio' }, { value: 8, label: 'Agosto' }, { value: 9, label: 'Septiembre' },
+  { value: 10, label: 'Octubre' }, { value: 11, label: 'Noviembre' }, { value: 12, label: 'Diciembre' },
+];
 
 export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDate, initialClientId, initialType, projectToEdit }: CreateProjectModalProps) {
   const { createProject, updateProject } = useApp();
   const isEditMode = !!projectToEdit;
+  const currentYear = new Date().getFullYear();
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -38,6 +48,8 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
     startDate: initialStartDate || '',
     deadline: '',
     color: 'bg-blue-500',
+    planningMonth: '' as string,
+    planningYear: '' as string,
   });
   const [clients, setClients] = useState<ApiClient[]>([]);
   const [isLoadingClients, setIsLoadingClients] = useState(false);
@@ -94,6 +106,8 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
               : (initialStartDate || ''),
             deadline: projectToEdit.deadline ? projectToEdit.deadline.split('T')[0] : '',
             color: projectToEdit.color || 'bg-blue-500',
+            planningMonth: fullProject.planning_month != null ? String(fullProject.planning_month) : '',
+            planningYear: fullProject.planning_year != null ? String(fullProject.planning_year) : '',
           });
         } catch (error) {
           console.error('Error loading project data:', error);
@@ -109,6 +123,8 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
               : (initialStartDate || ''),
             deadline: projectToEdit.deadline ? projectToEdit.deadline.split('T')[0] : '',
             color: projectToEdit.color || 'bg-blue-500',
+            planningMonth: projectToEdit.planning_month != null ? String(projectToEdit.planning_month) : '',
+            planningYear: projectToEdit.planning_year != null ? String(projectToEdit.planning_year) : '',
           });
         }
       } else {
@@ -122,12 +138,14 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
           startDate: initialStartDate || '',
           deadline: '',
           color: 'bg-blue-500',
+          planningMonth: '',
+          planningYear: String(currentYear),
         });
       }
     };
 
     loadData();
-  }, [isOpen, projectToEdit, initialStartDate]);
+  }, [isOpen, projectToEdit, initialStartDate, currentYear]);
 
   if (!isOpen) return null;
 
@@ -148,6 +166,8 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
           startDate: formData.startDate || undefined,
           deadline: formData.deadline || undefined,
           color: formData.color,
+          planning_month: formData.planningMonth ? Number.parseInt(formData.planningMonth, 10) : undefined,
+          planning_year: formData.planningYear ? Number.parseInt(formData.planningYear, 10) : undefined,
         });
 
         toast.success('Proyecto actualizado exitosamente', {
@@ -164,6 +184,8 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
           startDate: formData.startDate || undefined,
           deadline: formData.deadline || undefined,
           color: formData.color,
+          planning_month: formData.planningMonth ? Number.parseInt(formData.planningMonth, 10) : undefined,
+          planning_year: formData.planningYear ? Number.parseInt(formData.planningYear, 10) : undefined,
         });
 
         toast.success('Proyecto creado exitosamente', {
@@ -180,6 +202,8 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
           startDate: initialStartDate || '',
           deadline: '',
           color: 'bg-blue-500',
+          planningMonth: '',
+          planningYear: String(currentYear),
         });
       }
 
@@ -291,6 +315,43 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
               <option value="Planner">Planner</option>
               <option value="Branding">Branding</option>
             </select>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="planningMonth" className="block text-sm font-medium text-gray-700 mb-2">
+                Mes del plan (opcional)
+              </label>
+              <select
+                id="planningMonth"
+                name="planningMonth"
+                value={formData.planningMonth}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Sin especificar</option>
+                {MONTHS.map((m) => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="planningYear" className="block text-sm font-medium text-gray-700 mb-2">
+                Año del plan (opcional)
+              </label>
+              <select
+                id="planningYear"
+                name="planningYear"
+                value={formData.planningYear}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Sin especificar</option>
+                {Array.from({ length: 7 }, (_, i) => currentYear - 3 + i).map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
