@@ -43,9 +43,9 @@ export default function Configuracion() {
   const [newPrioridad, setNewPrioridad] = useState({ nombre: '', color: '#10b981' });
   
   const defaultParametros = {
-    nombreOrganizacion: 'Mi Empresa S.A.',
-    emailContacto: 'contacto@empresa.com',
-    zonaHoraria: 'UTC-3 (Buenos Aires, São Paulo, Montevideo)',
+    nombreOrganizacion: 'Mellon',
+    emailContacto: 'administracion@mellon.mx',
+    zonaHoraria: 'UTC-6 (México)',
     idioma: 'Español'
   };
 
@@ -108,7 +108,7 @@ export default function Configuracion() {
     { value: 'UTC-9', label: 'UTC-9 (Alaska)' },
     { value: 'UTC-8', label: 'UTC-8 (Pacific Time - Los Angeles, Vancouver)' },
     { value: 'UTC-7', label: 'UTC-7 (Mountain Time - Denver, Phoenix)' },
-    { value: 'UTC-6', label: 'UTC-6 (Central Time - Chicago, Mexico City)' },
+    { value: 'UTC-6', label: 'UTC-6 (México - Ciudad de México)' },
     { value: 'UTC-5', label: 'UTC-5 (Eastern Time - New York, Lima, Bogotá)' },
     { value: 'UTC-4', label: 'UTC-4 (Atlantic Time - Caracas, Santiago)' },
     { value: 'UTC-3:30', label: 'UTC-3:30 (Newfoundland)' },
