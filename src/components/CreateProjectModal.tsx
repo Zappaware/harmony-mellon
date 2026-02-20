@@ -11,11 +11,13 @@ interface CreateProjectModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   initialStartDate?: string;
+  initialClientId?: string;
+  initialType?: 'Campaña' | 'Planner' | 'Branding';
   projectToEdit?: {
     id: string;
     name: string;
     description?: string;
-    type?: 'Campaña' | 'Planner' | 'Producciones';
+    type?: 'Campaña' | 'Planner' | 'Branding';
     status?: string;
     client_id?: string;
     start_date?: string;
@@ -24,15 +26,15 @@ interface CreateProjectModalProps {
   };
 }
 
-export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDate, projectToEdit }: CreateProjectModalProps) {
+export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDate, initialClientId, initialType, projectToEdit }: CreateProjectModalProps) {
   const { createProject, updateProject } = useApp();
   const isEditMode = !!projectToEdit;
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    type: 'Campaña' as 'Campaña' | 'Planner' | 'Producciones',
+    type: (initialType ?? 'Campaña') as 'Campaña' | 'Planner' | 'Branding',
     status: 'planning' as string,
-    clientId: '',
+    clientId: initialClientId || '',
     startDate: initialStartDate || '',
     deadline: '',
     color: 'bg-blue-500',
@@ -48,6 +50,17 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
       setFormData(prev => ({ ...prev, startDate: initialStartDate }));
     }
   }, [initialStartDate]);
+
+  // When modal opens with initial client/type (e.g. from client detail), prefill
+  useEffect(() => {
+    if (isOpen && (initialClientId || initialType)) {
+      setFormData(prev => ({
+        ...prev,
+        ...(initialClientId && { clientId: initialClientId }),
+        ...(initialType && { type: initialType }),
+      }));
+    }
+  }, [isOpen, initialClientId, initialType]);
 
   // Load clients when modal opens and populate form if editing
   useEffect(() => {
@@ -269,7 +282,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
             >
               <option value="Campaña">Campaña</option>
               <option value="Planner">Planner</option>
-              <option value="Producciones">Producciones</option>
+              <option value="Branding">Branding</option>
             </select>
           </div>
 
