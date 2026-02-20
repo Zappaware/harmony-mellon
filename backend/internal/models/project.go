@@ -20,9 +20,9 @@ const (
 type ProjectType string
 
 const (
-	ProjectTypeCampana      ProjectType = "Campaña"
-	ProjectTypePlanner      ProjectType = "Planner"
-	ProjectTypeProducciones ProjectType = "Producciones"
+	ProjectTypeCampana  ProjectType = "Campaña"
+	ProjectTypePlanner  ProjectType = "Planner"
+	ProjectTypeBranding ProjectType = "Branding"
 )
 
 type Project struct {

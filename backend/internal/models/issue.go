@@ -25,6 +25,27 @@ const (
 	PriorityHigh   IssuePriority = "high"
 )
 
+// TaskType is the category of task within a project type (Planner/Branding/Campaña).
+// Planner: reportes, estrategia, diseño, fotos
+// Branding: brief, propuesta, plan_comunicacion, presentacion
+// Campaña: empty or custom (free-form tasks)
+type TaskType string
+
+const (
+	// Planner task types
+	TaskTypeReportes    TaskType = "reportes"
+	TaskTypeEstrategia  TaskType = "estrategia"
+	TaskTypeDiseno      TaskType = "diseño"
+	TaskTypeFotos       TaskType = "fotos"
+	// Branding task types
+	TaskTypeBrief             TaskType = "brief"
+	TaskTypePropuesta         TaskType = "propuesta"
+	TaskTypePlanComunicacion  TaskType = "plan_comunicacion"
+	TaskTypePresentacion      TaskType = "presentacion"
+	// Campaña: no fixed type (empty or "tarea" for free-form)
+	TaskTypeTarea TaskType = "tarea"
+)
+
 type Attachment struct {
 	Type string `json:"type"` // "link", "image", "file"
 	URL  string `json:"url"`
@@ -41,6 +62,7 @@ type Issue struct {
 	CreatedBy   uuid.UUID    `gorm:"type:uuid;not null" json:"created_by"`
 	ProjectID   *uuid.UUID   `gorm:"type:uuid" json:"project_id,omitempty"`
 	ClientID    *uuid.UUID   `gorm:"type:uuid" json:"client_id,omitempty"`
+	TaskType    string       `gorm:"type:varchar(50)" json:"task_type,omitempty"` // reportes, estrategia, diseño, fotos, brief, propuesta, plan_comunicacion, presentacion, tarea
 	StartDate   *time.Time   `json:"start_date,omitempty"`
 	DueDate     *time.Time   `json:"due_date,omitempty"`
 	Attachments string       `gorm:"type:text" json:"-"` // JSON string stored in DB
@@ -100,6 +122,7 @@ type IssueResponse struct {
 	CreatedBy   uuid.UUID    `json:"created_by"`
 	ProjectID   *uuid.UUID   `json:"project_id,omitempty"`
 	ClientID    *uuid.UUID   `json:"client_id,omitempty"`
+	TaskType    string       `json:"task_type,omitempty"`
 	StartDate   *time.Time   `json:"start_date,omitempty"`
 	DueDate     *time.Time   `json:"due_date,omitempty"`
 	Attachments []Attachment `json:"attachments,omitempty"`
@@ -124,6 +147,7 @@ func (i *Issue) ToResponse() IssueResponse {
 		CreatedBy:   i.CreatedBy,
 		ProjectID:   i.ProjectID,
 		ClientID:    i.ClientID,
+		TaskType:    i.TaskType,
 		StartDate:   i.StartDate,
 		DueDate:     i.DueDate,
 		Attachments: i.GetAttachments(),
