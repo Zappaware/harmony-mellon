@@ -11,6 +11,7 @@ import {
   Palette,
   Megaphone,
   FolderPlus,
+  Star,
 } from 'lucide-react';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { Loading } from '@/components/Loading';
@@ -168,12 +169,20 @@ export default function ClienteDetailPage() {
 
               {typeProjects.map((project) => {
                 const projectIssues = issues.filter((i) => i.projectId === project.id);
+                const approvedCount = projectIssues.filter((i) => i.approvedAt).length;
+                const showScore = (type === 'Planner' || type === 'Branding') && projectIssues.length > 0;
                 return (
                   <div key={project.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
                     <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h2 className="font-semibold text-gray-800">{project.name}</h2>
                         <Badge variant="status" value={project.status || 'planning'} />
+                        {showScore && (
+                          <span className="inline-flex items-center gap-1 text-sm text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full" title="Tareas aprobadas por líder o administrador">
+                            <Star className="w-4 h-4 fill-amber-500" />
+                            <span>{approvedCount}/{projectIssues.length}</span>
+                          </span>
+                        )}
                       </div>
                       {canCreate && (
                         <button
@@ -206,6 +215,7 @@ export default function ClienteDetailPage() {
                                 issue={issue}
                                 assignedUser={issue.assignedTo ? users.find((u) => u.id === issue.assignedTo) : undefined}
                                 showProject={false}
+                                showApprovedStar={type === 'Planner' || type === 'Branding'}
                               />
                             </li>
                           ))}
