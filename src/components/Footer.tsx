@@ -11,9 +11,9 @@ interface Parametros {
 }
 
 const defaultParametros: Parametros = {
-  nombreOrganizacion: 'Mi Empresa S.A.',
-  emailContacto: 'contacto@empresa.com',
-  zonaHoraria: 'UTC-3 (Buenos Aires)',
+  nombreOrganizacion: 'Mellon',
+  emailContacto: 'administracion@mellon.mx',
+  zonaHoraria: 'UTC-6 (México)',
   idioma: 'Español'
 };
 

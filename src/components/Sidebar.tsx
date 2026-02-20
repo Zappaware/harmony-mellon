@@ -48,17 +48,15 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
   const userLinks = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Resumen' },
     { to: '/mis-tareas', icon: CheckSquare, label: 'Mis Tareas' },
+    { to: '/mis-metricas', icon: BarChart3, label: 'Mis Métricas' },
     { to: '/kanban', icon: FolderKanban, label: 'Kanban' },
     { to: '/calendario', icon: Calendar, label: 'Calendario' },
-    { to: '/proyectos', icon: FolderKanban, label: 'Proyectos' },
-    { to: '/clientes', icon: Building2, label: 'Clientes' },
     { to: '/notificaciones', icon: Bell, label: 'Notificaciones' },
     { to: '/perfil', icon: Users, label: 'Mi Perfil' },
   ];
 
   const adminLinks = [
     { to: '/dashboard', icon: BarChart3, label: 'Métricas' },
-    { to: '/proyectos', icon: FolderKanban, label: 'Proyectos' },
     { to: '/clientes', icon: Building2, label: 'Clientes' },
     { to: '/kanban', icon: FolderKanban, label: 'Kanban' },
     { to: '/calendario', icon: Calendar, label: 'Calendario' },
@@ -70,7 +68,6 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
 
   const teamLeadLinks = [
     { to: '/dashboard', icon: BarChart3, label: 'Métricas' },
-    { to: '/proyectos', icon: FolderKanban, label: 'Proyectos' },
     { to: '/clientes', icon: Building2, label: 'Clientes' },
     { to: '/kanban', icon: FolderKanban, label: 'Kanban' },
     { to: '/calendario', icon: Calendar, label: 'Calendario' },
