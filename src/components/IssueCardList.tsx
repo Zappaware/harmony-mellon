@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Issue, User } from '@/context/AppContext';
 import { Badge } from './Badge';
 import { Avatar } from './Avatar';
-import { Calendar, MessageSquare, FolderKanban } from 'lucide-react';
+import { Calendar, MessageSquare, FolderKanban, Star } from 'lucide-react';
 import { DateDisplay } from './DateDisplay';
 import { useApp } from '@/context/AppContext';
 
@@ -13,9 +13,11 @@ interface IssueCardListProps {
   issue: Issue;
   assignedUser?: User;
   showProject?: boolean;
+  /** Show a star when the task was approved by a team_lead/admin (Planner/Branding score) */
+  showApprovedStar?: boolean;
 }
 
-export function IssueCardList({ issue, assignedUser, showProject }: IssueCardListProps) {
+export function IssueCardList({ issue, assignedUser, showProject, showApprovedStar }: IssueCardListProps) {
   const { projects } = useApp();
   const project = showProject && issue.projectId 
     ? projects.find(p => p.id === issue.projectId)
@@ -59,6 +61,11 @@ export function IssueCardList({ issue, assignedUser, showProject }: IssueCardLis
         </div>
         
         <div className="flex flex-col items-end gap-2">
+          {showApprovedStar && issue.approvedAt && (
+            <span className="inline-flex items-center gap-1 text-amber-600" title="Aprobada por líder o administrador">
+              <Star className="w-5 h-5 fill-amber-500" />
+            </span>
+          )}
           <Badge variant="priority" value={issue.priority} />
           <Badge variant="status" value={issue.status} />
         </div>
