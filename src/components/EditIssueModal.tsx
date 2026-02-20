@@ -32,7 +32,7 @@ interface EditIssueModalProps {
 }
 
 export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueModalProps) {
-  const { users, projects } = useApp();
+  const { users, projects, user: currentUser } = useApp();
   const [clients, setClients] = useState<ApiClient[]>([]);
   const [formData, setFormData] = useState({
     title: '',
@@ -54,15 +54,14 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load issue data when modal opens (creator cannot be assignee: clear if same)
+  // Load issue data when modal opens
   useEffect(() => {
     if (isOpen && issue) {
-      const assignee = issue.assignedTo && issue.assignedTo !== issue.createdBy ? issue.assignedTo : '';
       setFormData({
         title: issue.title,
         description: issue.description,
         priority: issue.priority,
-        assignedTo: assignee,
+        assignedTo: issue.assignedTo || '',
         projectId: issue.projectId || '',
         clientId: issue.clientId || '',
         taskType: issue.taskType || '',
@@ -240,20 +239,40 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
               <label htmlFor="assignedTo" className="block text-sm font-medium text-gray-700 mb-2">
                 Asignar a
               </label>
-                <select
-                  id="assignedTo"
-                  name="assignedTo"
-                  value={formData.assignedTo}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">Sin asignar</option>
-                  {users.filter((u) => u.id !== issue.createdBy).map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name}
-                    </option>
-                  ))}
-                </select>
+              {(() => {
+                const assigneeUser = users.find((u) => u.id === issue.assignedTo);
+                const reassignLocked =
+                  issue.assignedTo &&
+                  assigneeUser &&
+                  (assigneeUser.role === 'team_lead' || assigneeUser.role === 'admin') &&
+                  currentUser &&
+                  currentUser.role !== 'admin' &&
+                  currentUser.role !== 'team_lead';
+                return (
+                  <>
+                    <select
+                      id="assignedTo"
+                      name="assignedTo"
+                      value={formData.assignedTo}
+                      onChange={handleChange}
+                      disabled={reassignLocked}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      <option value="">Sin asignar</option>
+                      {users.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                        </option>
+                      ))}
+                    </select>
+                    {reassignLocked && (
+                      <p className="text-amber-700 text-xs mt-1">
+                        Esta tarea está asignada a un líder o administrador. Solo un líder o administrador puede reasignarla.
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
 
