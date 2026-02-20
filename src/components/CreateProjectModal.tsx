@@ -205,6 +205,13 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
     }));
   };
 
+  const isProjectFormValid = isEditMode
+    ? formData.name.trim() !== ''
+    : formData.name.trim() !== '' &&
+      formData.startDate !== '' &&
+      formData.deadline !== '' &&
+      formData.clientId !== '';
+
   const colorOptions = [
     { value: 'bg-blue-500', label: 'Azul', color: 'bg-blue-500' },
     { value: 'bg-purple-500', label: 'Morado', color: 'bg-purple-500' },
@@ -255,7 +262,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
 
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-              Descripción
+              Descripción <span className="text-red-500">*</span>
             </label>
             <textarea
               id="description"
@@ -289,7 +296,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
-                Estado
+                Estado <span className="text-red-500">*</span>
               </label>
               <select
                 id="status"
@@ -308,7 +315,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
 
             <div>
               <label htmlFor="clientId" className="block text-sm font-medium text-gray-700 mb-2">
-                Cliente
+                Cliente <span className="text-red-500">*</span>
               </label>
               <select
                 id="clientId"
@@ -334,7 +341,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha de Inicio
+                Fecha de Inicio <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
@@ -348,7 +355,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
 
             <div>
               <label htmlFor="deadline" className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha Límite
+                Fecha Límite <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
@@ -392,7 +399,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
             <button
               type="submit"
               className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isProjectFormValid}
             >
               {(() => {
                 if (isSubmitting) {
