@@ -16,13 +16,27 @@ function isValidPhone(value: string): boolean {
   return digits.length <= 10 && digits.length >= 1;
 }
 
+export interface ApiClientForModal {
+  id: string;
+  name: string;
+  description?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+}
+
 interface CreateClientModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  clientToEdit?: ApiClientForModal | null;
 }
 
-export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientModalProps) {
+export function CreateClientModal({ isOpen, onClose, onSuccess, clientToEdit }: CreateClientModalProps) {
+  const isEditMode = Boolean(clientToEdit);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -36,31 +50,19 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!isOpen) return null;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsSubmitting(true);
-
-    try {
-      await api.createClient({
-        name: formData.name,
-        description: formData.description || undefined,
-        email: formData.email || undefined,
-        phone: formData.phone || undefined,
-        address: formData.address || undefined,
-        contact_name: formData.contactName || undefined,
-        contact_email: formData.contactEmail || undefined,
-        contact_phone: formData.contactPhone || undefined,
+  React.useEffect(() => {
+    if (isOpen && clientToEdit) {
+      setFormData({
+        name: clientToEdit.name,
+        description: clientToEdit.description || '',
+        email: clientToEdit.email || '',
+        phone: clientToEdit.phone || '',
+        address: clientToEdit.address || '',
+        contactName: clientToEdit.contact_name || '',
+        contactEmail: clientToEdit.contact_email || '',
+        contactPhone: clientToEdit.contact_phone || '',
       });
-
-      // Show success toast
-      toast.success('Cliente creado exitosamente', {
-        description: `El cliente "${formData.name}" ha sido creado.`,
-      });
-
-      // Reset form
+    } else if (isOpen && !clientToEdit) {
       setFormData({
         name: '',
         description: '',
@@ -71,13 +73,65 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
         contactEmail: '',
         contactPhone: '',
       });
+    }
+  }, [isOpen, clientToEdit]);
 
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      if (isEditMode && clientToEdit) {
+        await api.updateClient(clientToEdit.id, {
+          name: formData.name,
+          description: formData.description || undefined,
+          email: formData.email || undefined,
+          phone: formData.phone || undefined,
+          address: formData.address || undefined,
+          contact_name: formData.contactName || undefined,
+          contact_email: formData.contactEmail || undefined,
+          contact_phone: formData.contactPhone || undefined,
+        });
+        toast.success('Cliente actualizado', {
+          description: `"${formData.name}" ha sido actualizado.`,
+        });
+      } else {
+        await api.createClient({
+        name: formData.name,
+        description: formData.description || undefined,
+        email: formData.email || undefined,
+        phone: formData.phone || undefined,
+        address: formData.address || undefined,
+        contact_name: formData.contactName || undefined,
+        contact_email: formData.contactEmail || undefined,
+        contact_phone: formData.contactPhone || undefined,
+      });
+        toast.success('Cliente creado exitosamente', {
+          description: `El cliente "${formData.name}" ha sido creado.`,
+        });
+      }
+
+      if (!isEditMode) {
+        setFormData({
+          name: '',
+          description: '',
+          email: '',
+          phone: '',
+          address: '',
+          contactName: '',
+          contactEmail: '',
+          contactPhone: '',
+        });
+      }
       onSuccess?.();
       onClose();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al crear el cliente';
+      const errorMessage = err instanceof Error ? err.message : (isEditMode ? 'Error al actualizar el cliente' : 'Error al crear el cliente');
       setError(errorMessage);
-      toast.error('Error al crear el cliente', {
+      toast.error(isEditMode ? 'Error al actualizar el cliente' : 'Error al crear el cliente', {
         description: errorMessage,
       });
     } finally {
@@ -108,7 +162,7 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-2xl font-semibold text-gray-800">Crear Nuevo Cliente</h2>
+          <h2 className="text-2xl font-semibold text-gray-800">{isEditMode ? 'Editar Cliente' : 'Crear Nuevo Cliente'}</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -282,7 +336,7 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
               className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isSubmitting || !isClientFormValid}
             >
-              {isSubmitting ? 'Creando...' : 'Crear Cliente'}
+              {isSubmitting ? (isEditMode ? 'Guardando...' : 'Creando...') : (isEditMode ? 'Guardar cambios' : 'Crear Cliente')}
             </button>
           </div>
         </form>
