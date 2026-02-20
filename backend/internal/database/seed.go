@@ -252,7 +252,7 @@ func SeedProjects(db *gorm.DB) error {
 		{
 			name:        "Mobile App Development",
 			description: "Development of a new mobile application for iOS and Android platforms",
-			projectType: models.ProjectTypeProducciones,
+			projectType: models.ProjectTypeBranding,
 			status:      models.ProjectStatusPlanning,
 			progress:    20,
 			color:       "#10B981",
