@@ -105,6 +105,7 @@ export interface ApiIssue {
   task_type?: string;
   start_date?: string;
   due_date?: string;
+  approved_at?: string;
   attachments?: ApiAttachment[];
   created_at: string;
   updated_at: string;

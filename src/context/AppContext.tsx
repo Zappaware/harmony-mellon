@@ -24,6 +24,7 @@ export interface Issue {
   taskType?: string;
   startDate?: string;
   dueDate?: string;
+  approvedAt?: string;
   attachments?: Array<{ type: 'link' | 'image' | 'file'; url: string; name?: string }>;
   createdAt: string;
   comments: Comment[];
@@ -256,6 +257,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       taskType: apiIssue.task_type,
       startDate: apiIssue.start_date,
       dueDate: apiIssue.due_date,
+      approvedAt: apiIssue.approved_at,
       attachments: apiIssue.attachments,
       createdAt: apiIssue.created_at,
       comments: (apiIssue.comments || []).map(comment => ({
