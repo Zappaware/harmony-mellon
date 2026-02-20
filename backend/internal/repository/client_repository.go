@@ -78,6 +78,9 @@ func (r *clientRepository) Delete(id uuid.UUID) error {
 		if err := tx.Where("client_id = ?", id).Delete(&models.Issue{}).Error; err != nil {
 			return err
 		}
+		if err := tx.Where("client_id = ?", id).Delete(&models.ClientMember{}).Error; err != nil {
+			return err
+		}
 		return tx.Delete(&models.Client{}, id).Error
 	})
 }

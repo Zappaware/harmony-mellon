@@ -13,22 +13,33 @@ type ClientService interface {
 	CreateClient(client *models.Client) error
 	UpdateClient(id uuid.UUID, updates map[string]interface{}) (*models.Client, error)
 	DeleteClient(id uuid.UUID) error
+	GetClientMembers(clientID uuid.UUID) ([]models.ClientMember, error)
+	AddClientMember(clientID, userID uuid.UUID) error
+	RemoveClientMember(clientID, userID uuid.UUID) error
 }
 
 type clientService struct {
-	clientRepo repository.ClientRepository
-	userRepo   repository.UserRepository
+	clientRepo     repository.ClientRepository
+	userRepo       repository.UserRepository
+	clientMemberRepo repository.ClientMemberRepository
 }
 
-func NewClientService(clientRepo repository.ClientRepository, userRepo repository.UserRepository) ClientService {
+func NewClientService(clientRepo repository.ClientRepository, userRepo repository.UserRepository, clientMemberRepo repository.ClientMemberRepository) ClientService {
 	return &clientService{
-		clientRepo: clientRepo,
-		userRepo:   userRepo,
+		clientRepo:       clientRepo,
+		userRepo:         userRepo,
+		clientMemberRepo: clientMemberRepo,
 	}
 }
 
 func (s *clientService) GetClient(id uuid.UUID) (*models.Client, error) {
-	return s.clientRepo.GetByID(id)
+	client, err := s.clientRepo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	members, _ := s.clientMemberRepo.GetByClientID(id)
+	client.ClientMembers = members
+	return client, nil
 }
 
 func (s *clientService) GetAllClients() ([]models.Client, error) {
@@ -82,4 +93,28 @@ func (s *clientService) UpdateClient(id uuid.UUID, updates map[string]interface{
 
 func (s *clientService) DeleteClient(id uuid.UUID) error {
 	return s.clientRepo.Delete(id)
+}
+
+func (s *clientService) GetClientMembers(clientID uuid.UUID) ([]models.ClientMember, error) {
+	return s.clientMemberRepo.GetByClientID(clientID)
+}
+
+func (s *clientService) AddClientMember(clientID, userID uuid.UUID) error {
+	_, err := s.clientRepo.GetByID(clientID)
+	if err != nil {
+		return err
+	}
+	_, err = s.userRepo.GetByID(userID)
+	if err != nil {
+		return err
+	}
+	exists, _ := s.clientMemberRepo.Exists(clientID, userID)
+	if exists {
+		return nil // idempotent
+	}
+	return s.clientMemberRepo.Add(clientID, userID)
+}
+
+func (s *clientService) RemoveClientMember(clientID, userID uuid.UUID) error {
+	return s.clientMemberRepo.Remove(clientID, userID)
 }

@@ -226,3 +226,72 @@ func (h *ClientHandler) DeleteClient(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Client deleted successfully"})
 }
+
+func (h *ClientHandler) GetClientMembers(c *gin.Context) {
+	clientID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": invalidClientIDError})
+		return
+	}
+	members, err := h.clientService.GetClientMembers(clientID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, members)
+}
+
+func (h *ClientHandler) AddClientMember(c *gin.Context) {
+	clientID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": invalidClientIDError})
+		return
+	}
+	userRole, _ := c.Get("user_role")
+	role, ok := userRole.(string)
+	if !ok || (role != string(models.RoleAdmin) && role != string(models.RoleTeamLead)) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y líderes de equipo pueden gestionar el equipo del cliente"})
+		return
+	}
+	var req struct {
+		UserID string `json:"user_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id required"})
+		return
+	}
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
+		return
+	}
+	if err := h.clientService.AddClientMember(clientID, userID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Member added"})
+}
+
+func (h *ClientHandler) RemoveClientMember(c *gin.Context) {
+	clientID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": invalidClientIDError})
+		return
+	}
+	userRole, _ := c.Get("user_role")
+	role, ok := userRole.(string)
+	if !ok || (role != string(models.RoleAdmin) && role != string(models.RoleTeamLead)) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y líderes de equipo pueden gestionar el equipo del cliente"})
+		return
+	}
+	userID, err := uuid.Parse(c.Param("userId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+	if err := h.clientService.RemoveClientMember(clientID, userID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Member removed"})
+}

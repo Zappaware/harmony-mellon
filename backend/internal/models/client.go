@@ -24,8 +24,9 @@ type Client struct {
 	DeletedAt       gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
-	Creator User      `gorm:"foreignKey:CreatedBy" json:"creator,omitempty"`
-	Projects []Project `gorm:"foreignKey:ClientID" json:"projects,omitempty"`
+	Creator       User          `gorm:"foreignKey:CreatedBy" json:"creator,omitempty"`
+	Projects      []Project     `gorm:"foreignKey:ClientID" json:"projects,omitempty"`
+	ClientMembers []ClientMember `gorm:"foreignKey:ClientID" json:"client_members,omitempty"`
 }
 
 func (c *Client) BeforeCreate(tx *gorm.DB) error {
