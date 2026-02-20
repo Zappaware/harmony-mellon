@@ -63,6 +63,7 @@ func main() {
 	issueRepo := repository.NewIssueRepository(db)
 	commentRepo := repository.NewCommentRepository(db)
 	clientRepo := repository.NewClientRepository(db)
+	clientMemberRepo := repository.NewClientMemberRepository(db)
 	projectRepo := repository.NewProjectRepository(db)
 	notificationRepo := repository.NewNotificationRepository(db)
 
@@ -82,8 +83,8 @@ func main() {
 	notificationService := service.NewNotificationService(notificationRepo)
 	issueService := service.NewIssueService(issueRepo, userRepo)
 	commentService := service.NewCommentService(commentRepo, userRepo, issueRepo, notificationService)
-	clientService := service.NewClientService(clientRepo, userRepo)
-	projectService := service.NewProjectService(projectRepo, userRepo)
+	clientService := service.NewClientService(clientRepo, userRepo, clientMemberRepo)
+	projectService := service.NewProjectService(projectRepo, userRepo, clientMemberRepo, clientRepo)
 	fileService := service.NewFileService(cfg.UploadDir)
 
 	// Initialize handlers
@@ -179,15 +180,19 @@ func main() {
 		protected.PUT("/comments/:id", commentHandler.UpdateComment)
 		protected.DELETE("/comments/:id", commentHandler.DeleteComment)
 
-		// Client routes
+		// Client routes (specific /members before /:id so "members" is not captured as id)
 		protected.GET("/clients", clientHandler.GetClients)
+		protected.GET("/clients/:id/members", clientHandler.GetClientMembers)
+		protected.POST("/clients/:id/members", clientHandler.AddClientMember)
+		protected.DELETE("/clients/:id/members/:userId", clientHandler.RemoveClientMember)
 		protected.GET("/clients/:id", clientHandler.GetClient)
 		protected.POST("/clients", clientHandler.CreateClient)
 		protected.PUT("/clients/:id", clientHandler.UpdateClient)
 		protected.DELETE("/clients/:id", clientHandler.DeleteClient)
 
-		// Project routes
+		// Project routes (bulk-monthly before :id)
 		protected.GET("/projects", projectHandler.GetProjects)
+		protected.POST("/projects/bulk-monthly", projectHandler.BulkCreateMonthly)
 		protected.GET("/projects/:id", projectHandler.GetProject)
 		protected.POST("/projects", projectHandler.CreateProject)
 		protected.PUT("/projects/:id", projectHandler.UpdateProject)

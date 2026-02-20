@@ -29,7 +29,12 @@ func NewProjectHandler(projectService service.ProjectService, userRepo repositor
 }
 
 func (h *ProjectHandler) GetProjects(c *gin.Context) {
-	projects, err := h.projectService.GetAllProjects()
+	userIDStr, _ := c.Get("user_id")
+	userID, _ := uuid.Parse(userIDStr.(string))
+	role, _ := c.Get("user_role")
+	roleStr, _ := role.(string)
+
+	projects, err := h.projectService.GetProjectsForUser(userID, roleStr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -405,4 +410,46 @@ func (h *ProjectHandler) RemoveProjectMember(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Member removed successfully"})
+}
+
+type BulkCreateMonthlyRequest struct {
+	Month             int      `json:"month" binding:"required,min=1,max=12"`
+	Year              int      `json:"year" binding:"required"`
+	ClientIDs         []string `json:"client_ids"`          // optional; empty = all clients
+	Types             []string `json:"types"`               // optional; default ["Planner"]
+	AddClientMembers  bool     `json:"add_client_members"`  // add client team as project members
+}
+
+func (h *ProjectHandler) BulkCreateMonthly(c *gin.Context) {
+	userIDStr, _ := c.Get("user_id")
+	userID, _ := uuid.Parse(userIDStr.(string))
+	userRole, _ := c.Get("user_role")
+	role, ok := userRole.(string)
+	if !ok || (role != string(models.RoleAdmin) && role != string(models.RoleTeamLead)) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y líderes de equipo pueden crear proyectos masivos"})
+		return
+	}
+
+	var req BulkCreateMonthlyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var clientIDs []uuid.UUID
+	for _, idStr := range req.ClientIDs {
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			continue
+		}
+		clientIDs = append(clientIDs, id)
+	}
+
+	created, err := h.projectService.BulkCreateMonthlyProjects(req.Month, req.Year, clientIDs, req.Types, userID, req.AddClientMembers)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Proyectos creados", "created": len(created), "projects": created})
 }
