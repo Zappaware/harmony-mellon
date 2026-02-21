@@ -3,24 +3,25 @@
 import React, { useState, useEffect } from 'react';
 import { X, Link as LinkIcon, Image, File, Plus, Trash2, FolderKanban, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { api, ApiAttachment, ApiClient } from '@/services/api';
+import { api, ApiAttachment, ApiClient, ApiProject } from '@/services/api';
 import { Issue, useApp } from '@/context/AppContext';
 
 const TASK_TYPES: Record<string, { value: string; label: string }[]> = {
   Planner: [
-    { value: 'reportes', label: 'Reportes' },
     { value: 'estrategia', label: 'Estrategia' },
+    { value: 'reportes', label: 'Reportes' },
     { value: 'diseño', label: 'Diseño' },
     { value: 'fotos', label: 'Fotos' },
+    { value: 'tarea', label: 'Tarea (opcional)' },
   ],
   Branding: [
     { value: 'brief', label: 'Brief' },
-    { value: 'propuesta', label: 'Propuesta' },
     { value: 'plan_comunicacion', label: 'Plan de comunicación' },
+    { value: 'propuesta', label: 'Propuesta' },
     { value: 'presentacion', label: 'Presentación' },
   ],
   Campaña: [
-    { value: 'tarea', label: 'Tarea' },
+    { value: 'tarea', label: 'Tarea (opcional)' },
   ],
 };
 
@@ -29,10 +30,13 @@ interface EditIssueModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   issue: Issue | null;
+  /** When provided, use this list for the project dropdown so all projects appear and changes persist */
+  projectsOverride?: ApiProject[];
 }
 
-export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueModalProps) {
-  const { users, projects, user: currentUser } = useApp();
+export function EditIssueModal({ isOpen, onClose, onSuccess, issue, projectsOverride }: EditIssueModalProps) {
+  const { users, projects, user: currentUser, updateIssueFromApi, refreshIssue } = useApp();
+  const projectsList = projectsOverride ?? projects;
   const [clients, setClients] = useState<ApiClient[]>([]);
   const [formData, setFormData] = useState({
     title: '',
@@ -87,12 +91,9 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
       if (issueDetails.attachments) {
         setAttachments(issueDetails.attachments);
       }
-      setFormData((prev) => ({
-        ...prev,
-        projectId: issueDetails.project_id || prev.projectId,
-        clientId: issueDetails.client_id || prev.clientId,
-        taskType: issueDetails.task_type || prev.taskType,
-      }));
+      // Only update attachments here. Do NOT overwrite projectId/clientId/taskType
+      // to avoid a race: if this completes after the user changed the project,
+      // we would overwrite their selection with stale API data.
     } catch (err) {
       console.error('Error loading issue details:', err);
     }
@@ -106,7 +107,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
     setIsSubmitting(true);
 
     try {
-      await api.updateIssue(issue.id, {
+      const payload = {
         title: formData.title,
         description: formData.description,
         priority: formData.priority,
@@ -117,12 +118,16 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
         start_date: formData.startDate || undefined,
         due_date: formData.dueDate || undefined,
         attachments: attachments.length > 0 ? attachments : undefined,
-      });
-
+      };
+      const updated = await api.updateIssue(issue.id, payload);
+      if (typeof updateIssueFromApi === 'function') {
+        updateIssueFromApi(updated);
+      } else {
+        await refreshIssue(issue.id);
+      }
       toast.success('Tarea actualizada exitosamente', {
         description: `La tarea "${formData.title}" ha sido actualizada.`,
       });
-
       onSuccess?.();
       onClose();
     } catch (err) {
@@ -291,7 +296,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Sin proyecto</option>
-                {projects.map((project) => (
+                {projectsList.map((project) => (
                   <option key={project.id} value={project.id}>
                     {project.name}
                   </option>
@@ -321,7 +326,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
             </div>
 
             {(() => {
-              const selectedProject = projects.find((p) => p.id === formData.projectId);
+              const selectedProject = projectsList.find((p) => p.id === formData.projectId);
               const projectType = selectedProject?.type || 'Campaña';
               const options = TASK_TYPES[projectType] || TASK_TYPES.Campaña;
               return (
@@ -336,7 +341,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue }: EditIssueM
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
-                    <option value="">{projectType === 'Campaña' ? 'Tarea libre (opcional)' : 'Seleccionar...'}</option>
+                    <option value="">{['Campaña', '__other__'].includes(projectType) || !TASK_TYPES[projectType] ? 'Tarea libre (opcional)' : 'Seleccionar...'}</option>
                     {options.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}

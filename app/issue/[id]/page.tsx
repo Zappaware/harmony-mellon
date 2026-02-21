@@ -31,7 +31,6 @@ export default function DetalleIssue() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [isUpdatingProject, setIsUpdatingProject] = useState(false);
   const [showStatusConfirmDialog, setShowStatusConfirmDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<Issue['status'] | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -353,34 +352,9 @@ export default function DetalleIssue() {
                 <FolderKanban className="w-5 h-5 text-gray-400" />
                 <span className="text-sm text-gray-500">Proyecto</span>
               </div>
-              <select
-                value={issue.projectId || ''}
-                onChange={async (e) => {
-                  const newProjectId = e.target.value;
-                  setIsUpdatingProject(true);
-                  try {
-                    await api.updateIssue(issue.id, {
-                      project_id: newProjectId || undefined,
-                    });
-                    // Reload page to show updated project
-                    window.location.reload();
-                  } catch (error) {
-                    console.error('Error updating project:', error);
-                    alert('Error al actualizar el proyecto. Por favor, intenta de nuevo.');
-                  } finally {
-                    setIsUpdatingProject(false);
-                  }
-                }}
-                disabled={isUpdatingProject}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="">Sin proyecto</option>
-                {projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
+              <p className="text-gray-800">
+                {projects.find((p) => p.id === issue.projectId)?.name ?? 'Sin proyecto'}
+              </p>
             </div>
           </div>
         </div>
@@ -587,11 +561,12 @@ export default function DetalleIssue() {
         <EditIssueModal
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
-          onSuccess={() => {
+          onSuccess={async () => {
             setShowEditModal(false);
-            window.location.reload();
+            await refreshIssue(issue.id);
           }}
           issue={issue}
+          projectsOverride={projects}
         />
 
         <AlertDialog open={forbiddenMessage !== null} onOpenChange={(open) => !open && setForbiddenMessage(null)}>
