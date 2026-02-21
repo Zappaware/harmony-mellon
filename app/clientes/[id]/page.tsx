@@ -72,6 +72,7 @@ export default function ClienteDetailPage() {
   const [personalizedProjectOpen, setPersonalizedProjectOpen] = useState(false);
   const [projectIdForNewIssue, setProjectIdForNewIssue] = useState<string | null>(null);
   const [projectToDelete, setProjectToDelete] = useState<ApiProject | null>(null);
+  const [projectToEdit, setProjectToEdit] = useState<ApiProject | null>(null);
   const [isDeletingProject, setIsDeletingProject] = useState(false);
   const [filterMonth, setFilterMonth] = useState<number | ''>('');
   const [filterYear, setFilterYear] = useState<number | ''>('');
@@ -174,6 +175,7 @@ export default function ClienteDetailPage() {
     setCreateProjectModalOpen(false);
     setProjectTypeToAdd(null);
     setPersonalizedProjectOpen(false);
+    setProjectToEdit(null);
   };
 
   const handleIssueCreated = async () => {
@@ -619,6 +621,14 @@ export default function ClienteDetailPage() {
                               Nueva tarea
                             </button>
                             <button
+                              onClick={() => { setProjectToEdit(project); setCreateProjectModalOpen(true); setProjectTypeToAdd(null); setPersonalizedProjectOpen(false); }}
+                              className="inline-flex items-center justify-center w-9 h-9 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                              title="Editar proyecto"
+                              aria-label="Editar proyecto"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => setProjectToDelete(project)}
                               className="inline-flex items-center justify-center w-9 h-9 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                               title="Eliminar proyecto"
@@ -667,9 +677,9 @@ export default function ClienteDetailPage() {
 
         <CreateProjectModal
           isOpen={createProjectModalOpen}
-          onClose={() => { setCreateProjectModalOpen(false); setProjectTypeToAdd(null); setPersonalizedProjectOpen(false); }}
+          onClose={() => { setCreateProjectModalOpen(false); setProjectTypeToAdd(null); setPersonalizedProjectOpen(false); setProjectToEdit(null); }}
           onSuccess={handleProjectCreated}
-          projectToEdit={undefined}
+          projectToEdit={projectToEdit ?? undefined}
           initialClientId={clientId}
           initialType={projectTypeToAdd ?? undefined}
           initialName={initialProjectName}

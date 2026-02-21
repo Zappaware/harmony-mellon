@@ -48,6 +48,7 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
   const userLinks = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Resumen' },
     { to: '/mis-tareas', icon: CheckSquare, label: 'Mis Tareas' },
+    { to: '/clientes', icon: Building2, label: 'Clientes' },
     { to: '/kanban', icon: FolderKanban, label: 'Kanban' },
     { to: '/calendario', icon: Calendar, label: 'Calendario' },
     { to: '/notificaciones', icon: Bell, label: 'Notificaciones' },
