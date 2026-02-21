@@ -57,25 +57,60 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue, projectsOver
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showFieldErrors, setShowFieldErrors] = useState(false);
 
-  // Load issue data when modal opens
+  // Load issue data when modal opens - fetch full details to ensure dates and all fields are prefilled
   useEffect(() => {
-    if (isOpen && issue) {
-      setFormData({
-        title: issue.title,
-        description: issue.description,
-        priority: issue.priority,
-        assignedTo: issue.assignedTo || '',
-        projectId: issue.projectId || '',
-        clientId: issue.clientId || '',
-        taskType: issue.taskType || '',
-        startDate: issue.startDate || '',
-        dueDate: issue.dueDate || '',
-      });
-      loadIssueDetails();
+    if (!isOpen || !issue) return;
+
+    const loadAndPopulate = async () => {
+      try {
+        const fullIssue = await api.getIssue(issue.id);
+        const startDate = fullIssue.start_date ? fullIssue.start_date.split('T')[0] : '';
+        const dueDate = fullIssue.due_date ? fullIssue.due_date.split('T')[0] : '';
+        setFormData({
+          title: fullIssue.title,
+          description: fullIssue.description,
+          priority: fullIssue.priority,
+          assignedTo: fullIssue.assigned_to || '',
+          projectId: fullIssue.project_id || '',
+          clientId: fullIssue.client_id || '',
+          taskType: fullIssue.task_type || '',
+          startDate,
+          dueDate,
+        });
+        setAttachments(fullIssue.attachments ?? []);
+      } catch (err) {
+        console.error('Error loading issue details:', err);
+        // Fallback to issue prop
+        const startDate = issue.startDate ? issue.startDate.split('T')[0] : '';
+        const dueDate = issue.dueDate ? issue.dueDate.split('T')[0] : '';
+        setFormData({
+          title: issue.title,
+          description: issue.description,
+          priority: issue.priority,
+          assignedTo: issue.assignedTo || '',
+          projectId: issue.projectId || '',
+          clientId: issue.clientId || '',
+          taskType: issue.taskType || '',
+          startDate,
+          dueDate,
+        });
+        if (issue.attachments?.length) {
+          setAttachments(issue.attachments);
+        } else {
+          setAttachments([]);
+        }
+      }
       setError(null);
-    }
+    };
+
+    loadAndPopulate();
   }, [isOpen, issue]);
+
+  useEffect(() => {
+    if (isOpen) setShowFieldErrors(false);
+  }, [isOpen]);
 
   // Load clients when modal opens
   useEffect(() => {
@@ -84,25 +119,16 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue, projectsOver
     }
   }, [isOpen]);
 
-  const loadIssueDetails = async () => {
-    if (!issue) return;
-    try {
-      const issueDetails = await api.getIssue(issue.id);
-      if (issueDetails.attachments) {
-        setAttachments(issueDetails.attachments);
-      }
-      // Only update attachments here. Do NOT overwrite projectId/clientId/taskType
-      // to avoid a race: if this completes after the user changed the project,
-      // we would overwrite their selection with stale API data.
-    } catch (err) {
-      console.error('Error loading issue details:', err);
-    }
-  };
 
   if (!isOpen || !issue) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isTaskFormValid) {
+      setShowFieldErrors(true);
+      return;
+    }
+    setShowFieldErrors(false);
     setError(null);
     setIsSubmitting(true);
 
@@ -169,6 +195,16 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue, projectsOver
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
+  const isTaskFormValid =
+    formData.title.trim() !== '' &&
+    formData.description.trim() !== '' &&
+    formData.assignedTo !== '' &&
+    formData.projectId !== '' &&
+    formData.clientId !== '' &&
+    formData.taskType !== '' &&
+    formData.startDate !== '' &&
+    formData.dueDate !== '';
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
@@ -189,7 +225,6 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue, projectsOver
               {error}
             </div>
           )}
-
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
               Título <span className="text-red-500">*</span>
@@ -201,7 +236,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue, projectsOver
               value={formData.title}
               onChange={handleChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.title.trim() ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               placeholder="Ej: Implementar nueva funcionalidad"
             />
           </div>
@@ -217,7 +252,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue, projectsOver
               onChange={handleChange}
               required
               rows={5}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 resize-none ${showFieldErrors && !formData.description.trim() ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               placeholder="Describe la tarea en detalle..."
             />
           </div>
@@ -262,7 +297,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue, projectsOver
                       value={formData.assignedTo}
                       onChange={handleChange}
                       disabled={reassignLocked}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 disabled:opacity-60 disabled:cursor-not-allowed ${showFieldErrors && !formData.assignedTo ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
                     >
                       <option value="">Sin asignar</option>
                       {users.map((u) => (
@@ -293,7 +328,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue, projectsOver
                 name="projectId"
                 value={formData.projectId}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.projectId ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               >
                 <option value="">Sin proyecto</option>
                 {projectsList.map((project) => (
@@ -314,7 +349,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue, projectsOver
                 name="clientId"
                 value={formData.clientId}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.clientId ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               >
                 <option value="">Sin cliente</option>
                 {clients.map((c) => (
@@ -339,7 +374,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue, projectsOver
                     name="taskType"
                     value={formData.taskType}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.taskType ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
                   >
                     <option value="">{['Campaña', '__other__'].includes(projectType) || !TASK_TYPES[projectType] ? 'Tarea libre (opcional)' : 'Seleccionar...'}</option>
                     {options.map((opt) => (
@@ -364,7 +399,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue, projectsOver
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.startDate ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               />
             </div>
 
@@ -378,7 +413,7 @@ export function EditIssueModal({ isOpen, onClose, onSuccess, issue, projectsOver
                 name="dueDate"
                 value={formData.dueDate}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.dueDate ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               />
             </div>
           </div>

@@ -3,6 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useApp } from '@/context/AppContext';
 import { api, ApiClient } from '@/services/api';
 import { getCustomProjectTypes, setCustomProjectTypes } from '@/lib/projectTypes';
@@ -45,6 +54,17 @@ const MONTHS = [
 
 const DEFAULT_TYPES = ['Campaña', 'Planner', 'Branding'];
 
+/** Planner, Branding, Campaña can only be created via section buttons on client profile. */
+const RESERVED_PROJECT_TYPES = ['Planner', 'Branding', 'Campaña'] as const;
+
+function containsReservedTypeWord(text: string): string | null {
+  const lower = (text || '').toLowerCase();
+  for (const word of RESERVED_PROJECT_TYPES) {
+    if (lower.includes(word.toLowerCase())) return word;
+  }
+  return null;
+}
+
 export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDate, initialClientId, initialType, initialName, initialPlanningMonth, initialPlanningYear, projectTypes: projectTypesProp, allowOtherType, projectToEdit }: CreateProjectModalProps) {
   const { createProject, updateProject } = useApp();
   const isEditMode = !!projectToEdit;
@@ -68,6 +88,8 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
   const [isLoadingClients, setIsLoadingClients] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reservedTypeErrorMsg, setReservedTypeErrorMsg] = useState<string | null>(null);
+  const [showFieldErrors, setShowFieldErrors] = useState(false);
 
   // Update startDate when initialStartDate changes
   useEffect(() => {
@@ -91,6 +113,11 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
   }, [isOpen, initialClientId, initialType, initialName, initialPlanningMonth, initialPlanningYear]);
   const effectiveType = formData.type === OTHER_TYPE_VALUE ? otherTypeName.trim() : formData.type;
 
+  // Reset field errors when modal opens
+  useEffect(() => {
+    if (isOpen) setShowFieldErrors(false);
+  }, [isOpen]);
+
   // Load clients when modal opens and populate form if editing
   useEffect(() => {
     if (!isOpen) return;
@@ -112,33 +139,37 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
         // Fetch full project data to get client_id
         try {
           const fullProject = await api.getProject(projectToEdit.id);
+          const startDate = fullProject.start_date ? fullProject.start_date.split('T')[0] : (initialStartDate || '');
+          const deadline = fullProject.deadline ? fullProject.deadline.split('T')[0] : '';
+          const projectType = fullProject.type || 'Campaña';
+          const opts = projectTypesProp ?? DEFAULT_TYPES;
+          const isCustomType = allowOtherType && projectType && !opts.includes(projectType);
           setFormData({
-            name: projectToEdit.name,
-            description: projectToEdit.description || '',
-            type: projectToEdit.type || 'Campaña',
-            status: projectToEdit.status || 'planning',
+            name: fullProject.name,
+            description: fullProject.description || '',
+            type: isCustomType ? OTHER_TYPE_VALUE : projectType,
+            status: fullProject.status || 'planning',
             clientId: fullProject.client_id || '',
-            startDate: fullProject.start_date 
-              ? fullProject.start_date.split('T')[0] 
-              : (initialStartDate || ''),
-            deadline: projectToEdit.deadline ? projectToEdit.deadline.split('T')[0] : '',
-            color: projectToEdit.color || 'bg-blue-500',
+            startDate,
+            deadline,
+            color: fullProject.color || 'bg-blue-500',
             planningMonth: fullProject.planning_month != null ? String(fullProject.planning_month) : '',
             planningYear: fullProject.planning_year != null ? String(fullProject.planning_year) : '',
           });
+          setOtherTypeName(isCustomType ? projectType : '');
         } catch (error) {
           console.error('Error loading project data:', error);
           // Fallback to provided data
+          const startDate = projectToEdit.start_date ? projectToEdit.start_date.split('T')[0] : (initialStartDate || '');
+          const deadline = projectToEdit.deadline ? projectToEdit.deadline.split('T')[0] : '';
           setFormData({
             name: projectToEdit.name,
             description: projectToEdit.description || '',
             type: projectToEdit.type || 'Campaña',
             status: projectToEdit.status || 'planning',
             clientId: projectToEdit.client_id || '',
-            startDate: projectToEdit.start_date 
-              ? projectToEdit.start_date.split('T')[0] 
-              : (initialStartDate || ''),
-            deadline: projectToEdit.deadline ? projectToEdit.deadline.split('T')[0] : '',
+            startDate,
+            deadline,
             color: projectToEdit.color || 'bg-blue-500',
             planningMonth: projectToEdit.planning_month != null ? String(projectToEdit.planning_month) : '',
             planningYear: projectToEdit.planning_year != null ? String(projectToEdit.planning_year) : '',
@@ -169,10 +200,29 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isProjectFormValid) {
+      setShowFieldErrors(true);
+      return;
+    }
+    setShowFieldErrors(false);
     setError(null);
     setIsSubmitting(true);
 
     try {
+      const typeToUse = effectiveType || formData.type;
+      const isCustomizedProject = !RESERVED_PROJECT_TYPES.includes(typeToUse as (typeof RESERVED_PROJECT_TYPES)[number]);
+
+      if (isCustomizedProject) {
+        const inTitle = containsReservedTypeWord(formData.name);
+        const inDesc = containsReservedTypeWord(formData.description || '');
+        if (inTitle || inDesc) {
+          setIsSubmitting(false);
+          const msg = 'Los proyectos personalizados no pueden contener Planner, Branding o Campaña en el título o descripción. Planner, Branding y Campaña solo pueden crearse desde los botones de la página del perfil del cliente.';
+          setReservedTypeErrorMsg(msg);
+          return;
+        }
+      }
+
       if (isEditMode && projectToEdit) {
         // Update existing project
         await updateProject(projectToEdit.id, {
@@ -193,7 +243,6 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
         });
       } else {
         // Create new project
-        const typeToUse = effectiveType || formData.type;
         if (formData.type === OTHER_TYPE_VALUE && otherTypeName.trim() && !getCustomProjectTypes().includes(otherTypeName.trim())) {
           setCustomProjectTypes([...getCustomProjectTypes(), otherTypeName.trim()]);
         }
@@ -265,13 +314,15 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
     });
   };
 
-  const isProjectFormValid = isEditMode
-    ? formData.name.trim() !== '' && (formData.type !== OTHER_TYPE_VALUE || otherTypeName.trim() !== '')
-    : formData.name.trim() !== '' &&
-      formData.startDate !== '' &&
-      formData.deadline !== '' &&
-      formData.clientId !== '' &&
-      (formData.type !== OTHER_TYPE_VALUE || otherTypeName.trim() !== '');
+  const isProjectFormValid = formData.name.trim() !== '' &&
+    formData.description.trim() !== '' &&
+    formData.type !== '' &&
+    (formData.type !== OTHER_TYPE_VALUE || otherTypeName.trim() !== '') &&
+    formData.planningMonth !== '' &&
+    formData.planningYear !== '' &&
+    formData.clientId !== '' &&
+    formData.startDate !== '' &&
+    formData.deadline !== '';
 
   const colorOptions = [
     { value: 'bg-blue-500', label: 'Azul', color: 'bg-blue-500' },
@@ -304,7 +355,6 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
               {error}
             </div>
           )}
-
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
               Nombre del Proyecto <span className="text-red-500">*</span>
@@ -316,7 +366,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
               value={formData.name}
               onChange={handleChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.name.trim() ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               placeholder="Ej: Plataforma Web"
             />
           </div>
@@ -330,8 +380,9 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
               name="description"
               value={formData.description}
               onChange={handleChange}
+              required
               rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 resize-none ${showFieldErrors && !formData.description.trim() ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               placeholder="Describe el proyecto..."
             />
           </div>
@@ -346,7 +397,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
               value={formData.type}
               onChange={handleChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && (!formData.type || (formData.type === OTHER_TYPE_VALUE && !otherTypeName.trim())) ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
             >
               {typeOptions.map((t) => (
                 <option key={t} value={t}>{t}</option>
@@ -366,7 +417,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
                   value={otherTypeName}
                   onChange={(e) => setOtherTypeName(e.target.value)}
                   placeholder="Ej: Eventos, Consultoría"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && formData.type === OTHER_TYPE_VALUE && !otherTypeName.trim() ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
                 />
               </div>
             )}
@@ -375,16 +426,17 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="planningMonth" className="block text-sm font-medium text-gray-700 mb-2">
-                Mes del plan (opcional)
+                Mes del plan <span className="text-red-500">*</span>
               </label>
               <select
                 id="planningMonth"
                 name="planningMonth"
                 value={formData.planningMonth}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.planningMonth ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               >
-                <option value="">Sin especificar</option>
+                <option value="">Seleccionar mes</option>
                 {MONTHS.map((m) => (
                   <option key={m.value} value={m.value}>{m.label}</option>
                 ))}
@@ -392,16 +444,17 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
             </div>
             <div>
               <label htmlFor="planningYear" className="block text-sm font-medium text-gray-700 mb-2">
-                Año del plan (opcional)
+                Año del plan <span className="text-red-500">*</span>
               </label>
               <select
                 id="planningYear"
                 name="planningYear"
                 value={formData.planningYear}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.planningYear ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               >
-                <option value="">Sin especificar</option>
+                <option value="">Seleccionar año</option>
                 {Array.from({ length: 7 }, (_, i) => currentYear - 3 + i).map((y) => (
                   <option key={y} value={y}>{y}</option>
                 ))}
@@ -438,7 +491,8 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
                 name="clientId"
                 value={formData.clientId}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.clientId ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
                 disabled={isLoadingClients}
               >
                 <option value="">Sin cliente</option>
@@ -465,7 +519,8 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.startDate ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               />
             </div>
 
@@ -479,7 +534,8 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
                 name="deadline"
                 value={formData.deadline}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.deadline ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               />
             </div>
           </div>
@@ -515,7 +571,7 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
             <button
               type="submit"
               className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isSubmitting || !isProjectFormValid}
+              disabled={isSubmitting}
             >
               {(() => {
                 if (isSubmitting) {
@@ -527,6 +583,25 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
           </div>
         </form>
       </div>
+
+      <AlertDialog open={reservedTypeErrorMsg !== null} onOpenChange={(open) => !open && setReservedTypeErrorMsg(null)}>
+        <AlertDialogContent className="bg-red-600 border-red-600 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Solo proyectos personalizados</AlertDialogTitle>
+            <AlertDialogDescription className="text-white">
+              {reservedTypeErrorMsg}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={() => setReservedTypeErrorMsg(null)}
+              className="bg-white text-red-600 hover:bg-gray-100"
+            >
+              Entendido
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

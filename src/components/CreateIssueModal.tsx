@@ -60,6 +60,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showFieldErrors, setShowFieldErrors] = useState(false);
 
   // Update startDate when initialStartDate changes
   useEffect(() => {
@@ -91,6 +92,10 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
     prevProjectIdRef.current = formData.projectId;
   }, [formData.projectId]);
 
+  useEffect(() => {
+    if (isOpen) setShowFieldErrors(false);
+  }, [isOpen]);
+
   // Load clients when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -102,6 +107,11 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isTaskFormValid) {
+      setShowFieldErrors(true);
+      return;
+    }
+    setShowFieldErrors(false);
     setError(null);
     setIsSubmitting(true);
 
@@ -182,14 +192,13 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
 
   const selectedProject = projectsList.find((p) => p.id === formData.projectId);
   const projectType = selectedProject?.type || 'Campaña';
-  const isTaskTypeRequired = projectType === 'Planner' || projectType === 'Branding';
   const isTaskFormValid =
     formData.title.trim() !== '' &&
     formData.description.trim() !== '' &&
     formData.assignedTo !== '' &&
     formData.projectId !== '' &&
     formData.clientId !== '' &&
-    (!isTaskTypeRequired || formData.taskType !== '') &&
+    formData.taskType !== '' &&
     formData.startDate !== '' &&
     formData.dueDate !== '';
 
@@ -213,7 +222,6 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
               {error}
             </div>
           )}
-
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
               Título <span className="text-red-500">*</span>
@@ -225,7 +233,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
               value={formData.title}
               onChange={handleChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.title.trim() ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               placeholder="Ej: Implementar nueva funcionalidad"
             />
           </div>
@@ -241,7 +249,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
               onChange={handleChange}
               required
               rows={5}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 resize-none ${showFieldErrors && !formData.description.trim() ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               placeholder="Describe la tarea en detalle..."
             />
           </div>
@@ -273,9 +281,10 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
                 name="assignedTo"
                 value={formData.assignedTo}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.assignedTo ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               >
-                <option value="">Sin asignar</option>
+                <option value="">Seleccionar responsable</option>
                 {assignableUsers.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
@@ -296,9 +305,10 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
                 name="projectId"
                 value={formData.projectId}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.projectId ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               >
-                <option value="">Sin proyecto</option>
+                <option value="">Seleccionar proyecto</option>
                 {projectsList.map((project) => (
                   <option key={project.id} value={project.id}>
                     {project.name}
@@ -317,9 +327,10 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
                 name="clientId"
                 value={formData.clientId}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.clientId ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               >
-                <option value="">Sin cliente</option>
+                <option value="">Seleccionar cliente</option>
                 {clients.map((client) => (
                   <option key={client.id} value={client.id}>
                     {client.name}
@@ -335,16 +346,17 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
               return (
                 <div>
                   <label htmlFor="taskType" className="block text-sm font-medium text-gray-700 mb-2">
-                    Tipo de tarea {isTaskTypeRequired && <span className="text-red-500">*</span>}
+                    Tipo de tarea <span className="text-red-500">*</span>
                   </label>
                   <select
                     id="taskType"
                     name="taskType"
                     value={formData.taskType}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    required
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.taskType ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
                   >
-                    <option value="">{['Campaña', '__other__'].includes(projectType) || !TASK_TYPES[projectType] ? 'Tarea libre (opcional)' : 'Seleccionar...'}</option>
+                    <option value="">Seleccionar tipo...</option>
                     {options.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
@@ -367,7 +379,8 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.startDate ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               />
             </div>
 
@@ -381,7 +394,8 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
                 name="dueDate"
                 value={formData.dueDate}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${showFieldErrors && !formData.dueDate ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'}`}
               />
             </div>
           </div>
@@ -538,7 +552,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
             <button
               type="submit"
               className="w-full sm:w-auto px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-              disabled={isSubmitting || !isTaskFormValid}
+              disabled={isSubmitting}
             >
               {isSubmitting ? 'Creando...' : 'Crear Tarea'}
             </button>
