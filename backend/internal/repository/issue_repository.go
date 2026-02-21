@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type IssueRepository interface {
@@ -78,7 +79,9 @@ func (r *issueRepository) GetByProjectID(projectID uuid.UUID) ([]models.Issue, e
 }
 
 func (r *issueRepository) Update(issue *models.Issue) error {
-	return r.db.Save(issue).Error
+	// Omit associations so GORM does not overwrite project_id/client_id from preloaded
+	// Project/Client when we've explicitly changed them in the service layer.
+	return r.db.Omit(clause.Associations).Save(issue).Error
 }
 
 func (r *issueRepository) Delete(id uuid.UUID) error {
