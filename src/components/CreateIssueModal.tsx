@@ -4,23 +4,24 @@ import React, { useState, useEffect } from 'react';
 import { X, Link as LinkIcon, Image, File, Plus, Trash2, FolderKanban, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
-import { ApiAttachment, api, ApiClient } from '@/services/api';
+import { ApiAttachment, ApiProject, api, ApiClient } from '@/services/api';
 
 const TASK_TYPES: Record<string, { value: string; label: string }[]> = {
   Planner: [
-    { value: 'reportes', label: 'Reportes' },
     { value: 'estrategia', label: 'Estrategia' },
+    { value: 'reportes', label: 'Reportes' },
     { value: 'diseño', label: 'Diseño' },
     { value: 'fotos', label: 'Fotos' },
+    { value: 'tarea', label: 'Tarea (opcional)' },
   ],
   Branding: [
     { value: 'brief', label: 'Brief' },
-    { value: 'propuesta', label: 'Propuesta' },
     { value: 'plan_comunicacion', label: 'Plan de comunicación' },
+    { value: 'propuesta', label: 'Propuesta' },
     { value: 'presentacion', label: 'Presentación' },
   ],
   Campaña: [
-    { value: 'tarea', label: 'Tarea' },
+    { value: 'tarea', label: 'Tarea (opcional)' },
   ],
 };
 
@@ -31,10 +32,13 @@ interface CreateIssueModalProps {
   initialStartDate?: string;
   initialProjectId?: string;
   initialClientId?: string;
+  /** When provided (e.g. from client detail page), use this list for the project dropdown so new projects appear immediately */
+  projectsOverride?: ApiProject[];
 }
 
-export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate, initialProjectId, initialClientId }: CreateIssueModalProps) {
+export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate, initialProjectId, initialClientId, projectsOverride }: CreateIssueModalProps) {
   const { users, projects, createIssue } = useApp();
+  const projectsList = projectsOverride ?? projects;
   const assignableUsers = users;
   const [clients, setClients] = useState<ApiClient[]>([]);
   const [formData, setFormData] = useState({
@@ -176,13 +180,16 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
+  const selectedProject = projectsList.find((p) => p.id === formData.projectId);
+  const projectType = selectedProject?.type || 'Campaña';
+  const isTaskTypeRequired = projectType === 'Planner' || projectType === 'Branding';
   const isTaskFormValid =
     formData.title.trim() !== '' &&
     formData.description.trim() !== '' &&
     formData.assignedTo !== '' &&
     formData.projectId !== '' &&
     formData.clientId !== '' &&
-    formData.taskType !== '' &&
+    (!isTaskTypeRequired || formData.taskType !== '') &&
     formData.startDate !== '' &&
     formData.dueDate !== '';
 
@@ -292,7 +299,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Sin proyecto</option>
-                {projects.map((project) => (
+                {projectsList.map((project) => (
                   <option key={project.id} value={project.id}>
                     {project.name}
                   </option>
@@ -322,13 +329,13 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
             </div>
 
             {(() => {
-              const selectedProject = projects.find((p) => p.id === formData.projectId);
+              const selectedProject = projectsList.find((p) => p.id === formData.projectId);
               const projectType = selectedProject?.type || 'Campaña';
               const options = TASK_TYPES[projectType] || TASK_TYPES.Campaña;
               return (
                 <div>
                   <label htmlFor="taskType" className="block text-sm font-medium text-gray-700 mb-2">
-                    Tipo de tarea <span className="text-red-500">*</span>
+                    Tipo de tarea {isTaskTypeRequired && <span className="text-red-500">*</span>}
                   </label>
                   <select
                     id="taskType"
@@ -337,7 +344,7 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
-                    <option value="">{projectType === 'Campaña' ? 'Tarea libre (opcional)' : 'Seleccionar...'}</option>
+                    <option value="">{['Campaña', '__other__'].includes(projectType) || !TASK_TYPES[projectType] ? 'Tarea libre (opcional)' : 'Seleccionar...'}</option>
                     {options.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}

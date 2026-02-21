@@ -41,7 +41,7 @@ import { CreateProjectModal } from '@/components/CreateProjectModal';
 import { CreateIssueModal } from '@/components/CreateIssueModal';
 import { CreateClientModal } from '@/components/CreateClientModal';
 import { Badge } from '@/components/Badge';
-import { getAllProjectTypes } from '@/lib/projectTypes';
+import { getAllProjectTypes, getCustomProjectTypes } from '@/lib/projectTypes';
 
 const TYPE_STYLE: Record<string, { icon: typeof LayoutList; color: string }> = {
   Planner: { icon: LayoutList, color: 'bg-violet-100 text-violet-800' },
@@ -77,6 +77,7 @@ export default function ClienteDetailPage() {
   const [filterYear, setFilterYear] = useState<number | ''>('');
   const [teamAddUserId, setTeamAddUserId] = useState('');
   const [teamLoading, setTeamLoading] = useState(false);
+  const [teamEditModalOpen, setTeamEditModalOpen] = useState(false);
 
   const canCreate = currentUser?.role === 'admin' || currentUser?.role === 'team_lead';
 
@@ -140,6 +141,15 @@ export default function ClienteDetailPage() {
     }
     return arr;
   }, [clientProjects]);
+
+  const now = useMemo(() => ({ month: new Date().getMonth() + 1, year: new Date().getFullYear() }), []);
+  const monthForNew = filterMonth !== '' ? filterMonth : now.month;
+  const yearForNew = filterYear !== '' ? filterYear : now.year;
+  const initialProjectName = projectTypeToAdd && client
+    ? `${projectTypeToAdd} - ${client.name} - ${MONTH_LABELS[monthForNew]} ${yearForNew}`
+    : undefined;
+  const initialPlanningMonth = projectTypeToAdd != null ? monthForNew : undefined;
+  const initialPlanningYear = projectTypeToAdd != null ? yearForNew : undefined;
 
   const openCreateProject = (type: string) => {
     setProjectTypeToAdd(type);
@@ -431,84 +441,149 @@ export default function ClienteDetailPage() {
           )}
         </div>
 
-        {canCreate && (
-          <section className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+        <section className="mb-8">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
               <Users className="w-5 h-5 text-indigo-600" />
               Equipo del cliente
             </h2>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <div className="flex flex-wrap items-center gap-3 mb-3">
-                <select
-                  value={teamAddUserId}
-                  onChange={(e) => setTeamAddUserId(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[180px]"
-                  aria-label="Añadir usuario al equipo"
-                >
-                  <option value="">Seleccionar usuario...</option>
-                  {usersNotInTeam.map((u) => (
-                    <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
-                  ))}
-                </select>
+            {canCreate && (
+              <button
+                type="button"
+                onClick={() => setTeamEditModalOpen(true)}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <Pencil className="w-4 h-4" />
+                Editar
+              </button>
+            )}
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            {clientMembers.length === 0 ? (
+              <p className="text-sm text-gray-500">Ningún usuario en el equipo.</p>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {clientMembers.map((m) => (
+                  <li key={m.id} className="flex items-center justify-between py-2 first:pt-0">
+                    <span className="text-gray-800">
+                      {m.user?.name ?? m.user_id}
+                      {m.user?.email && (
+                        <span className="text-gray-500 text-sm ml-2">({m.user.email})</span>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+
+        {teamEditModalOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setTeamEditModalOpen(false)}
+          >
+            <div
+              className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800">Editar equipo del cliente</h3>
                 <button
                   type="button"
-                  onClick={handleAddClientMember}
-                  disabled={!teamAddUserId || teamLoading}
-                  className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  onClick={() => setTeamEditModalOpen(false)}
+                  className="text-gray-500 hover:text-gray-700 p-1 rounded-lg transition-colors"
+                  aria-label="Cerrar"
                 >
-                  <Plus className="w-4 h-4" />
-                  Añadir
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-              {clientMembers.length === 0 ? (
-                <p className="text-sm text-gray-500">Ningún usuario en el equipo.</p>
-              ) : (
-                <ul className="divide-y divide-gray-100">
-                  {clientMembers.map((m) => (
-                    <li key={m.id} className="flex items-center justify-between py-2 first:pt-0">
-                      <span className="text-gray-800">
-                        {m.user?.name ?? m.user_id}
-                        {m.user?.email && (
-                          <span className="text-gray-500 text-sm ml-2">({m.user.email})</span>
-                        )}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveClientMember(m)}
-                        disabled={teamLoading}
-                        className="text-gray-500 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors disabled:opacity-50"
-                        title="Quitar del equipo"
-                        aria-label="Quitar del equipo"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <div className="p-6 overflow-y-auto flex-1">
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                  <select
+                    value={teamAddUserId}
+                    onChange={(e) => setTeamAddUserId(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
+                    aria-label="Añadir usuario al equipo"
+                  >
+                    <option value="">Seleccionar usuario...</option>
+                    {usersNotInTeam.map((u) => (
+                      <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleAddClientMember}
+                    disabled={!teamAddUserId || teamLoading}
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Añadir
+                  </button>
+                </div>
+                {clientMembers.length === 0 ? (
+                  <p className="text-sm text-gray-500">Ningún usuario en el equipo.</p>
+                ) : (
+                  <ul className="divide-y divide-gray-100">
+                    {clientMembers.map((m) => (
+                      <li key={m.id} className="flex items-center justify-between py-2 first:pt-0">
+                        <span className="text-gray-800">
+                          {m.user?.name ?? m.user_id}
+                          {m.user?.email && (
+                            <span className="text-gray-500 text-sm ml-2">({m.user.email})</span>
+                          )}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveClientMember(m)}
+                          disabled={teamLoading}
+                          className="text-gray-500 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors disabled:opacity-50"
+                          title="Quitar del equipo"
+                          aria-label="Quitar del equipo"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="px-6 py-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setTeamEditModalOpen(false)}
+                  className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
             </div>
-          </section>
+          </div>
         )}
 
         {sectionTypes.map((type) => {
           const typeProjects = projectsByType[type] || [];
-          const { icon: Icon, color } = getTypeStyle(type);
+          const { color } = getTypeStyle(type);
           return (
-            <section key={type} className="mb-10">
-              <div className="flex items-center gap-2 mb-4">
-                <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${color}`}>
-                  <Icon className="w-4 h-4" />
-                  {type}
-                </span>
-                {canCreate && (
+            <section key={type} className="mb-10" style={{ paddingTop: '1rem' }}>
+              <div className="mb-4" style={{ paddingTop: '1rem' }}>
+                {canCreate ? (
                   <button
                     type="button"
                     onClick={() => openCreateProject(type)}
-                    className="text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                    className="inline-flex items-center justify-center px-4 py-2.5 text-lg font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                    style={{ width: 168, minWidth: 168, minHeight: 44 }}
+                    aria-label={`Añadir proyecto ${type}`}
                   >
-                    <FolderPlus className="w-4 h-4" />
-                    Añadir proyecto
+                    {type}
                   </button>
+                ) : (
+                  <span
+                    className={`inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-lg font-semibold ${color}`}
+                    style={{ width: 168, minWidth: 168, minHeight: 44 }}
+                  >
+                    {type}
+                  </span>
                 )}
               </div>
 
@@ -597,7 +672,10 @@ export default function ClienteDetailPage() {
           projectToEdit={undefined}
           initialClientId={clientId}
           initialType={projectTypeToAdd ?? undefined}
-          projectTypes={getAllProjectTypes()}
+          initialName={initialProjectName}
+          initialPlanningMonth={initialPlanningMonth}
+          initialPlanningYear={initialPlanningYear}
+          projectTypes={personalizedProjectOpen ? getCustomProjectTypes() : getAllProjectTypes()}
           allowOtherType={personalizedProjectOpen}
         />
 
@@ -607,6 +685,7 @@ export default function ClienteDetailPage() {
           onSuccess={handleIssueCreated}
           initialProjectId={projectIdForNewIssue ?? undefined}
           initialClientId={clientId}
+          projectsOverride={client?.projects}
         />
 
         <CreateClientModal

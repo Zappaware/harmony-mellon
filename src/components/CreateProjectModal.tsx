@@ -16,6 +16,9 @@ interface CreateProjectModalProps {
   initialStartDate?: string;
   initialClientId?: string;
   initialType?: string;
+  initialName?: string;
+  initialPlanningMonth?: number;
+  initialPlanningYear?: number;
   projectTypes?: string[];
   allowOtherType?: boolean;
   projectToEdit?: {
@@ -40,22 +43,25 @@ const MONTHS = [
   { value: 10, label: 'Octubre' }, { value: 11, label: 'Noviembre' }, { value: 12, label: 'Diciembre' },
 ];
 
-export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDate, initialClientId, initialType, projectTypes: projectTypesProp, allowOtherType, projectToEdit }: CreateProjectModalProps) {
+const DEFAULT_TYPES = ['Campaña', 'Planner', 'Branding'];
+
+export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDate, initialClientId, initialType, initialName, initialPlanningMonth, initialPlanningYear, projectTypes: projectTypesProp, allowOtherType, projectToEdit }: CreateProjectModalProps) {
   const { createProject, updateProject } = useApp();
   const isEditMode = !!projectToEdit;
   const currentYear = new Date().getFullYear();
-  const typeOptions = projectTypesProp ?? ['Campaña', 'Planner', 'Branding'];
+  const typeOptions = projectTypesProp ?? DEFAULT_TYPES;
+  const defaultType = allowOtherType && (projectTypesProp?.length === 0) ? OTHER_TYPE_VALUE : (initialType ?? 'Campaña');
   const [formData, setFormData] = useState({
-    name: '',
+    name: initialName ?? '',
     description: '',
-    type: initialType ?? 'Campaña',
+    type: defaultType,
     status: 'planning' as string,
     clientId: initialClientId || '',
     startDate: initialStartDate || '',
     deadline: '',
     color: 'bg-blue-500',
-    planningMonth: '' as string,
-    planningYear: '' as string,
+    planningMonth: initialPlanningMonth != null ? String(initialPlanningMonth) : '',
+    planningYear: initialPlanningYear != null ? String(initialPlanningYear) : '',
   });
   const [otherTypeName, setOtherTypeName] = useState('');
   const [clients, setClients] = useState<ApiClient[]>([]);
@@ -70,16 +76,19 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
     }
   }, [initialStartDate]);
 
-  // When modal opens with initial client/type (e.g. from client detail), prefill
+  // When modal opens with initial client/type/name/planning (e.g. from client detail section +), prefill
   useEffect(() => {
-    if (isOpen && (initialClientId || initialType)) {
+    if (isOpen && (initialClientId || initialType || initialName != null || initialPlanningMonth != null || initialPlanningYear != null)) {
       setFormData(prev => ({
         ...prev,
         ...(initialClientId && { clientId: initialClientId }),
         ...(initialType && { type: initialType }),
+        ...(initialName != null && initialName !== '' && { name: initialName }),
+        ...(initialPlanningMonth != null && { planningMonth: String(initialPlanningMonth) }),
+        ...(initialPlanningYear != null && { planningYear: String(initialPlanningYear) }),
       }));
     }
-  }, [isOpen, initialClientId, initialType]);
+  }, [isOpen, initialClientId, initialType, initialName, initialPlanningMonth, initialPlanningYear]);
   const effectiveType = formData.type === OTHER_TYPE_VALUE ? otherTypeName.trim() : formData.type;
 
   // Load clients when modal opens and populate form if editing
@@ -136,24 +145,25 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
           });
         }
       } else {
-        // Reset form for new project
+        // Reset form for new project (use initial* when opening from client section +)
+        const defaultTypeForNew = allowOtherType && (projectTypesProp?.length === 0) ? OTHER_TYPE_VALUE : (initialType ?? 'Campaña');
         setFormData({
-          name: '',
+          name: initialName ?? '',
           description: '',
-          type: 'Campaña',
+          type: defaultTypeForNew,
           status: 'planning',
-          clientId: '',
+          clientId: initialClientId || '',
           startDate: initialStartDate || '',
           deadline: '',
           color: 'bg-blue-500',
-          planningMonth: '',
-          planningYear: String(currentYear),
+          planningMonth: initialPlanningMonth != null ? String(initialPlanningMonth) : '',
+          planningYear: initialPlanningYear != null ? String(initialPlanningYear) : String(currentYear),
         });
       }
     };
 
     loadData();
-  }, [isOpen, projectToEdit, initialStartDate, currentYear]);
+  }, [isOpen, projectToEdit, initialStartDate, currentYear, initialClientId, initialType, initialName, initialPlanningMonth, initialPlanningYear, allowOtherType, projectTypesProp]);
 
   if (!isOpen) return null;
 
@@ -234,12 +244,25 @@ export function CreateProjectModal({ isOpen, onClose, onSuccess, initialStartDat
     }
   };
 
+  const buildTitleFromPlanning = (clientName: string, typeLabel: string, month: string, year: string) => {
+    const monthLabel = month ? (MONTHS.find((m) => String(m.value) === month)?.label ?? month) : 'Sin especificar';
+    const yearLabel = year || 'Sin especificar';
+    return `${typeLabel} - ${clientName} - ${monthLabel} ${yearLabel}`;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData(prev => {
+      const next = { ...prev, [name]: value };
+      if (name === 'planningMonth' || name === 'planningYear' || name === 'type') {
+        const client = clients.find((c) => c.id === prev.clientId);
+        const typeLabel = next.type === OTHER_TYPE_VALUE ? otherTypeName.trim() || 'Otro' : next.type;
+        if (client?.name && typeLabel) {
+          next.name = buildTitleFromPlanning(client.name, typeLabel, next.planningMonth, next.planningYear);
+        }
+      }
+      return next;
+    });
   };
 
   const isProjectFormValid = isEditMode

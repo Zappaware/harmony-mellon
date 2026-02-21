@@ -92,6 +92,8 @@ interface AppContextType {
   deleteUser: (userId: string) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
   refreshIssue: (issueId: string) => Promise<void>;
+  /** Replace issue in context with converted API response (e.g. from PUT update) */
+  updateIssueFromApi: (apiIssue: ApiIssue) => void;
   users: User[];
   showExpiringTasksModal: boolean;
   setShowExpiringTasksModal: (show: boolean) => void;
@@ -612,7 +614,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           planning_month: data.planning_month,
           planning_year: data.planning_year,
         });
-        // Project created successfully - the page will reload projects via onSuccess callback
+        const apiProjects = await api.getProjects();
+        setProjects(apiProjects);
       } catch (error) {
         throw error;
       }
@@ -734,6 +737,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateIssueFromApi = (apiIssue: ApiIssue): void => {
+    const converted = convertApiIssue(apiIssue, users);
+    setIssues((prev) => prev.map((i) => (i.id === apiIssue.id ? converted : i)));
+  };
+
   const deleteProject = async (projectId: string): Promise<void> => {
     if (useApi) {
       try {
@@ -769,6 +777,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         deleteUser,
         deleteProject,
         refreshIssue,
+        updateIssueFromApi,
         users,
         showExpiringTasksModal,
         setShowExpiringTasksModal,
