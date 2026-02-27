@@ -40,8 +40,8 @@ func (h *CommentHandler) GetComments(c *gin.Context) {
 }
 
 type CreateCommentRequest struct {
-	Text       string                  `json:"text" binding:"required"`
-	Attachments []models.Attachment    `json:"attachments,omitempty"`
+	Text        string               `json:"text" binding:"required,max=10000"`
+	Attachments []models.Attachment  `json:"attachments,omitempty"`
 }
 
 func (h *CommentHandler) CreateComment(c *gin.Context) {
@@ -70,7 +70,7 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 }
 
 type UpdateCommentRequest struct {
-	Text string `json:"text" binding:"required"`
+	Text string `json:"text" binding:"required,max=10000"`
 }
 
 func (h *CommentHandler) UpdateComment(c *gin.Context) {

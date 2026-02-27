@@ -49,10 +49,10 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 }
 
 type UpdateUserRequest struct {
-	Name   *string          `json:"name"`
-	Email  *string          `json:"email"`
+	Name   *string          `json:"name" binding:"omitempty,max=255"`
+	Email  *string          `json:"email" binding:"omitempty,email,max=255"`
 	Role   *models.UserRole `json:"role"`
-	Avatar *string          `json:"avatar"`
+	Avatar *string          `json:"avatar" binding:"omitempty,max=1000"`
 }
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {

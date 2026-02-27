@@ -27,24 +27,24 @@ func NewAuthHandlerWithUserService(authService service.AuthService, userService 
 }
 
 type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
+	Email    string `json:"email" binding:"required,email,max=255"`
+	Password string `json:"password" binding:"required,max=500"`
 }
 
 type RegisterRequest struct {
-	Name     string          `json:"name" binding:"required"`
-	Email    string          `json:"email" binding:"required,email"`
-	Password string          `json:"password" binding:"required,min=6"`
+	Name     string          `json:"name" binding:"required,max=255"`
+	Email    string          `json:"email" binding:"required,email,max=255"`
+	Password string          `json:"password" binding:"required,min=6,max=500"`
 	Role     models.UserRole `json:"role"`
 }
 
 type ForgotPasswordRequest struct {
-	Email string `json:"email" binding:"required,email"`
+	Email string `json:"email" binding:"required,email,max=255"`
 }
 
 type ResetPasswordRequest struct {
-	Token    string `json:"token" binding:"required"`
-	Password string `json:"password" binding:"required,min=6"`
+	Token    string `json:"token" binding:"required,max=500"`
+	Password string `json:"password" binding:"required,min=6,max=500"`
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {

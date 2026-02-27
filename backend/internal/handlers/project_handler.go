@@ -62,16 +62,16 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 }
 
 type CreateProjectRequest struct {
-	Name          string                `json:"name" binding:"required"`
-	Description   string                `json:"description"`
-	Type          string                `json:"type"`
-	Status        models.ProjectStatus  `json:"status"`
-	ClientID      *string               `json:"client_id"`
-	StartDate     *string               `json:"start_date"`
-	Deadline      *string               `json:"deadline"`
-	Color         string                `json:"color"`
-	PlanningMonth *int                  `json:"planning_month"` // 1-12
-	PlanningYear  *int                  `json:"planning_year"`
+	Name          string               `json:"name" binding:"required,max=255"`
+	Description   string               `json:"description" binding:"max=5000"`
+	Type          string               `json:"type" binding:"max=50"`
+	Status        models.ProjectStatus `json:"status"`
+	ClientID      *string              `json:"client_id"`
+	StartDate     *string              `json:"start_date"`
+	Deadline      *string              `json:"deadline"`
+	Color         string               `json:"color" binding:"max=20"`
+	PlanningMonth *int                 `json:"planning_month"` // 1-12
+	PlanningYear  *int                 `json:"planning_year"`
 }
 
 func (h *ProjectHandler) CreateProject(c *gin.Context) {
@@ -178,14 +178,14 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 }
 
 type UpdateProjectRequest struct {
-	Name          *string               `json:"name"`
-	Description   *string               `json:"description"`
-	Type          *string               `json:"type"`
+	Name          *string               `json:"name" binding:"omitempty,max=255"`
+	Description   *string               `json:"description" binding:"omitempty,max=5000"`
+	Type          *string               `json:"type" binding:"omitempty,max=50"`
 	Progress      *int                  `json:"progress"`
 	Status        *models.ProjectStatus `json:"status"`
 	StartDate     *string               `json:"start_date"`
 	Deadline      *string               `json:"deadline"`
-	Color         *string               `json:"color"`
+	Color         *string               `json:"color" binding:"omitempty,max=20"`
 	PlanningMonth *int                  `json:"planning_month"`
 	PlanningYear  *int                  `json:"planning_year"`
 }

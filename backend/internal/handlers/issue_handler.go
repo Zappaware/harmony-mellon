@@ -97,16 +97,16 @@ func (h *IssueHandler) GetIssue(c *gin.Context) {
 }
 
 type CreateIssueRequest struct {
-	Title       string                `json:"title" binding:"required"`
-	Description string                `json:"description" binding:"required"`
-	Priority    models.IssuePriority  `json:"priority"`
-	AssignedTo  *string               `json:"assigned_to"`
-	ProjectID   *string               `json:"project_id"`
-	ClientID    *string               `json:"client_id"`
-	TaskType    string                `json:"task_type"`
-	StartDate   *string               `json:"start_date"`
-	DueDate     *string               `json:"due_date"`
-	Attachments []models.Attachment   `json:"attachments"`
+	Title       string               `json:"title" binding:"required,max=500"`
+	Description string               `json:"description" binding:"required,max=10000"`
+	Priority    models.IssuePriority `json:"priority"`
+	AssignedTo  *string              `json:"assigned_to"`
+	ProjectID   *string              `json:"project_id"`
+	ClientID    *string              `json:"client_id"`
+	TaskType    string               `json:"task_type" binding:"max=100"`
+	StartDate   *string              `json:"start_date"`
+	DueDate     *string              `json:"due_date"`
+	Attachments []models.Attachment  `json:"attachments"`
 }
 
 func (h *IssueHandler) CreateIssue(c *gin.Context) {
@@ -222,13 +222,13 @@ func (h *IssueHandler) CreateIssue(c *gin.Context) {
 }
 
 type UpdateIssueRequest struct {
-	Title       *string               `json:"title"`
-	Description *string               `json:"description"`
-	Priority    *models.IssuePriority  `json:"priority"`
+	Title       *string               `json:"title" binding:"omitempty,max=500"`
+	Description *string               `json:"description" binding:"omitempty,max=10000"`
+	Priority    *models.IssuePriority `json:"priority"`
 	AssignedTo  *string               `json:"assigned_to"`
 	ProjectID   *string               `json:"project_id"`
 	ClientID    *string               `json:"client_id"`
-	TaskType    *string               `json:"task_type"`
+	TaskType    *string               `json:"task_type" binding:"omitempty,max=100"`
 	StartDate   *string               `json:"start_date"`
 	DueDate     *string               `json:"due_date"`
 	Attachments *[]models.Attachment  `json:"attachments"`

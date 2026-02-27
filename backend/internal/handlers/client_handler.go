@@ -66,15 +66,15 @@ func (h *ClientHandler) GetClient(c *gin.Context) {
 }
 
 type CreateClientRequest struct {
-	Name         string  `json:"name" binding:"required"`
-	Description  string  `json:"description"`
-	Email        *string `json:"email"`
-	Phone        *string `json:"phone"`
-	Address      *string `json:"address"`
-	ContactName  *string `json:"contact_name"`
-	ContactEmail *string `json:"contact_email"`
-	ContactPhone *string `json:"contact_phone"`
-	Logo         *string `json:"logo"`
+	Name         string  `json:"name" binding:"required,max=255"`
+	Description  string  `json:"description" binding:"max=5000"`
+	Email        *string `json:"email" binding:"omitempty,email,max=255"`
+	Phone        *string `json:"phone" binding:"omitempty,max=50"`
+	Address      *string `json:"address" binding:"omitempty,max=1000"`
+	ContactName  *string `json:"contact_name" binding:"omitempty,max=255"`
+	ContactEmail *string `json:"contact_email" binding:"omitempty,email,max=255"`
+	ContactPhone *string `json:"contact_phone" binding:"omitempty,max=50"`
+	Logo         *string `json:"logo" binding:"omitempty,max=1000"`
 }
 
 func (h *ClientHandler) CreateClient(c *gin.Context) {
@@ -142,15 +142,15 @@ func (h *ClientHandler) CreateClient(c *gin.Context) {
 }
 
 type UpdateClientRequest struct {
-	Name         *string `json:"name"`
-	Description  *string `json:"description"`
-	Email        *string `json:"email"`
-	Phone        *string `json:"phone"`
-	Address      *string `json:"address"`
-	ContactName  *string `json:"contact_name"`
-	ContactEmail *string `json:"contact_email"`
-	ContactPhone *string `json:"contact_phone"`
-	Logo         *string `json:"logo"`
+	Name         *string `json:"name" binding:"omitempty,max=255"`
+	Description  *string `json:"description" binding:"omitempty,max=5000"`
+	Email        *string `json:"email" binding:"omitempty,email,max=255"`
+	Phone        *string `json:"phone" binding:"omitempty,max=50"`
+	Address      *string `json:"address" binding:"omitempty,max=1000"`
+	ContactName  *string `json:"contact_name" binding:"omitempty,max=255"`
+	ContactEmail *string `json:"contact_email" binding:"omitempty,email,max=255"`
+	ContactPhone *string `json:"contact_phone" binding:"omitempty,max=50"`
+	Logo         *string `json:"logo" binding:"omitempty,max=1000"`
 }
 
 func (h *ClientHandler) UpdateClient(c *gin.Context) {
