@@ -19,14 +19,24 @@ type ClientHandler struct {
 	clientService       service.ClientService
 	userRepo            repository.UserRepository
 	notificationService service.NotificationService
+	clientMemberRepo    repository.ClientMemberRepository
 }
 
-func NewClientHandler(clientService service.ClientService, userRepo repository.UserRepository, notificationService service.NotificationService) *ClientHandler {
+func NewClientHandler(clientService service.ClientService, userRepo repository.UserRepository, notificationService service.NotificationService, clientMemberRepo repository.ClientMemberRepository) *ClientHandler {
 	return &ClientHandler{
 		clientService:       clientService,
 		userRepo:            userRepo,
 		notificationService: notificationService,
+		clientMemberRepo:    clientMemberRepo,
 	}
+}
+
+func (h *ClientHandler) canManageClient(clientID, userID uuid.UUID, role string) bool {
+	if role == string(models.RoleAdmin) || role == string(models.RoleTeamLead) {
+		return true
+	}
+	exists, _ := h.clientMemberRepo.Exists(clientID, userID)
+	return exists
 }
 
 func (h *ClientHandler) GetClients(c *gin.Context) {
@@ -150,12 +160,13 @@ func (h *ClientHandler) UpdateClient(c *gin.Context) {
 		return
 	}
 
+	userIDStr, _ := c.Get("user_id")
+	userID, _ := uuid.Parse(userIDStr.(string))
 	userRole, _ := c.Get("user_role")
+	role, _ := userRole.(string)
 
-	// Check if user is admin or team_lead
-	role, ok := userRole.(string)
-	if !ok || (role != string(models.RoleAdmin) && role != string(models.RoleTeamLead)) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y líderes de equipo pueden actualizar clientes"})
+	if !h.canManageClient(id, userID, role) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "No tienes permiso para actualizar este cliente"})
 		return
 	}
 
@@ -210,12 +221,13 @@ func (h *ClientHandler) DeleteClient(c *gin.Context) {
 		return
 	}
 
+	userIDStr, _ := c.Get("user_id")
+	userID, _ := uuid.Parse(userIDStr.(string))
 	userRole, _ := c.Get("user_role")
+	role, _ := userRole.(string)
 
-	// Check if user is admin or team_lead
-	role, ok := userRole.(string)
-	if !ok || (role != string(models.RoleAdmin) && role != string(models.RoleTeamLead)) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y líderes de equipo pueden eliminar clientes"})
+	if !h.canManageClient(id, userID, role) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "No tienes permiso para eliminar este cliente"})
 		return
 	}
 
@@ -247,10 +259,13 @@ func (h *ClientHandler) AddClientMember(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": invalidClientIDError})
 		return
 	}
+	userIDStr, _ := c.Get("user_id")
+	userID, _ := uuid.Parse(userIDStr.(string))
 	userRole, _ := c.Get("user_role")
-	role, ok := userRole.(string)
-	if !ok || (role != string(models.RoleAdmin) && role != string(models.RoleTeamLead)) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y líderes de equipo pueden gestionar el equipo del cliente"})
+	role, _ := userRole.(string)
+
+	if !h.canManageClient(clientID, userID, role) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "No tienes permiso para gestionar el equipo del cliente"})
 		return
 	}
 	var req struct {
@@ -260,12 +275,12 @@ func (h *ClientHandler) AddClientMember(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id required"})
 		return
 	}
-	userID, err := uuid.Parse(req.UserID)
-	if err != nil {
+	memberUserID, parseErr := uuid.Parse(req.UserID)
+	if parseErr != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
 		return
 	}
-	if err := h.clientService.AddClientMember(clientID, userID); err != nil {
+	if err := h.clientService.AddClientMember(clientID, memberUserID); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -278,18 +293,21 @@ func (h *ClientHandler) RemoveClientMember(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": invalidClientIDError})
 		return
 	}
+	currentUserIDStr, _ := c.Get("user_id")
+	currentUserID, _ := uuid.Parse(currentUserIDStr.(string))
 	userRole, _ := c.Get("user_role")
-	role, ok := userRole.(string)
-	if !ok || (role != string(models.RoleAdmin) && role != string(models.RoleTeamLead)) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y líderes de equipo pueden gestionar el equipo del cliente"})
+	role, _ := userRole.(string)
+
+	if !h.canManageClient(clientID, currentUserID, role) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "No tienes permiso para gestionar el equipo del cliente"})
 		return
 	}
-	userID, err := uuid.Parse(c.Param("userId"))
-	if err != nil {
+	memberUserID, parseErr := uuid.Parse(c.Param("userId"))
+	if parseErr != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
 		return
 	}
-	if err := h.clientService.RemoveClientMember(clientID, userID); err != nil {
+	if err := h.clientService.RemoveClientMember(clientID, memberUserID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

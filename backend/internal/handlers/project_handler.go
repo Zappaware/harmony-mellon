@@ -13,18 +13,20 @@ import (
 )
 
 type ProjectHandler struct {
-	projectService      service.ProjectService
-	userRepo            repository.UserRepository
-	notificationService service.NotificationService
-	projectRepo         repository.ProjectRepository
+	projectService       service.ProjectService
+	userRepo             repository.UserRepository
+	notificationService  service.NotificationService
+	projectRepo          repository.ProjectRepository
+	clientMemberRepo     repository.ClientMemberRepository
 }
 
-func NewProjectHandler(projectService service.ProjectService, userRepo repository.UserRepository, notificationService service.NotificationService, projectRepo repository.ProjectRepository) *ProjectHandler {
+func NewProjectHandler(projectService service.ProjectService, userRepo repository.UserRepository, notificationService service.NotificationService, projectRepo repository.ProjectRepository, clientMemberRepo repository.ClientMemberRepository) *ProjectHandler {
 	return &ProjectHandler{
 		projectService:      projectService,
 		userRepo:            userRepo,
 		notificationService: notificationService,
 		projectRepo:         projectRepo,
+		clientMemberRepo:    clientMemberRepo,
 	}
 }
 
@@ -76,18 +78,30 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	userIDStr, _ := c.Get("user_id")
 	userID, _ := uuid.Parse(userIDStr.(string))
 	userRole, _ := c.Get("user_role")
-
-	// Check if user is admin or team_lead
-	role, ok := userRole.(string)
-	if !ok || (role != string(models.RoleAdmin) && role != string(models.RoleTeamLead)) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y líderes de equipo pueden crear proyectos"})
-		return
-	}
+	role, _ := userRole.(string)
 
 	var req CreateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Admin/team_lead can create any project; regular users can only create projects for clients they belong to
+	if role != string(models.RoleAdmin) && role != string(models.RoleTeamLead) {
+		if req.ClientID == nil {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Debes especificar un cliente para crear un proyecto"})
+			return
+		}
+		clientID, err := uuid.Parse(*req.ClientID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid client_id"})
+			return
+		}
+		exists, err := h.clientMemberRepo.Exists(clientID, userID)
+		if err != nil || !exists {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Solo los miembros del equipo del cliente pueden crear proyectos"})
+			return
+		}
 	}
 
 	project := &models.Project{
@@ -181,6 +195,29 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
 		return
+	}
+
+	userIDStr, _ := c.Get("user_id")
+	userID, _ := uuid.Parse(userIDStr.(string))
+	userRole, _ := c.Get("user_role")
+	roleStr, _ := userRole.(string)
+
+	// Admin and team_lead can update any project; regular users can only update projects of clients they belong to
+	if roleStr != string(models.RoleAdmin) && roleStr != string(models.RoleTeamLead) {
+		project, err := h.projectService.GetProject(id)
+		if err != nil || project == nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
+			return
+		}
+		if project.ClientID == nil {
+			c.JSON(http.StatusForbidden, gin.H{"error": "No tienes permiso para editar este proyecto"})
+			return
+		}
+		exists, err := h.clientMemberRepo.Exists(*project.ClientID, userID)
+		if err != nil || !exists {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Solo los miembros del equipo del cliente pueden editar proyectos"})
+			return
+		}
 	}
 
 	var req UpdateProjectRequest
@@ -326,6 +363,29 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
 		return
+	}
+
+	userIDStr, _ := c.Get("user_id")
+	userID, _ := uuid.Parse(userIDStr.(string))
+	userRole, _ := c.Get("user_role")
+	role, _ := userRole.(string)
+
+	// Admin/team_lead can delete any project; regular users can only delete projects of clients they belong to
+	if role != string(models.RoleAdmin) && role != string(models.RoleTeamLead) {
+		project, err := h.projectService.GetProject(id)
+		if err != nil || project == nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
+			return
+		}
+		if project.ClientID == nil {
+			c.JSON(http.StatusForbidden, gin.H{"error": "No tienes permiso para eliminar este proyecto"})
+			return
+		}
+		exists, err := h.clientMemberRepo.Exists(*project.ClientID, userID)
+		if err != nil || !exists {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Solo los miembros del equipo del cliente pueden eliminar proyectos"})
+			return
+		}
 	}
 
 	if err := h.projectService.DeleteProject(id); err != nil {

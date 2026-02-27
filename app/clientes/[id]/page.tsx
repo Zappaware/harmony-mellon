@@ -80,7 +80,10 @@ export default function ClienteDetailPage() {
   const [teamLoading, setTeamLoading] = useState(false);
   const [teamEditModalOpen, setTeamEditModalOpen] = useState(false);
 
-  const canCreate = currentUser?.role === 'admin' || currentUser?.role === 'team_lead';
+  const clientMembers = client?.client_members ?? [];
+  const canEditClient = currentUser?.role === 'admin' || currentUser?.role === 'team_lead';
+  // Same UI as admin for all logged-in users (create projects, edit team, etc.). Only edit client is admin-only.
+  const canManageClient = !!currentUser;
 
   useEffect(() => {
     let cancelled = false;
@@ -191,7 +194,6 @@ export default function ClienteDetailPage() {
     setEditClientModalOpen(false);
   };
 
-  const clientMembers = client?.client_members ?? [];
   const usersNotInTeam = users.filter((u) => !clientMembers.some((m) => m.user_id === u.id));
 
   const handleAddClientMember = async () => {
@@ -299,7 +301,7 @@ export default function ClienteDetailPage() {
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {canCreate && (
+              {canManageClient && (
                 <button
                   type="button"
                   onClick={openCreateProjectPersonalized}
@@ -318,7 +320,7 @@ export default function ClienteDetailPage() {
               >
                 <Info className="w-5 h-5" />
               </button>
-              {canCreate && (
+              {canEditClient && (
                 <button
                   onClick={() => setEditClientModalOpen(true)}
                   className="inline-flex items-center justify-center w-10 h-10 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
@@ -449,7 +451,7 @@ export default function ClienteDetailPage() {
               <Users className="w-5 h-5 text-indigo-600" />
               Equipo del cliente
             </h2>
-            {canCreate && (
+            {canManageClient && (
               <button
                 type="button"
                 onClick={() => setTeamEditModalOpen(true)}
@@ -569,27 +571,22 @@ export default function ClienteDetailPage() {
           return (
             <section key={type} className="mb-10" style={{ paddingTop: '1rem' }}>
               <div className="mb-4" style={{ paddingTop: '1rem' }}>
-                {canCreate ? (
-                  <button
-                    type="button"
-                    onClick={() => openCreateProject(type)}
-                    className="inline-flex items-center justify-center px-4 py-2.5 text-lg font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                    style={{ width: 168, minWidth: 168, minHeight: 44 }}
-                    aria-label={`Añadir proyecto ${type}`}
-                  >
-                    {type}
-                  </button>
-                ) : (
-                  <span
-                    className={`inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-lg font-semibold ${color}`}
-                    style={{ width: 168, minWidth: 168, minHeight: 44 }}
-                  >
-                    {type}
-                  </span>
-                )}
+                <button
+                  type="button"
+                  onClick={() => canManageClient && openCreateProject(type)}
+                  className={`inline-flex items-center justify-center px-4 py-2.5 text-lg font-semibold rounded-lg transition-colors ${
+                    canManageClient
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer'
+                      : `${color} cursor-default`
+                  }`}
+                  style={{ width: 168, minWidth: 168, minHeight: 44 }}
+                  aria-label={canManageClient ? `Añadir proyecto ${type}` : type}
+                >
+                  {type}
+                </button>
               </div>
 
-              {typeProjects.length === 0 && !canCreate && (
+              {typeProjects.length === 0 && (
                 <p className="text-sm text-gray-500 py-4">No hay proyectos de tipo {type}.</p>
               )}
 
@@ -611,7 +608,7 @@ export default function ClienteDetailPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        {canCreate && (
+                        {canManageClient && (
                           <>
                             <button
                               onClick={() => openCreateIssue(project.id)}
@@ -628,15 +625,17 @@ export default function ClienteDetailPage() {
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => setProjectToDelete(project)}
-                              className="inline-flex items-center justify-center w-9 h-9 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Eliminar proyecto"
-                              aria-label="Eliminar proyecto"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
                           </>
+                        )}
+                        {canManageClient && (
+                          <button
+                            onClick={() => setProjectToDelete(project)}
+                            className="inline-flex items-center justify-center w-9 h-9 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Eliminar proyecto"
+                            aria-label="Eliminar proyecto"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         )}
                       </div>
                     </div>
@@ -644,7 +643,7 @@ export default function ClienteDetailPage() {
                       {projectIssues.length === 0 ? (
                         <div className="px-4 py-8 text-center text-gray-500 text-sm">
                           No hay tareas en este proyecto.
-                          {canCreate && (
+                          {canManageClient && (
                             <button
                               onClick={() => openCreateIssue(project.id)}
                               className="block mx-auto mt-2 text-indigo-600 hover:text-indigo-700"
