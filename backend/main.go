@@ -136,6 +136,7 @@ func main() {
 	}
 	
 	router.Use(cors.New(corsConfig))
+	router.Use(middleware.SecureHeaders())
 
 	// Health check
 	router.GET("/health", func(c *gin.Context) {
@@ -145,17 +146,23 @@ func main() {
 	// Public routes
 	api := router.Group("/api/v1")
 	{
-		api.POST("/auth/login", authHandler.Login)
-		api.POST("/auth/register", authHandler.Register)
-		api.POST("/auth/forgot-password", authHandler.ForgotPassword)
-		api.POST("/auth/reset-password", authHandler.ResetPassword)
+		// Auth routes (rate limited to prevent brute force)
+		authGroup := api.Group("/auth")
+		authGroup.Use(middleware.RateLimitAuth())
+		{
+			authGroup.POST("/login", authHandler.Login)
+			authGroup.POST("/register", authHandler.Register)
+			authGroup.POST("/forgot-password", authHandler.ForgotPassword)
+			authGroup.POST("/reset-password", authHandler.ResetPassword)
+		}
 		// Serve uploaded files (avatars, logos, attachments) without auth so <img> tags can load
 		api.GET("/files/*path", fileHandler.ServeFile)
 	}
 
-	// Protected routes
+	// Protected routes (with audit logging for sensitive actions)
 	protected := api.Group("")
 	protected.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+	protected.Use(middleware.AuditLog())
 	{
 		// Auth routes
 		protected.GET("/auth/me", authHandler.GetMe)
