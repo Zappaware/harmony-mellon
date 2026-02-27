@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { 
-  LayoutDashboard, 
-  CheckSquare, 
   FolderKanban, 
   Bell, 
   BarChart3, 
@@ -18,7 +16,8 @@ import {
   Calendar,
   PanelLeftClose,
   PanelLeftOpen,
-  Building2
+  Building2,
+  History
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -45,19 +44,10 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
     onClose?.();
   };
 
-  const userLinks = [
-    { to: '/dashboard', icon: LayoutDashboard, label: 'Resumen' },
-    { to: '/mis-tareas', icon: CheckSquare, label: 'Mis Tareas' },
-    { to: '/clientes', icon: Building2, label: 'Clientes' },
-    { to: '/kanban', icon: FolderKanban, label: 'Kanban' },
-    { to: '/calendario', icon: Calendar, label: 'Calendario' },
-    { to: '/notificaciones', icon: Bell, label: 'Notificaciones' },
-    { to: '/perfil', icon: Users, label: 'Mi Perfil' },
-  ];
-
   const adminLinks = [
     { to: '/dashboard', icon: BarChart3, label: 'Métricas' },
     { to: '/clientes', icon: Building2, label: 'Clientes' },
+    { to: '/historial', icon: History, label: 'Historial' },
     { to: '/kanban', icon: FolderKanban, label: 'Kanban' },
     { to: '/calendario', icon: Calendar, label: 'Calendario' },
     { to: '/usuarios', icon: Users, label: 'Equipo' },
@@ -69,6 +59,7 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
   const teamLeadLinks = [
     { to: '/dashboard', icon: BarChart3, label: 'Métricas' },
     { to: '/clientes', icon: Building2, label: 'Clientes' },
+    { to: '/historial', icon: History, label: 'Historial' },
     { to: '/kanban', icon: FolderKanban, label: 'Kanban' },
     { to: '/calendario', icon: Calendar, label: 'Calendario' },
     { to: '/notificaciones', icon: Bell, label: 'Notificaciones' },
@@ -83,12 +74,10 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggle }: Sideba
     return 'Usuario';
   };
 
-  // Determine which links to show based on user role
+  // Determine which links to show: admin gets full set, team_lead and user get same layout (Métricas, Clientes, Kanban, etc.)
   const links = user?.role === 'admin' 
     ? adminLinks 
-    : user?.role === 'team_lead' 
-    ? teamLeadLinks 
-    : userLinks;
+    : teamLeadLinks;
 
   // Mobile should always show full content - collapsed state only applies to desktop/tablet
   // We check if we're in mobile by checking if the sidebar is in overlay mode (isOpen is used)

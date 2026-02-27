@@ -462,6 +462,32 @@ class ApiService {
     });
   }
 
+  async downloadClientReport(clientId: string, projectType: string): Promise<Blob> {
+    const token = this.getToken();
+    const url = `${API_BASE_URL}/clients/${clientId}/reports/${encodeURIComponent(projectType)}`;
+    const response = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: response.statusText }));
+      throw new Error((err as { error?: string }).error || 'Error al descargar el reporte');
+    }
+    return response.blob();
+  }
+
+  async downloadClientReportFiltered(clientId: string, month: number, year: number): Promise<Blob> {
+    const token = this.getToken();
+    const url = `${API_BASE_URL}/clients/${clientId}/reports?month=${month}&year=${year}`;
+    const response = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: response.statusText }));
+      throw new Error((err as { error?: string }).error || 'Error al descargar el reporte');
+    }
+    return response.blob();
+  }
+
   async uploadFile(
     file: File,
     options?: { clientId?: string; projectId?: string; uploadPurpose?: 'avatar' | 'client_logo' | 'attachment'; userId?: string }

@@ -11,6 +11,8 @@ type ProjectRepository interface {
 	Create(project *models.Project) error
 	GetByID(id uuid.UUID) (*models.Project, error)
 	GetAll() ([]models.Project, error)
+	GetByClientIDAndType(clientID uuid.UUID, projectType string) ([]models.Project, error)
+	GetByClientIDAndMonthYear(clientID uuid.UUID, month, year int) ([]models.Project, error)
 	Update(project *models.Project) error
 	Delete(id uuid.UUID) error
 	AddMember(projectID, userID uuid.UUID, role string) error
@@ -44,6 +46,24 @@ func (r *projectRepository) GetAll() ([]models.Project, error) {
 	var projects []models.Project
 	err := r.db.Preload("Creator").Preload("Members.User").
 		Order("created_at DESC").Find(&projects).Error
+	return projects, err
+}
+
+func (r *projectRepository) GetByClientIDAndType(clientID uuid.UUID, projectType string) ([]models.Project, error) {
+	var projects []models.Project
+	err := r.db.Preload("Issues").Preload("Issues.Assignee").
+		Where("client_id = ? AND type = ?", clientID, projectType).
+		Order("planning_year ASC, planning_month ASC, created_at ASC").
+		Find(&projects).Error
+	return projects, err
+}
+
+func (r *projectRepository) GetByClientIDAndMonthYear(clientID uuid.UUID, month, year int) ([]models.Project, error) {
+	var projects []models.Project
+	err := r.db.Preload("Issues").Preload("Issues.Assignee").
+		Where("client_id = ? AND planning_month = ? AND planning_year = ?", clientID, month, year).
+		Order("type ASC, created_at ASC").
+		Find(&projects).Error
 	return projects, err
 }
 

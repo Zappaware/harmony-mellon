@@ -93,9 +93,10 @@ func main() {
 	notificationHandler := handlers.NewNotificationHandler(notificationService)
 	issueHandler := handlers.NewIssueHandler(issueService, userRepo, notificationService, projectRepo)
 	commentHandler := handlers.NewCommentHandler(commentService)
-	clientHandler := handlers.NewClientHandler(clientService, userRepo, notificationService)
-	projectHandler := handlers.NewProjectHandler(projectService, userRepo, notificationService, projectRepo)
+	clientHandler := handlers.NewClientHandler(clientService, userRepo, notificationService, clientMemberRepo)
+	projectHandler := handlers.NewProjectHandler(projectService, userRepo, notificationService, projectRepo, clientMemberRepo)
 	fileHandler := handlers.NewFileHandler(fileService)
+	reportHandler := handlers.NewReportHandler(clientRepo, projectRepo)
 
 	// Setup router
 	router := gin.Default()
@@ -180,11 +181,13 @@ func main() {
 		protected.PUT("/comments/:id", commentHandler.UpdateComment)
 		protected.DELETE("/comments/:id", commentHandler.DeleteComment)
 
-		// Client routes (specific /members before /:id so "members" is not captured as id)
+		// Client routes (specific /members and /reports before /:id so they are not captured as id)
 		protected.GET("/clients", clientHandler.GetClients)
 		protected.GET("/clients/:id/members", clientHandler.GetClientMembers)
 		protected.POST("/clients/:id/members", clientHandler.AddClientMember)
 		protected.DELETE("/clients/:id/members/:userId", clientHandler.RemoveClientMember)
+		protected.GET("/clients/:id/reports", reportHandler.DownloadClientReportFiltered)
+		protected.GET("/clients/:id/reports/:type", reportHandler.DownloadClientReport)
 		protected.GET("/clients/:id", clientHandler.GetClient)
 		protected.POST("/clients", clientHandler.CreateClient)
 		protected.PUT("/clients/:id", clientHandler.UpdateClient)
