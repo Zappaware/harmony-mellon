@@ -103,16 +103,8 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const mockUsers: User[] = [
-  { id: '1', name: 'Admin User', email: 'admin@example.com', role: 'admin' },
-  { id: '2', name: 'John Doe', email: 'user@example.com', role: 'user' },
-  { id: '3', name: 'Jane Smith', email: 'jane@example.com', role: 'user' },
-  { id: '4', name: 'Carlos Martínez', email: 'carlos@example.com', role: 'user' },
-  { id: '5', name: 'María García', email: 'maria@example.com', role: 'admin' },
-  { id: '6', name: 'Pedro López', email: 'pedro@example.com', role: 'user' },
-];
-
-const mockIssues: Issue[] = [
+// Legacy mock data - unused since API-only auth (kept for reference, safe to remove)
+const _unusedMockIssues: Issue[] = [
   {
     id: '1',
     title: 'Implementar autenticación',
@@ -457,7 +449,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // Try API first
       const response = await api.login(email, password);
       if (response.token && response.user) {
         if (typeof window !== 'undefined') {
@@ -474,15 +465,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setShowExpiringTasksModal(true);
         return true;
       }
-    } catch (error) {
-      // Fallback to mock data
-      const foundUser = mockUsers.find((u) => u.email === email);
-      if (foundUser) {
-        setUser(foundUser);
-        setUseApi(false);
-        setShowExpiringTasksModal(true);
-        return true;
-      }
+    } catch {
+      // No mock fallback - API only. Prevents bypass when API fails or user doesn't exist.
     }
     return false;
   };
