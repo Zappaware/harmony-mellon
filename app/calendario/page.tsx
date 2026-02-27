@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import { useApp, Issue } from '@/context/AppContext';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
-import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, Plus, CheckSquare, FolderKanban, X, Edit } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, Plus, CheckSquare, FolderKanban, X, Edit, ChevronDown } from 'lucide-react';
 import { format, isSameDay, parseISO, startOfMonth, endOfMonth, getDaysInMonth, getDay, addDays, subDays } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { useRouter } from 'next/navigation';
@@ -24,6 +24,7 @@ export default function CalendarioPage() {
   const [isCreateIssueModalOpen, setIsCreateIssueModalOpen] = useState(false);
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
   const [issueToEdit, setIssueToEdit] = useState<Issue | null>(null);
+  const [dayModalDate, setDayModalDate] = useState<Date | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Get issues for selected date
@@ -383,7 +384,14 @@ export default function CalendarioPage() {
                       <div
                         key={`${currentDate.getTime()}-${index}`}
                         style={cellStyle}
-                        onClick={() => isCurrentMonth && setSelectedDate(currentDate)}
+                        onClick={() => {
+                          if (!isCurrentMonth) return;
+                          if (dayIssues.length > 0) {
+                            setDayModalDate(currentDate);
+                          } else {
+                            setSelectedDate(currentDate);
+                          }
+                        }}
                         onKeyDown={(e) => {
                           if ((e.key === 'Enter' || e.key === ' ') && isCurrentMonth) {
                             e.preventDefault();
@@ -404,7 +412,7 @@ export default function CalendarioPage() {
                         }}
                       >
                         {/* Day Number */}
-                        <div style={{ marginBottom: '0.5rem' }}>
+                        <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.25rem' }}>
                           <span
                             style={{
                               display: 'inline-flex',
@@ -424,11 +432,48 @@ export default function CalendarioPage() {
                           >
                             {currentDate.getDate()}
                           </span>
+                          {/* Tiny expand button when day has events */}
+                          {isCurrentMonth && dayIssues.length > 0 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDayModalDate(currentDate);
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.125rem',
+                                padding: '0.125rem 0.375rem',
+                                borderRadius: '0.25rem',
+                                fontSize: '0.7rem',
+                                fontWeight: '500',
+                                color: '#4f46e5',
+                                backgroundColor: '#eef2ff',
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#e0e7ff';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '#eef2ff';
+                              }}
+                              title={`Ver todas las tareas (${dayIssues.length})`}
+                            >
+                              {dayIssues.length > 3 ? (
+                                <><span>+{dayIssues.length - 3}</span><ChevronDown className="w-3 h-3" style={{ flexShrink: 0 }} /></>
+                              ) : (
+                                <ChevronDown className="w-3 h-3" style={{ flexShrink: 0 }} />
+                              )}
+                            </button>
+                          )}
                         </div>
 
-                        {/* Issues as colored rectangles */}
+                        {/* First 3 events */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                          {dayIssues.slice(0, 4).map((issue) => {
+                          {dayIssues.slice(0, 3).map((issue) => {
                             const bgColor = getIssueColor(issue);
                             const truncatedTitle = issue.title.length > 20
                               ? issue.title.substring(0, 17) + '...'
@@ -499,15 +544,6 @@ export default function CalendarioPage() {
                               </div>
                             );
                           })}
-                          {dayIssues.length > 4 && (
-                            <div style={{
-                              fontSize: '0.75rem',
-                              color: '#6b7280',
-                              padding: '0.25rem 0.5rem'
-                            }}>
-                              +{dayIssues.length - 4} más
-                            </div>
-                          )}
                         </div>
                       </div>
                     );
@@ -701,6 +737,83 @@ export default function CalendarioPage() {
           )}
         </button>
       </div>
+
+      {/* Day events modal */}
+      {dayModalDate && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setDayModalDate(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-800">
+                {format(dayModalDate, "EEEE d 'de' MMMM, yyyy", { locale: es })}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setDayModalDate(null)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg transition-colors"
+                aria-label="Cerrar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto flex-1 min-h-0">
+              {getIssuesForDate(dayModalDate).length === 0 ? (
+                <p className="text-gray-500 text-sm text-center py-8">No hay tareas para esta fecha</p>
+              ) : (
+                <div className="space-y-2">
+                  {getIssuesForDate(dayModalDate).map((issue) => {
+                    const bgColor = getIssueColor(issue);
+                    return (
+                      <div
+                        key={issue.id}
+                        className="flex items-center gap-2 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors"
+                      >
+                        <div
+                          className="w-2 h-10 rounded-full shrink-0"
+                          style={{ backgroundColor: bgColor }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <button
+                            onClick={() => {
+                              setDayModalDate(null);
+                              router.push(`/issue/${issue.id}`);
+                            }}
+                            className="text-left w-full font-medium text-gray-800 hover:text-indigo-600 truncate block"
+                          >
+                            {issue.title}
+                          </button>
+                          <span
+                            className="inline-block mt-1 text-xs px-2 py-0.5 rounded"
+                            style={{ backgroundColor: bgColor, color: 'white' }}
+                          >
+                            {getStatusText(issue.status)}
+                          </span>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIssueToEdit(issue);
+                            setDayModalDate(null);
+                          }}
+                          className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors shrink-0"
+                          title="Editar tarea"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <Suspense fallback={null}>
