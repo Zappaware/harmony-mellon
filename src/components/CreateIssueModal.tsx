@@ -12,7 +12,6 @@ const TASK_TYPES: Record<string, { value: string; label: string }[]> = {
     { value: 'reportes', label: 'Reportes' },
     { value: 'diseño', label: 'Diseño' },
     { value: 'fotos', label: 'Fotos' },
-    { value: 'tarea', label: 'Tarea (opcional)' },
   ],
   Branding: [
     { value: 'brief', label: 'Brief' },
@@ -24,6 +23,16 @@ const TASK_TYPES: Record<string, { value: string; label: string }[]> = {
     { value: 'tarea', label: 'Tarea (opcional)' },
   ],
 };
+
+const MONTH_LABELS: Record<number, string> = {
+  1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
+  7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre',
+};
+
+/** Obligatory task types that get auto-filled title: TaskType - Client - Month - Year */
+const OBLIGATORY_TASK_TYPES = new Set([
+  'estrategia', 'reportes', 'diseño', 'fotos', 'brief', 'plan_comunicacion', 'propuesta', 'presentacion',
+]);
 
 interface CreateIssueModalProps {
   isOpen: boolean;
@@ -91,6 +100,22 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
     }
     prevProjectIdRef.current = formData.projectId;
   }, [formData.projectId]);
+
+  // Auto-fill title for Planner/Branding obligatory tasks: "TaskType - Client - Month - Year"
+  const selectedProject = projectsList.find((p) => p.id === formData.projectId);
+  const projectType = selectedProject?.type || 'Campaña';
+  useEffect(() => {
+    if (!OBLIGATORY_TASK_TYPES.has(formData.taskType) || !formData.clientId) return;
+    const taskOpt = TASK_TYPES[projectType]?.find((t) => t.value === formData.taskType);
+    if (!taskOpt) return;
+    const client = clients.find((c) => c.id === formData.clientId);
+    const clientName = client?.name ?? '';
+    const month = selectedProject?.planning_month ?? (formData.startDate ? new Date(formData.startDate).getMonth() + 1 : new Date().getMonth() + 1);
+    const year = selectedProject?.planning_year ?? (formData.startDate ? new Date(formData.startDate).getFullYear() : new Date().getFullYear());
+    const monthLabel = MONTH_LABELS[month] ?? String(month);
+    const autoTitle = `${taskOpt.label} - ${clientName} - ${monthLabel} - ${year}`;
+    setFormData((prev) => (prev.title !== autoTitle ? { ...prev, title: autoTitle } : prev));
+  }, [formData.taskType, formData.clientId, formData.projectId, formData.startDate, clients, selectedProject?.planning_month, selectedProject?.planning_year, projectType]);
 
   useEffect(() => {
     if (isOpen) setShowFieldErrors(false);
@@ -190,8 +215,6 @@ export function CreateIssueModal({ isOpen, onClose, onSuccess, initialStartDate,
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
-  const selectedProject = projectsList.find((p) => p.id === formData.projectId);
-  const projectType = selectedProject?.type || 'Campaña';
   const isTaskFormValid =
     formData.title.trim() !== '' &&
     formData.description.trim() !== '' &&

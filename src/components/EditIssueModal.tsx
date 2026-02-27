@@ -12,7 +12,6 @@ const TASK_TYPES: Record<string, { value: string; label: string }[]> = {
     { value: 'reportes', label: 'Reportes' },
     { value: 'diseño', label: 'Diseño' },
     { value: 'fotos', label: 'Fotos' },
-    { value: 'tarea', label: 'Tarea (opcional)' },
   ],
   Branding: [
     { value: 'brief', label: 'Brief' },
