@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
-import { UserPlus, Mail, Lock, User } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { Loading } from '@/components/Loading';
 
@@ -47,6 +47,7 @@ export default function Registro() {
     hasSpecialChar: false,
   });
   const [showPasswordRules, setShowPasswordRules] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { user, isLoading } = useApp();
   const router = useRouter();
 
@@ -192,11 +193,11 @@ export default function Registro() {
               <input
                 id="password"
                 name="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={formData.password}
                 onChange={handleChange}
                 onFocus={() => setShowPasswordRules(true)}
-                className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                className={`w-full pl-8 pr-10 py-3 border rounded-lg focus:outline-none focus:ring-2 ${
                   formData.password && !isPasswordValid(passwordRules)
                     ? 'border-red-300 focus:ring-red-500'
                     : formData.password && isPasswordValid(passwordRules)
@@ -207,6 +208,14 @@ export default function Registro() {
                 minLength={8}
                 suppressHydrationWarning
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
             
             {showPasswordRules && (
@@ -247,10 +256,10 @@ export default function Registro() {
               <input
                 id="confirmPassword"
                 name="confirmPassword"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                className={`w-full pl-8 pr-10 py-3 border rounded-lg focus:outline-none focus:ring-2 ${
                   formData.confirmPassword && formData.password !== formData.confirmPassword
                     ? 'border-red-300 focus:ring-red-500'
                     : formData.confirmPassword && formData.password === formData.confirmPassword && isPasswordValid(passwordRules)
@@ -261,6 +270,14 @@ export default function Registro() {
                 minLength={8}
                 suppressHydrationWarning
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
             {formData.confirmPassword && formData.password !== formData.confirmPassword && (
               <p className="text-xs text-red-600 mt-1">Las contraseñas no coinciden</p>
