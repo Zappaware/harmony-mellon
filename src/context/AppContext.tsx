@@ -92,6 +92,7 @@ interface AppContextType {
   deleteUser: (userId: string) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
   refreshIssue: (issueId: string) => Promise<void>;
+  refreshUsers: () => Promise<void>;
   /** Replace issue in context with converted API response (e.g. from PUT update) */
   updateIssueFromApi: (apiIssue: ApiIssue) => void;
   users: User[];
@@ -409,10 +410,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     reloadIssuesWithUsers();
   }, [users.length]); // Reload when users array changes
 
-  // Load users from API
+  // Load users from API (when authenticated)
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    if (token && useApi) {
+    if (token && useApi && user) {
       api.getUsers()
         .then(apiUsers => {
           const convertedUsers: User[] = apiUsers.map(u => ({
@@ -430,7 +431,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           // This ensures we always try to use API data when authenticated
         });
     }
-  }, [useApi]);
+  }, [useApi, user]);
 
   const shouldShowExpiringTasksByTime = (): boolean => {
     if (typeof window === 'undefined') return false;
@@ -721,6 +722,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshUsers = async (): Promise<void> => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token || !useApi) return;
+    try {
+      const apiUsers = await api.getUsers();
+      const convertedUsers: User[] = apiUsers.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        avatar: u.avatar,
+      }));
+      setUsers(convertedUsers);
+    } catch (error) {
+      console.error('Error refreshing users:', error);
+    }
+  };
+
   const updateIssueFromApi = (apiIssue: ApiIssue): void => {
     const converted = convertApiIssue(apiIssue, users);
     setIssues((prev) => prev.map((i) => (i.id === apiIssue.id ? converted : i)));
@@ -761,6 +780,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         deleteUser,
         deleteProject,
         refreshIssue,
+        refreshUsers,
         updateIssueFromApi,
         users,
         showExpiringTasksModal,
