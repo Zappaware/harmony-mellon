@@ -10,14 +10,18 @@ import (
 	"mellon-harmony-api/internal/repository"
 )
 
-// Script to reset the database by deleting all users except admin, user, and team lead test credentials.
+// Script to reset the database by deleting all users except preserved test/seed credentials.
 // Usage: go run reset-database.go
 
-const (
-	adminEmail    = "admin@example.com"
-	userEmail     = "user@example.com"
-	teamLeadEmail = "teamlead@example.com"
-)
+var preservedUserEmails = map[string]bool{
+	"admin@example.com":    true,
+	"user@example.com":     true,
+	"teamlead@example.com": true,
+	"maria@example.com":    true,
+	"carlos@example.com":   true,
+	"ana@example.com":      true,
+	"pedro@example.com":    true,
+}
 
 func main() {
 	log.Println("Starting database reset...")
@@ -155,7 +159,7 @@ func main() {
 	preservedUsers := 0
 
 	for _, u := range allUsers {
-		if u.Email == adminEmail || u.Email == userEmail || u.Email == teamLeadEmail {
+		if preservedUserEmails[u.Email] {
 			preservedUsers++
 			log.Printf("Preserving user: %s (%s) - %s", u.Name, u.Email, u.Role)
 		} else {
@@ -163,12 +167,12 @@ func main() {
 		}
 	}
 
-	// Delete users that are not admin, user, or team lead
+	// Delete users that are not in the preserved list
 	deletedCount := 0
 	if usersToDelete > 0 {
 		log.Printf("Will delete %d users (preserving %d test credentials)", usersToDelete, preservedUsers)
 		for _, u := range allUsers {
-			if u.Email != adminEmail && u.Email != userEmail && u.Email != teamLeadEmail {
+			if !preservedUserEmails[u.Email] {
 				if err := userRepo.Delete(u.ID); err != nil {
 					log.Printf("Error deleting user %s (%s): %v", u.Name, u.Email, err)
 					continue
@@ -189,8 +193,5 @@ func main() {
 	log.Printf("  - All issues/tasks")
 	log.Printf("  - All comments")
 	log.Printf("  - All notifications")
-	log.Printf("\nPreserved 3 test credentials:")
-	log.Printf("  - %s (admin)", adminEmail)
-	log.Printf("  - %s (user)", userEmail)
-	log.Printf("  - %s (team lead)", teamLeadEmail)
+	log.Printf("\nPreserved %d test credentials (admin, user, teamlead, maria, carlos, ana, pedro)", preservedUsers)
 }

@@ -55,6 +55,30 @@ func SeedUsers(db *gorm.DB) error {
 			password: "teamlead123",
 			role:     models.RoleTeamLead,
 		},
+		{
+			name:     "María García",
+			email:    "maria@example.com",
+			password: "maria123",
+			role:     models.RoleUser,
+		},
+		{
+			name:     "Carlos Rodríguez",
+			email:    "carlos@example.com",
+			password: "carlos123",
+			role:     models.RoleUser,
+		},
+		{
+			name:     "Ana López",
+			email:    "ana@example.com",
+			password: "ana123",
+			role:     models.RoleTeamLead,
+		},
+		{
+			name:     "Pedro Sánchez",
+			email:    "pedro@example.com",
+			password: "pedro123",
+			role:     models.RoleUser,
+		},
 	}
 
 	for _, u := range users {
@@ -80,10 +104,30 @@ func SeedUsers(db *gorm.DB) error {
 		}
 
 		if err := userRepo.Create(user); err != nil {
-			// Ignore duplicate key errors (user already exists) - these are harmless
 			errStr := err.Error()
 			if contains(errStr, "duplicate key") || contains(errStr, "23505") {
-				log.Printf("User %s already exists, skipping...", u.email)
+				// User exists (possibly soft-deleted from reset-database). Restore if soft-deleted.
+				var existing models.User
+				if dbErr := db.Unscoped().Where("email = ?", u.email).First(&existing).Error; dbErr == nil {
+					// Check if soft-deleted (DeletedAt is set)
+					if existing.DeletedAt.Valid {
+						// Restore: clear deleted_at and update password/name/role
+						if dbErr := db.Unscoped().Model(&existing).Updates(map[string]interface{}{
+							"deleted_at": nil,
+							"password":   string(hashedPassword),
+							"name":       u.name,
+							"role":       u.role,
+						}).Error; dbErr == nil {
+							log.Printf("Restored user: %s (%s)", u.name, u.email)
+						} else {
+							log.Printf("User %s already exists, skipping...", u.email)
+						}
+					} else {
+						log.Printf("User %s already exists, skipping...", u.email)
+					}
+				} else {
+					log.Printf("User %s already exists, skipping...", u.email)
+				}
 			} else {
 				log.Printf("Error creating user %s: %v", u.email, err)
 			}
@@ -146,6 +190,36 @@ func SeedClients(db *gorm.DB) error {
 			contactName:  "Michael Chen",
 			contactEmail: "michael.chen@innovationlabs.com",
 			contactPhone: "+1-555-0302",
+		},
+		{
+			name:         "TechStart Ventures",
+			description:  "Venture capital firm investing in early-stage tech startups",
+			email:        "info@techstart.vc",
+			phone:        "+1-555-0401",
+			address:      "321 Startup Lane, Palo Alto, CA 94301",
+			contactName:  "Emma Wilson",
+			contactEmail: "emma@techstart.vc",
+			contactPhone: "+1-555-0402",
+		},
+		{
+			name:         "Green Energy Solutions",
+			description:  "Renewable energy consulting and solar panel installation",
+			email:        "contact@greenenergy.com",
+			phone:        "+1-555-0501",
+			address:      "555 Solar Way, Denver, CO 80202",
+			contactName:  "David Martinez",
+			contactEmail: "david.m@greenenergy.com",
+			contactPhone: "+1-555-0502",
+		},
+		{
+			name:         "Fashion Forward Co",
+			description:  "Luxury fashion brand and e-commerce retailer",
+			email:        "hello@fashionforward.com",
+			phone:        "+1-555-0601",
+			address:      "888 Style Ave, Los Angeles, CA 90028",
+			contactName:  "Olivia Brown",
+			contactEmail: "olivia@fashionforward.com",
+			contactPhone: "+1-555-0602",
 		},
 	}
 
@@ -227,61 +301,183 @@ func SeedProjects(db *gorm.DB) error {
 	}
 
 	now := time.Now()
-	// Only Planner, Branding, or Campaña project types
+	jan2026 := 1
+	feb2026 := 2
+	year2026 := 2026
+
 	projects := []struct {
-		name         string
-		description  string
-		projectType  string
-		status       models.ProjectStatus
-		progress     int
-		color        string
-		clientIndex  int
-		daysOffset   int
-		deadlineDays int
+		name           string
+		description    string
+		projectType    string
+		status         models.ProjectStatus
+		progress       int
+		color          string
+		clientIndex    int
+		daysOffset     int
+		deadlineDays   int
+		planningMonth  *int
+		planningYear   *int
 	}{
+		// Original projects - Jan/Feb 2026
 		{
-			name:         "Campaña Web 2025",
-			description:  "Campaña de lanzamiento y rediseño web",
-			projectType:  "Campaña",
-			status:       models.ProjectStatusInProgress,
-			progress:     45,
-			color:        "#3B82F6",
-			clientIndex:  0,
-			daysOffset:   -30,
-			deadlineDays: 60,
+			name:          "Campaña Web 2025",
+			description:   "Campaña de lanzamiento y rediseño web",
+			projectType:   "Campaña",
+			status:        models.ProjectStatusInProgress,
+			progress:      45,
+			color:         "#3B82F6",
+			clientIndex:   0,
+			daysOffset:    -30,
+			deadlineDays:  60,
+			planningMonth: &jan2026,
+			planningYear:  &year2026,
 		},
 		{
-			name:         "Branding Corporativo",
-			description:  "Identidad de marca, brief y plan de comunicación",
-			projectType:  "Branding",
-			status:       models.ProjectStatusPlanning,
-			progress:     20,
-			color:        "#10B981",
-			clientIndex:  1,
-			daysOffset:   -10,
-			deadlineDays: 120,
+			name:          "Branding Corporativo",
+			description:   "Identidad de marca, brief y plan de comunicación",
+			projectType:   "Branding",
+			status:        models.ProjectStatusPlanning,
+			progress:      20,
+			color:         "#10B981",
+			clientIndex:   1,
+			daysOffset:    -10,
+			deadlineDays:  120,
+			planningMonth: &jan2026,
+			planningYear:  &year2026,
 		},
 		{
-			name:         "Campaña Redes Q1",
-			description:  "Campaña en redes sociales y email marketing",
-			projectType:  "Campaña",
-			status:       models.ProjectStatusInProgress,
-			progress:     65,
-			color:        "#F59E0B",
-			clientIndex:  1,
-			daysOffset:   -45,
-			deadlineDays: 15,
+			name:          "Campaña Redes Q1",
+			description:   "Campaña en redes sociales y email marketing",
+			projectType:   "Campaña",
+			status:        models.ProjectStatusInProgress,
+			progress:      65,
+			color:         "#F59E0B",
+			clientIndex:   1,
+			daysOffset:    -45,
+			deadlineDays:  15,
+			planningMonth: &feb2026,
+			planningYear:  &year2026,
 		},
 		{
-			name:         "Planner Estratégico",
-			description:  "Planificación con reportes, estrategia, diseño y fotos",
-			projectType:  "Planner",
-			status:       models.ProjectStatusPlanning,
-			progress:     15,
-			color:        "#8B5CF6",
-			clientIndex:  2,
-			daysOffset:   0,
-			deadlineDays: 90,
+			name:          "Planner Estratégico",
+			description:   "Planificación con reportes, estrategia, diseño y fotos",
+			projectType:   "Planner",
+			status:        models.ProjectStatusPlanning,
+			progress:      15,
+			color:         "#8B5CF6",
+			clientIndex:   2,
+			daysOffset:    0,
+			deadlineDays:  90,
+			planningMonth: &jan2026,
+			planningYear:  &year2026,
+		},
+		// Additional: 2 more Planners
+		{
+			name:          "Planner Q1 2026",
+			description:   "Planificación estratégica primer trimestre",
+			projectType:   "Planner",
+			status:        models.ProjectStatusInProgress,
+			progress:      35,
+			color:         "#8B5CF6",
+			clientIndex:   3,
+			daysOffset:    -15,
+			deadlineDays:  45,
+			planningMonth: &jan2026,
+			planningYear:  &year2026,
+		},
+		{
+			name:          "Planner Febrero",
+			description:   "Plan de contenidos febrero 2026",
+			projectType:   "Planner",
+			status:        models.ProjectStatusPlanning,
+			progress:      10,
+			color:         "#8B5CF6",
+			clientIndex:   4,
+			daysOffset:    0,
+			deadlineDays:  60,
+			planningMonth: &feb2026,
+			planningYear:  &year2026,
+		},
+		// Additional: 2 more Brandings
+		{
+			name:          "Branding TechStart",
+			description:   "Identidad visual para TechStart Ventures",
+			projectType:   "Branding",
+			status:        models.ProjectStatusPlanning,
+			progress:      5,
+			color:         "#10B981",
+			clientIndex:   3,
+			daysOffset:    0,
+			deadlineDays:  90,
+			planningMonth: &jan2026,
+			planningYear:  &year2026,
+		},
+		{
+			name:          "Branding Green Energy",
+			description:   "Refresh de marca para Green Energy Solutions",
+			projectType:   "Branding",
+			status:        models.ProjectStatusInProgress,
+			progress:      50,
+			color:         "#10B981",
+			clientIndex:   4,
+			daysOffset:    -20,
+			deadlineDays:  30,
+			planningMonth: &feb2026,
+			planningYear:  &year2026,
+		},
+		// Additional: 2 more Campañas
+		{
+			name:          "Campaña Lanzamiento Startup",
+			description:   "Campaña de lanzamiento para portfolio TechStart",
+			projectType:   "Campaña",
+			status:        models.ProjectStatusInProgress,
+			progress:      40,
+			color:         "#3B82F6",
+			clientIndex:   3,
+			daysOffset:    -10,
+			deadlineDays:  20,
+			planningMonth: &jan2026,
+			planningYear:  &year2026,
+		},
+		{
+			name:          "Campaña Fashion Forward",
+			description:   "Campaña primavera-verano 2026",
+			projectType:   "Campaña",
+			status:        models.ProjectStatusPlanning,
+			progress:      0,
+			color:         "#F59E0B",
+			clientIndex:   5,
+			daysOffset:    0,
+			deadlineDays:  75,
+			planningMonth: &feb2026,
+			planningYear:  &year2026,
+		},
+		// Additional: 2 customized project types
+		{
+			name:          "Consultoría Estratégica",
+			description:   "Consultoría de estrategia digital y transformación",
+			projectType:   "Consultoría",
+			status:        models.ProjectStatusInProgress,
+			progress:      60,
+			color:         "#6366F1",
+			clientIndex:   0,
+			daysOffset:    -25,
+			deadlineDays:  35,
+			planningMonth: &jan2026,
+			planningYear:  &year2026,
+		},
+		{
+			name:          "Producción Audiovisual",
+			description:   "Producción de videos corporativos y spots",
+			projectType:   "Producción",
+			status:        models.ProjectStatusPlanning,
+			progress:      15,
+			color:         "#EC4899",
+			clientIndex:   5,
+			daysOffset:    0,
+			deadlineDays:  90,
+			planningMonth: &feb2026,
+			planningYear:  &year2026,
 		},
 	}
 
@@ -313,16 +509,18 @@ func SeedProjects(db *gorm.DB) error {
 		deadline := now.AddDate(0, 0, p.deadlineDays)
 
 		project := &models.Project{
-			Name:        p.name,
-			Description: p.description,
-			Type:        p.projectType,
-			Status:      p.status,
-			Progress:    p.progress,
-			Color:       p.color,
-			ClientID:    &clientID,
-			CreatedBy:   adminUser.ID,
-			StartDate:   &startDate,
-			Deadline:    &deadline,
+			Name:          p.name,
+			Description:   p.description,
+			Type:          p.projectType,
+			Status:        p.status,
+			Progress:      p.progress,
+			Color:         p.color,
+			ClientID:      &clientID,
+			CreatedBy:     adminUser.ID,
+			StartDate:     &startDate,
+			Deadline:      &deadline,
+			PlanningMonth: p.planningMonth,
+			PlanningYear:  p.planningYear,
 		}
 
 		if err := projectRepo.Create(project); err != nil {
@@ -370,6 +568,11 @@ func SeedIssues(db *gorm.DB) error {
 		return nil
 	}
 
+	mariaUser, _ := getUserByEmail(db, "maria@example.com")
+	carlosUser, _ := getUserByEmail(db, "carlos@example.com")
+	anaUser, _ := getUserByEmail(db, "ana@example.com")
+	pedroUser, _ := getUserByEmail(db, "pedro@example.com")
+
 	// Get projects
 	projects, err := projectRepo.GetAll()
 	if err != nil || len(projects) == 0 {
@@ -378,10 +581,9 @@ func SeedIssues(db *gorm.DB) error {
 	}
 
 	now := time.Now()
-	// Tasks use obligatory and some optional task types per project type:
-	// Campaña (index 0, 2): task_type "tarea"
-	// Branding (index 1): brief, propuesta, plan_comunicacion, presentacion
-	// Planner (index 3): reportes, estrategia, diseño, fotos
+	// Tasks - projectIndex matches GetAll() order (created_at DESC): 0=Producción, 1=Consultoría,
+	// 2=Campaña Fashion, 3=Campaña Lanzamiento, 4=Branding Green, 5=Branding TechStart,
+	// 6=Planner Febrero, 7=Planner Q1, 8=Planner Estrat, 9=Campaña Redes, 10=Branding, 11=Campaña Web
 	issues := []struct {
 		title           string
 		description     string
@@ -393,13 +595,13 @@ func SeedIssues(db *gorm.DB) error {
 		daysOffset      int
 		dueDays         int
 	}{
-		// Campaña project 0 - tareas
+		// Campaña Web (index 11)
 		{
 			title:           "Tarea: Landing page",
 			description:     "Diseño y contenido de la landing de la campaña web",
 			status:          models.StatusInProgress,
 			priority:        models.PriorityHigh,
-			projectIndex:    0,
+			projectIndex:    11,
 			taskType:        string(models.TaskTypeTarea),
 			assignedToEmail: "user@example.com",
 			daysOffset:      -5,
@@ -410,19 +612,19 @@ func SeedIssues(db *gorm.DB) error {
 			description:     "Implementar formulario y validaciones",
 			status:          models.StatusTodo,
 			priority:        models.PriorityMedium,
-			projectIndex:    0,
+			projectIndex:    11,
 			taskType:        string(models.TaskTypeTarea),
 			assignedToEmail: "user@example.com",
 			daysOffset:      0,
 			dueDays:         15,
 		},
-		// Branding project 1 - obligatory types
+		// Branding Corporativo (index 10)
 		{
 			title:           "Brief de marca",
 			description:     "Documento brief con objetivos y audiencia",
 			status:          models.StatusTodo,
 			priority:        models.PriorityHigh,
-			projectIndex:    1,
+			projectIndex:    10,
 			taskType:        string(models.TaskTypeBrief),
 			assignedToEmail: "user@example.com",
 			daysOffset:      0,
@@ -433,7 +635,7 @@ func SeedIssues(db *gorm.DB) error {
 			description:     "Propuesta de identidad visual y naming",
 			status:          models.StatusTodo,
 			priority:        models.PriorityHigh,
-			projectIndex:    1,
+			projectIndex:    10,
 			taskType:        string(models.TaskTypePropuesta),
 			assignedToEmail: "user@example.com",
 			daysOffset:      0,
@@ -444,7 +646,7 @@ func SeedIssues(db *gorm.DB) error {
 			description:     "Plan de canales y mensajes de marca",
 			status:          models.StatusReview,
 			priority:        models.PriorityMedium,
-			projectIndex:    1,
+			projectIndex:    10,
 			taskType:        string(models.TaskTypePlanComunicacion),
 			assignedToEmail: "teamlead@example.com",
 			daysOffset:      -7,
@@ -455,19 +657,19 @@ func SeedIssues(db *gorm.DB) error {
 			description:     "Presentación para cliente con entregables",
 			status:          models.StatusTodo,
 			priority:        models.PriorityMedium,
-			projectIndex:    1,
+			projectIndex:    10,
 			taskType:        string(models.TaskTypePresentacion),
 			assignedToEmail: "user@example.com",
 			daysOffset:      0,
 			dueDays:         30,
 		},
-		// Campaña project 2 - tareas
+		// Campaña Redes (index 9)
 		{
 			title:           "Tarea: Calendario redes",
 			description:     "Calendario de publicaciones para redes sociales",
 			status:          models.StatusReview,
 			priority:        models.PriorityMedium,
-			projectIndex:    2,
+			projectIndex:    9,
 			taskType:        string(models.TaskTypeTarea),
 			assignedToEmail: "teamlead@example.com",
 			daysOffset:      -10,
@@ -478,19 +680,19 @@ func SeedIssues(db *gorm.DB) error {
 			description:     "Textos para envío de email marketing Q1",
 			status:          models.StatusTodo,
 			priority:        models.PriorityLow,
-			projectIndex:    2,
+			projectIndex:    9,
 			taskType:        string(models.TaskTypeTarea),
 			assignedToEmail: "user@example.com",
 			daysOffset:      0,
 			dueDays:         10,
 		},
-		// Planner project 3 - obligatory types
+		// Planner Estratégico (index 8)
 		{
 			title:           "Reportes de avance",
 			description:     "Reportes semanales de avance del plan",
 			status:          models.StatusTodo,
 			priority:        models.PriorityMedium,
-			projectIndex:    3,
+			projectIndex:    8,
 			taskType:        string(models.TaskTypeReportes),
 			assignedToEmail: "user@example.com",
 			daysOffset:      0,
@@ -501,7 +703,7 @@ func SeedIssues(db *gorm.DB) error {
 			description:     "Documento de estrategia y fases",
 			status:          models.StatusInProgress,
 			priority:        models.PriorityHigh,
-			projectIndex:    3,
+			projectIndex:    8,
 			taskType:        string(models.TaskTypeEstrategia),
 			assignedToEmail: "teamlead@example.com",
 			daysOffset:      -5,
@@ -512,7 +714,7 @@ func SeedIssues(db *gorm.DB) error {
 			description:     "Diseño de piezas gráficas del plan",
 			status:          models.StatusTodo,
 			priority:        models.PriorityMedium,
-			projectIndex:    3,
+			projectIndex:    8,
 			taskType:        string(models.TaskTypeDiseno),
 			assignedToEmail: "user@example.com",
 			daysOffset:      0,
@@ -523,11 +725,100 @@ func SeedIssues(db *gorm.DB) error {
 			description:     "Sesión de fotos y selección de contenido visual",
 			status:          models.StatusTodo,
 			priority:        models.PriorityLow,
-			projectIndex:    3,
+			projectIndex:    8,
 			taskType:        string(models.TaskTypeFotos),
 			assignedToEmail: "user@example.com",
 			daysOffset:      0,
 			dueDays:         30,
+		},
+		// New projects (indices 0-7: Producción, Consultoría, Campaña Fashion, Campaña Lanzamiento, Branding Green, Branding TechStart, Planner Febrero, Planner Q1)
+		{
+			title:           "Reportes Q1 TechStart",
+			description:     "Reportes de avance para planificación Q1",
+			status:          models.StatusInProgress,
+			priority:        models.PriorityMedium,
+			projectIndex:    7,
+			taskType:        string(models.TaskTypeReportes),
+			assignedToEmail: "maria@example.com",
+			daysOffset:      -5,
+			dueDays:         10,
+		},
+		{
+			title:           "Estrategia Febrero",
+			description:     "Estrategia de contenidos febrero",
+			status:          models.StatusTodo,
+			priority:        models.PriorityHigh,
+			projectIndex:    6,
+			taskType:        string(models.TaskTypeEstrategia),
+			assignedToEmail: "ana@example.com",
+			daysOffset:      0,
+			dueDays:         14,
+		},
+		{
+			title:           "Brief TechStart",
+			description:     "Brief de marca para TechStart Ventures",
+			status:          models.StatusTodo,
+			priority:        models.PriorityHigh,
+			projectIndex:    5,
+			taskType:        string(models.TaskTypeBrief),
+			assignedToEmail: "carlos@example.com",
+			daysOffset:      0,
+			dueDays:         14,
+		},
+		{
+			title:           "Propuesta Green Energy",
+			description:     "Propuesta creativa refresh de marca",
+			status:          models.StatusReview,
+			priority:        models.PriorityHigh,
+			projectIndex:    4,
+			taskType:        string(models.TaskTypePropuesta),
+			assignedToEmail: "teamlead@example.com",
+			daysOffset:      -3,
+			dueDays:         7,
+		},
+		{
+			title:           "Tarea: Landing Lanzamiento",
+			description:     "Landing page para campaña de lanzamiento",
+			status:          models.StatusInProgress,
+			priority:        models.PriorityHigh,
+			projectIndex:    3,
+			taskType:        string(models.TaskTypeTarea),
+			assignedToEmail: "pedro@example.com",
+			daysOffset:      -2,
+			dueDays:         12,
+		},
+		{
+			title:           "Tarea: Calendario Fashion",
+			description:     "Calendario editorial primavera-verano",
+			status:          models.StatusTodo,
+			priority:        models.PriorityMedium,
+			projectIndex:    2,
+			taskType:        string(models.TaskTypeTarea),
+			assignedToEmail: "user@example.com",
+			daysOffset:      0,
+			dueDays:         21,
+		},
+		{
+			title:           "Tarea: Análisis Consultoría",
+			description:     "Análisis de estrategia digital",
+			status:          models.StatusInProgress,
+			priority:        models.PriorityHigh,
+			projectIndex:    1,
+			taskType:        string(models.TaskTypeTarea),
+			assignedToEmail: "ana@example.com",
+			daysOffset:      -10,
+			dueDays:         5,
+		},
+		{
+			title:           "Tarea: Guion Producción",
+			description:     "Guion para videos corporativos",
+			status:          models.StatusTodo,
+			priority:        models.PriorityMedium,
+			projectIndex:    0,
+			taskType:        string(models.TaskTypeTarea),
+			assignedToEmail: "carlos@example.com",
+			daysOffset:      0,
+			dueDays:         14,
 		},
 	}
 
@@ -550,10 +841,19 @@ func SeedIssues(db *gorm.DB) error {
 
 		// Get assigned user
 		var assignedUser *models.User
-		if i.assignedToEmail == "user@example.com" {
+		switch i.assignedToEmail {
+		case "user@example.com":
 			assignedUser = userUser
-		} else if i.assignedToEmail == "teamlead@example.com" {
+		case "teamlead@example.com":
 			assignedUser = teamLeadUser
+		case "maria@example.com":
+			assignedUser = mariaUser
+		case "carlos@example.com":
+			assignedUser = carlosUser
+		case "ana@example.com":
+			assignedUser = anaUser
+		case "pedro@example.com":
+			assignedUser = pedroUser
 		}
 
 		// Get project
