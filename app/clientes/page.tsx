@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
-import { Building2, ChevronRight, Plus, Search, Trash2, Users } from 'lucide-react';
+import { Building2, ChevronRight, LayoutGrid, LayoutList, Plus, Search, Trash2, Users } from 'lucide-react';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { CreateClientModal } from '@/components/CreateClientModal';
 import { Loading } from '@/components/Loading';
 import { api, ApiClient, getFileDisplayUrl } from '@/services/api';
@@ -25,6 +26,7 @@ function ClientesContent() {
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const { user } = useApp();
 
   const canCreate = user?.role === 'admin' || user?.role === 'team_lead';
@@ -88,11 +90,23 @@ function ClientesContent() {
   return (
     <LayoutWithSidebar>
       <div className="p-4 md:p-8">
-        {/* Header: title, search, actions */}
+        {/* Header: title + plus, search, view toggle */}
         <header className="mb-6 md:mb-8 pr-12 md:pr-16">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl md:text-3xl text-gray-800 mb-1 md:mb-2">Clientes</h1>
+              <div className="flex items-center gap-2 mb-1 md:mb-2">
+                <h1 className="text-xl md:text-3xl text-gray-800">Clientes</h1>
+                {canCreate && (
+                  <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 shrink-0"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span className="hidden sm:inline">Nuevo Cliente</span>
+                    <span className="sm:hidden">Nuevo</span>
+                  </button>
+                )}
+              </div>
               <p className="text-sm md:text-base text-gray-600">Gestiona todos tus clientes</p>
             </div>
             <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
@@ -106,23 +120,28 @@ function ClientesContent() {
                   className="w-full md:min-w-[18rem] md:w-80 px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base placeholder:text-gray-400"
                 />
               </div>
-              {canCreate && (
-                <button
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 shrink-0"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span className="hidden sm:inline">Nuevo Cliente</span>
-                  <span className="sm:hidden">Nuevo</span>
-                </button>
-              )}
+              <ToggleGroup
+                type="single"
+                value={viewMode}
+                onValueChange={(v) => v && setViewMode(v as 'list' | 'grid')}
+                variant="outline"
+                size="lg"
+                className="shrink-0 border border-gray-300 bg-white rounded-lg overflow-hidden shadow-sm [&_[data-state=on]]:bg-indigo-100 [&_[data-state=on]]:text-indigo-600 hover:[&_[data-state=on]]:bg-indigo-100"
+              >
+                <ToggleGroupItem value="list" aria-label="Vista lista" title="Vista lista">
+                  <LayoutList className="w-5 h-5" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="grid" aria-label="Vista cuadrícula" title="Vista cuadrícula">
+                  <LayoutGrid className="w-5 h-5" />
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
           </div>
         </header>
 
-        {/* Content: empty state, no results, or list of clients */}
-        <section aria-label="Listado de clientes">
-          {clients.length === 0 ? (
+        {/* Content: empty state, no results, list, or grid */}
+        {clients.length === 0 ? (
+          <section aria-label="Estado vacío">
             <div className="bg-white rounded-lg shadow p-8 md:p-12 text-center">
               <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-2">
@@ -143,12 +162,16 @@ function ClientesContent() {
                 </button>
               )}
             </div>
-          ) : filteredClients.length === 0 ? (
+          </section>
+        ) : filteredClients.length === 0 ? (
+          <section aria-label="Sin resultados">
             <div className="bg-white rounded-lg shadow p-8 text-center">
               <Search className="w-12 h-12 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-600">No hay clientes que coincidan con &quot;{searchQuery}&quot;</p>
             </div>
-          ) : (
+          </section>
+        ) : viewMode === 'list' ? (
+          <section aria-label="Listado de clientes">
             <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
               <ul className="divide-y divide-gray-200">
                 {filteredClients.map((client) => (
@@ -204,8 +227,66 @@ function ClientesContent() {
                 ))}
               </ul>
             </div>
-          )}
-        </section>
+          </section>
+        ) : (
+          <section aria-label="Cuadrícula de clientes" className="w-full px-2.5 pb-2.5">
+            <div className="grid w-full gap-4" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+              {filteredClients.map((client) => (
+                <div key={client.id} className="min-w-0 bg-white rounded-lg shadow border border-gray-200 overflow-hidden group flex flex-col">
+                  <Link
+                    href={`/clientes/${client.id}`}
+                    className="flex flex-col p-4 hover:bg-gray-50 transition-colors flex-1 min-h-0"
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="w-12 h-12 min-w-12 min-h-12 bg-indigo-100 rounded-lg flex items-center justify-center shrink-0 overflow-hidden relative">
+                        {client.logo ? (
+                          <>
+                            <img
+                              src={getFileDisplayUrl(client.logo) ?? ''}
+                              alt={client.name}
+                              className="w-full h-full object-cover min-w-full min-h-full absolute inset-0"
+                              width={48}
+                              height={48}
+                              loading="lazy"
+                              onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }}
+                            />
+                            <Building2 className="w-6 h-6 text-indigo-600 hidden" aria-hidden />
+                          </>
+                        ) : (
+                          <Building2 className="w-6 h-6 text-indigo-600" />
+                        )}
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-indigo-500 shrink-0 mt-1" />
+                    </div>
+                    <h3 className="font-medium text-gray-900 group-hover:text-indigo-600 truncate mb-1">
+                      {client.name}
+                    </h3>
+                    {client.description && (
+                      <p className="text-sm text-gray-500 line-clamp-2 mb-2">{client.description}</p>
+                    )}
+                    <div className="flex items-center gap-2 text-sm text-gray-500 mt-auto">
+                      <Users className="w-4 h-4 text-gray-400 shrink-0" />
+                      <span>{client.projects?.length || 0} proyecto(s)</span>
+                    </div>
+                  </Link>
+                  {canCreate && (
+                    <div className="border-t border-gray-100 px-4 py-2">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setClientToDelete(client.id); }}
+                        className="w-full flex items-center justify-center gap-2 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm"
+                        title="Eliminar cliente"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Eliminar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
       <CreateClientModal

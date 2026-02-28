@@ -6,8 +6,10 @@ import Link from 'next/link';
 import {
   ArrowLeft,
   Building2,
+  ChevronRight,
   Plus,
   LayoutList,
+  LayoutGrid,
   Palette,
   Megaphone,
   FolderPlus,
@@ -33,10 +35,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Loading } from '@/components/Loading';
 import { api, ApiClient, ApiClientMember, ApiProject, getFileDisplayUrl } from '@/services/api';
 import { useApp } from '@/context/AppContext';
-import { IssueCardList } from '@/components/IssueCardList';
+import { IssueCardList, IssueCardGrid } from '@/components/IssueCardList';
 import { CreateProjectModal } from '@/components/CreateProjectModal';
 import { CreateIssueModal } from '@/components/CreateIssueModal';
 import { CreateClientModal } from '@/components/CreateClientModal';
@@ -79,6 +82,7 @@ export default function ClienteDetailPage() {
   const [teamAddUserId, setTeamAddUserId] = useState('');
   const [teamLoading, setTeamLoading] = useState(false);
   const [teamEditModalOpen, setTeamEditModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   const clientMembers = client?.client_members ?? [];
   const canEditClient = currentUser?.role === 'admin' || currentUser?.role === 'team_lead';
@@ -93,7 +97,11 @@ export default function ClienteDetailPage() {
         if (!cancelled) setClient(c);
       } catch (e) {
         if (!cancelled) {
-          console.error('Error loading client:', e);
+          // 404 (client not found) is expected when navigating to deleted/non-existent client
+          const isNotFound = e instanceof Error && (e.message?.includes('not found') || e.message?.includes('no encontrado'));
+          if (!isNotFound) {
+            console.error('Error loading client:', e);
+          }
           setClient(null);
         }
       } finally {
@@ -262,7 +270,25 @@ export default function ClienteDetailPage() {
   }
 
   return (
-    <LayoutWithSidebar>
+    <LayoutWithSidebar
+      headerActions={
+        <ToggleGroup
+          type="single"
+          value={viewMode}
+          onValueChange={(v) => v && setViewMode(v as 'list' | 'grid')}
+          variant="outline"
+          size="lg"
+          className="shrink-0 border border-gray-300 bg-white rounded-lg overflow-hidden shadow-sm [&_[data-state=on]]:bg-indigo-100 [&_[data-state=on]]:text-indigo-600 hover:[&_[data-state=on]]:bg-indigo-100"
+        >
+          <ToggleGroupItem value="list" aria-label="Vista lista" title="Vista lista">
+            <LayoutList className="w-5 h-5" />
+          </ToggleGroupItem>
+          <ToggleGroupItem value="grid" aria-label="Vista cuadrícula" title="Vista cuadrícula">
+            <LayoutGrid className="w-5 h-5" />
+          </ToggleGroupItem>
+        </ToggleGroup>
+      }
+    >
       <div className="p-4 md:p-8">
         {/* Header: same pattern as client list — pr-12 md:pr-16 for bell, plus in row */}
         <header className="mb-6 md:mb-8 pr-12 md:pr-16">
@@ -294,7 +320,17 @@ export default function ClienteDetailPage() {
                 )}
               </div>
               <div className="min-w-0">
-                <h1 className="text-2xl md:text-3xl text-gray-800 truncate">{client.name}</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl md:text-3xl text-gray-800 truncate">{client.name}</h1>
+                  <button
+                    onClick={() => setInfoClientModalOpen(true)}
+                    className="inline-flex items-center justify-center w-10 h-10 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors shrink-0"
+                    title="Ver información del cliente"
+                    aria-label="Ver información del cliente"
+                  >
+                    <Info className="w-5 h-5" />
+                  </button>
+                </div>
                 {client.description && (
                   <p className="text-gray-600 mt-1 line-clamp-2">{client.description}</p>
                 )}
@@ -312,14 +348,6 @@ export default function ClienteDetailPage() {
                   <Plus className="w-5 h-5" />
                 </button>
               )}
-              <button
-                onClick={() => setInfoClientModalOpen(true)}
-                className="inline-flex items-center justify-center w-10 h-10 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                title="Ver información del cliente"
-                aria-label="Ver información del cliente"
-              >
-                <Info className="w-5 h-5" />
-              </button>
               {canEditClient && (
                 <button
                   onClick={() => setEditClientModalOpen(true)}
@@ -590,86 +618,111 @@ export default function ClienteDetailPage() {
                 <p className="text-sm text-gray-500 py-4">No hay proyectos de tipo {type}.</p>
               )}
 
-              {typeProjects.map((project) => {
-                const projectIssues = issues.filter((i) => i.projectId === project.id);
-                const approvedCount = projectIssues.filter((i) => i.approvedAt).length;
-                const showScore = ['Planner', 'Branding'].includes(type) && projectIssues.length > 0;
-                return (
-                  <div key={project.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
-                    <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h2 className="font-semibold text-gray-800">{project.name}</h2>
-                        <Badge variant="status" value={project.status || 'planning'} />
-                        {showScore && (
-                          <span className="inline-flex items-center gap-1 text-sm text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full" title="Tareas aprobadas por líder o administrador">
-                            <Star className="w-4 h-4 fill-amber-500" />
-                            <span>{approvedCount}/{projectIssues.length}</span>
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {canManageClient && (
-                          <>
-                            <button
-                              onClick={() => openCreateIssue(project.id)}
-                              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                            >
-                              <Plus className="w-4 h-4" />
-                              Nueva tarea
-                            </button>
-                            <button
-                              onClick={() => { setProjectToEdit(project); setCreateProjectModalOpen(true); setProjectTypeToAdd(null); setPersonalizedProjectOpen(false); }}
-                              className="inline-flex items-center justify-center w-9 h-9 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                              title="Editar proyecto"
-                              aria-label="Editar proyecto"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-                        {canManageClient && (
-                          <button
-                            onClick={() => setProjectToDelete(project)}
-                            className="inline-flex items-center justify-center w-9 h-9 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Eliminar proyecto"
-                            aria-label="Eliminar proyecto"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      {projectIssues.length === 0 ? (
-                        <div className="px-4 py-8 text-center text-gray-500 text-sm">
-                          No hay tareas en este proyecto.
-                          {canManageClient && (
-                            <button
-                              onClick={() => openCreateIssue(project.id)}
-                              className="block mx-auto mt-2 text-indigo-600 hover:text-indigo-700"
-                            >
-                              Crear primera tarea
-                            </button>
+              <section aria-label={viewMode === 'list' ? 'Listado de proyectos y tareas' : 'Proyectos con tareas en cuadrícula'}>
+                <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+                  <ul className="divide-y divide-gray-200">
+                    {typeProjects.map((project) => {
+                      const projectIssues = issues.filter((i) => i.projectId === project.id);
+                      const approvedCount = projectIssues.filter((i) => i.approvedAt).length;
+                      const showScore = ['Planner', 'Branding'].includes(type) && projectIssues.length > 0;
+                      return (
+                        <li key={project.id} className="group">
+                          <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 transition-colors">
+                            <div className="flex-1 min-w-0 flex items-center gap-4">
+                              <h2 className="font-medium text-gray-900 truncate">{project.name}</h2>
+                              <Badge variant="status" value={project.status || 'planning'} />
+                              {showScore && (
+                                <span className="inline-flex items-center gap-1 text-sm text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full shrink-0">
+                                  <Star className="w-4 h-4 fill-amber-500" />
+                                  <span>{approvedCount}/{projectIssues.length}</span>
+                                </span>
+                              )}
+                              <span className="text-sm text-gray-500 shrink-0">{projectIssues.length} tarea(s)</span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {canManageClient && (
+                                <>
+                                  <button
+                                    onClick={() => openCreateIssue(project.id)}
+                                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                    Nueva tarea
+                                  </button>
+                                  <button
+                                    onClick={() => { setProjectToEdit(project); setCreateProjectModalOpen(true); setProjectTypeToAdd(null); setPersonalizedProjectOpen(false); }}
+                                    className="inline-flex items-center justify-center w-9 h-9 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                    title="Editar proyecto"
+                                    aria-label="Editar proyecto"
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => setProjectToDelete(project)}
+                                    className="inline-flex items-center justify-center w-9 h-9 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="Eliminar proyecto"
+                                    aria-label="Eliminar proyecto"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
+                              <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-indigo-500 shrink-0" />
+                            </div>
+                          </div>
+                          {projectIssues.length > 0 && (
+                            <div className="border-t border-gray-100 px-4 pb-4 pt-0">
+                              {viewMode === 'list' ? (
+                                <ul className="divide-y divide-gray-200">
+                                  {projectIssues.map((issue) => (
+                                    <li key={issue.id}>
+                                      <IssueCardList
+                                        issue={issue}
+                                        assignedUser={issue.assignedTo ? users.find((u) => u.id === issue.assignedTo) : undefined}
+                                        showProject={false}
+                                        showApprovedStar={['Planner', 'Branding'].includes(type)}
+                                      />
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <div className="grid gap-3 pt-4" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+                                  {projectIssues.map((issue) => (
+                                    <IssueCardGrid
+                                      key={issue.id}
+                                      issue={issue}
+                                      assignedUser={issue.assignedTo ? users.find((u) => u.id === issue.assignedTo) : undefined}
+                                      showApprovedStar={['Planner', 'Branding'].includes(type)}
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           )}
-                        </div>
-                      ) : (
-                        <ul className="divide-y divide-gray-100">
-                          {projectIssues.map((issue) => (
-                            <li key={issue.id}>
-                              <IssueCardList
-                                issue={issue}
-                                assignedUser={issue.assignedTo ? users.find((u) => u.id === issue.assignedTo) : undefined}
-                                showProject={false}
-                                showApprovedStar={['Planner', 'Branding'].includes(type)}
-                              />
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                          {projectIssues.length === 0 && canManageClient && (
+                            <div className="px-4 pb-4 pt-0 border-t border-gray-100">
+                              <div className="py-6 text-center text-gray-500 text-sm bg-gray-50 rounded-lg">
+                                No hay tareas en este proyecto.
+                                <button
+                                  onClick={() => openCreateIssue(project.id)}
+                                  className="block mx-auto mt-2 text-indigo-600 hover:text-indigo-700"
+                                >
+                                  Crear primera tarea
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          {projectIssues.length === 0 && !canManageClient && (
+                            <div className="px-4 pb-4 pt-0 border-t border-gray-100">
+                              <div className="py-6 text-center text-gray-500 text-sm">No hay tareas en este proyecto.</div>
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </section>
             </section>
           );
         })}
