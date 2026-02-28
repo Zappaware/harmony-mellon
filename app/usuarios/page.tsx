@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp, User } from '@/context/AppContext';
-import { Users, Mail, Shield, UserCircle, Edit, Trash2 } from 'lucide-react';
+import { Users, Mail, Shield, UserCircle, Edit, Trash2, LayoutList, LayoutGrid } from 'lucide-react';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { CreateUserModal } from '@/components/CreateUserModal';
 import { EditUserModal } from '@/components/EditUserModal';
 import {
@@ -18,12 +19,30 @@ import {
 } from '@/components/ui/alert-dialog';
 
 export default function GestionUsuarios() {
-  const { users, deleteUser, user: currentUser } = useApp();
+  const { users, deleteUser, user: currentUser, refreshUsers } = useApp();
   const isAdmin = currentUser?.role === 'admin';
+  const [searchQuery, setSearchQuery] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+
+  const filteredUsers = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter((u) => {
+      const name = (u.name ?? '').toLowerCase();
+      const email = (u.email ?? '').toLowerCase();
+      return name.includes(q) || email.includes(q);
+    });
+  }, [users, searchQuery]);
+
+  // Refresh users when visiting this page (ensures new seeded users appear after seed)
+  useEffect(() => {
+    refreshUsers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleDeleteClick = (userId: string) => {
     // Prevent deleting yourself
@@ -52,204 +71,186 @@ export default function GestionUsuarios() {
   };
 
   return (
-    <LayoutWithSidebar>
+    <LayoutWithSidebar
+      headerActions={
+        <ToggleGroup
+          type="single"
+          value={viewMode}
+          onValueChange={(v) => v && setViewMode(v as 'list' | 'grid')}
+          variant="outline"
+          size="lg"
+          className="shrink-0 border border-gray-300 bg-white rounded-lg overflow-hidden shadow-sm [&_[data-state=on]]:bg-indigo-100 [&_[data-state=on]]:text-indigo-600 hover:[&_[data-state=on]]:bg-indigo-100"
+        >
+          <ToggleGroupItem value="list" aria-label="Vista lista" title="Vista lista">
+            <LayoutList className="w-5 h-5" />
+          </ToggleGroupItem>
+          <ToggleGroupItem value="grid" aria-label="Vista cuadrícula" title="Vista cuadrícula">
+            <LayoutGrid className="w-5 h-5" />
+          </ToggleGroupItem>
+        </ToggleGroup>
+      }
+    >
       <div className="p-4 md:p-8">
-        <div className="mb-6 md:mb-8">
-          <h1 className="text-xl md:text-3xl text-gray-800 mb-2 pr-12 md:pr-16">Gestión de Usuarios</h1>
+        <div className="mb-6 md:mb-8 pr-12 md:pr-16">
+          <h1 className="text-xl md:text-3xl text-gray-800 mb-2">Gestión de Usuarios</h1>
           <p className="text-sm md:text-base text-gray-600">Administra el equipo y sus permisos</p>
         </div>
 
         <div className="bg-white rounded-lg shadow">
-          <div className="p-4 md:p-6 border-b border-gray-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 md:w-6 md:h-6 text-gray-600" />
-              <h2 className="text-lg md:text-xl text-gray-800">Usuarios del Sistema</h2>
-            </div>
-            {isAdmin && (
-              <button 
-                onClick={() => setIsCreateModalOpen(true)}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm md:text-base w-full md:w-auto"
-              >
-                Agregar Usuario
-              </button>
-            )}
-          </div>
-
-          {/* Mobile: Card View */}
-          <div className="md:hidden divide-y divide-gray-200">
-            {users.map((user) => (
-              <div key={user.id} className="p-4 hover:bg-gray-50">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-sm font-medium">
-                        {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-gray-800 font-medium truncate">{user.name}</p>
-                      <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                        <Mail className="w-3 h-3 flex-shrink-0" />
-                        <span className="truncate">{user.email}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between mb-3">
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs flex items-center gap-1 ${
-                      user.role === 'admin'
-                        ? 'bg-purple-100 text-purple-700'
-                        : user.role === 'team_lead'
-                        ? 'bg-orange-100 text-orange-700'
-                        : 'bg-blue-100 text-blue-700'
-                    }`}
-                  >
-                    {user.role === 'admin' ? (
-                      <>
-                        <Shield className="w-3 h-3" />
-                        Administrador
-                      </>
-                    ) : user.role === 'team_lead' ? (
-                      <>
-                        <Shield className="w-3 h-3" />
-                        Líder de Equipo
-                      </>
-                    ) : (
-                      <>
-                        <UserCircle className="w-3 h-3" />
-                        Usuario
-                      </>
-                    )}
-                  </span>
-                  <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">
-                    Activo
-                  </span>
-                </div>
-
-                {isAdmin && (
-                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                    <button 
-                      onClick={() => setUserToEdit(user)}
-                      className="flex-1 flex items-center justify-center gap-2 p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors text-sm"
-                    >
-                      <Edit className="w-4 h-4" />
-                      <span>Editar</span>
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteClick(user.id)}
-                      disabled={user.id === currentUser?.id}
-                      className="flex-1 flex items-center justify-center gap-2 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      <span>Eliminar</span>
-                    </button>
-                  </div>
-                )}
+          <div className="p-4 md:p-6 flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 md:w-6 md:h-6 text-gray-600" />
+                <h2 className="text-lg md:text-xl text-gray-800">Usuarios del Sistema</h2>
               </div>
-            ))}
+              {isAdmin && (
+                <button 
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm md:text-base w-full sm:w-auto shrink-0"
+                >
+                  Agregar Usuario
+                </button>
+              )}
+            </div>
+            <div>
+              <input
+                type="search"
+                placeholder="Buscar por nombre o email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                aria-label="Buscar usuarios"
+              />
+            </div>
           </div>
 
-          {/* Desktop: Table View */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs uppercase tracking-wider text-gray-600">
-                    Usuario
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs uppercase tracking-wider text-gray-600">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs uppercase tracking-wider text-gray-600">
-                    Rol
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs uppercase tracking-wider text-gray-600">
-                    Estado
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs uppercase tracking-wider text-gray-600">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center">
-                          <span className="text-white">
+          {filteredUsers.length === 0 ? (
+            <div className="p-6 text-center text-gray-500">
+              {searchQuery.trim() ? 'No se encontraron usuarios.' : 'No hay usuarios.'}
+            </div>
+          ) : viewMode === 'list' ? (
+            <section aria-label="Listado de usuarios" className="pt-[17px]">
+              <div className="bg-white rounded-lg overflow-hidden">
+                <ul className="divide-y divide-gray-200">
+                  {filteredUsers.map((user) => (
+                    <li key={user.id} className="group">
+                      <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                          <div className="w-10 h-10 min-w-10 min-h-10 bg-indigo-600 rounded-full flex items-center justify-center shrink-0">
+                            <span className="text-white text-sm font-medium">
+                              {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 truncate">{user.name}</p>
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <Mail className="w-4 h-4 text-gray-400 shrink-0" />
+                              <span className="truncate">{user.email}</span>
+                            </div>
+                          </div>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs flex items-center gap-1 shrink-0 ${
+                              user.role === 'admin'
+                                ? 'bg-purple-100 text-purple-700'
+                                : user.role === 'team_lead'
+                                ? 'bg-orange-100 text-orange-700'
+                                : 'bg-blue-100 text-blue-700'
+                            }`}
+                          >
+                            {user.role === 'admin' ? (
+                              <><Shield className="w-3 h-3" />Administrador</>
+                            ) : user.role === 'team_lead' ? (
+                              <><Shield className="w-3 h-3" />Líder de Equipo</>
+                            ) : (
+                              <><UserCircle className="w-3 h-3" />Usuario</>
+                            )}
+                          </span>
+                          <span className="px-3 py-1 rounded-full text-xs bg-green-100 text-green-700 shrink-0">Activo</span>
+                        </div>
+                        {isAdmin && (
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              onClick={() => setUserToEdit(user)}
+                              className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                              title="Editar usuario"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(user.id)}
+                              disabled={user.id === currentUser?.id}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Eliminar usuario"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          ) : (
+            <section aria-label="Cuadrícula de usuarios" className="w-full px-2.5 pb-2.5">
+              <div className="grid w-full gap-4" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+                {filteredUsers.map((user) => (
+                  <div key={user.id} className="min-w-0 bg-white rounded-lg shadow border border-gray-200 overflow-hidden group flex flex-col">
+                    <div className="flex flex-col p-4 flex-1 min-h-0">
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="w-12 h-12 min-w-12 min-h-12 bg-indigo-600 rounded-full flex items-center justify-center shrink-0">
+                          <span className="text-white text-sm font-medium">
                             {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                           </span>
                         </div>
-                        <div>
-                          <p className="text-gray-800">{user.name}</p>
-                        </div>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs flex items-center gap-1 shrink-0 ${
+                            user.role === 'admin'
+                              ? 'bg-purple-100 text-purple-700'
+                              : user.role === 'team_lead'
+                              ? 'bg-orange-100 text-orange-700'
+                              : 'bg-blue-100 text-blue-700'
+                          }`}
+                        >
+                          {user.role === 'admin' ? 'Admin' : user.role === 'team_lead' ? 'Líder' : 'Usuario'}
+                        </span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Mail className="w-4 h-4" />
-                        <span>{user.email}</span>
+                      <h3 className="font-medium text-gray-900 truncate mb-1">{user.name}</h3>
+                      <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                        <Mail className="w-4 h-4 text-gray-400 shrink-0" />
+                        <span className="truncate">{user.email}</span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs flex items-center gap-1 inline-flex ${
-                          user.role === 'admin'
-                            ? 'bg-purple-100 text-purple-700'
-                            : user.role === 'team_lead'
-                            ? 'bg-orange-100 text-orange-700'
-                            : 'bg-blue-100 text-blue-700'
-                        }`}
-                      >
-                        {user.role === 'admin' ? (
-                          <>
-                            <Shield className="w-3 h-3" />
-                            Administrador
-                          </>
-                        ) : user.role === 'team_lead' ? (
-                          <>
-                            <Shield className="w-3 h-3" />
-                            Líder de Equipo
-                          </>
-                        ) : (
-                          <>
-                            <UserCircle className="w-3 h-3" />
-                            Usuario
-                          </>
-                        )}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-3 py-1 rounded-full text-xs bg-green-100 text-green-700">
-                        Activo
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <button 
+                      <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700 self-start">Activo</span>
+                    </div>
+                    {isAdmin && (
+                      <div className="border-t border-gray-100 px-4 py-2 flex items-center gap-2">
+                        <button
+                          type="button"
                           onClick={() => setUserToEdit(user)}
-                          className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          className="flex-1 flex items-center justify-center gap-2 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors text-sm"
                           title="Editar usuario"
                         >
                           <Edit className="w-4 h-4" />
+                          Editar
                         </button>
-                        <button 
+                        <button
+                          type="button"
                           onClick={() => handleDeleteClick(user.id)}
                           disabled={user.id === currentUser?.id}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex-1 flex items-center justify-center gap-2 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Eliminar usuario"
                         >
                           <Trash2 className="w-4 h-4" />
+                          Eliminar
                         </button>
                       </div>
-                    </td>
-                  </tr>
+                    )}
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            </section>
+          )}
         </div>
 
         {/* Spacer between user list and stat cards */}
