@@ -10,9 +10,8 @@ import { ExpiringTasksModal, getExpiringIssues } from './ExpiringTasksModal';
 
 // Lazy load heavy components
 const Sidebar = lazy(() => import('./Sidebar').then(module => ({ default: module.Sidebar })));
-const NotificationBadge = lazy(() => import('./NotificationBadge').then(module => ({ default: module.NotificationBadge })));
 
-export function LayoutWithSidebar({ children, headerActions }: { children: React.ReactNode; headerActions?: React.ReactNode }) {
+export function LayoutWithSidebar({ children }: { children: React.ReactNode }) {
   const {
     user,
     isLoading,
@@ -100,14 +99,6 @@ export function LayoutWithSidebar({ children, headerActions }: { children: React
         >
           <Menu className="w-5 h-5" />
         </button>
-
-        {/* Header actions (e.g. view toggle) + Notification Badge - Fixed top right, outside overflow container */}
-        <div className="fixed top-4 right-4 md:top-6 md:right-6 z-50 flex items-center gap-2">
-          {headerActions}
-          <Suspense fallback={<div className="w-10 h-10 bg-white rounded-full shadow-lg"></div>}>
-            <NotificationBadge />
-          </Suspense>
-        </div>
 
         <div className="flex flex-col flex-1 min-w-0 overflow-auto pt-16 md:pt-0">
           <div className="flex-1">

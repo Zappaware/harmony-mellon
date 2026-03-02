@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+import { PageHeader } from '@/components/PageHeader';
 import { Avatar } from '@/components/Avatar';
 import { User, Mail, Shield, UserCircle, Calendar, Edit, Save, X, Upload, Trash2, Camera } from 'lucide-react';
 import { api, getFileDisplayUrl } from '@/services/api';
@@ -148,10 +149,10 @@ export default function PerfilPage() {
   return (
     <LayoutWithSidebar>
       <div className="p-4 md:p-8">
-        <div className="mb-6 md:mb-8">
-          <h1 className="text-xl md:text-3xl text-gray-800 mb-2 pr-12 md:pr-16">Mi Perfil</h1>
-          <p className="text-sm md:text-base text-gray-600">Gestiona tu información personal</p>
-        </div>
+        <PageHeader
+          title="Mi Perfil"
+          subtitle="Gestiona tu información personal"
+        />
 
         <div className="max-w-3xl">
           {/* Profile Header Card */}

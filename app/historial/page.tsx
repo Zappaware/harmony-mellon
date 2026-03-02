@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { Building2, ChevronRight, Search, Users } from 'lucide-react';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+import { PageHeader } from '@/components/PageHeader';
 import { Loading } from '@/components/Loading';
 import { api, ApiClient, getFileDisplayUrl } from '@/services/api';
 import { useApp } from '@/context/AppContext';
@@ -52,7 +53,13 @@ function HistorialContent() {
   if (isLoading) {
     return (
       <LayoutWithSidebar>
-        <Loading fullScreen message="Cargando historial..." />
+        <div className="p-4 md:p-8">
+          <PageHeader
+            title="Historial"
+            subtitle="Genera reportes en Excel por cliente y tipo de proyecto"
+          />
+          <Loading message="Cargando historial..." />
+        </div>
       </LayoutWithSidebar>
     );
   }
@@ -61,6 +68,10 @@ function HistorialContent() {
     return (
       <LayoutWithSidebar>
         <div className="p-4 md:p-8">
+          <PageHeader
+            title="Historial"
+            subtitle="Genera reportes en Excel por cliente y tipo de proyecto"
+          />
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <p className="text-gray-600 mb-4">No tienes permiso para acceder al historial de reportes.</p>
             <Link href="/dashboard" className="text-indigo-600 hover:text-indigo-700">
@@ -75,24 +86,22 @@ function HistorialContent() {
   return (
     <LayoutWithSidebar>
       <div className="p-4 md:p-8">
-        <header className="mb-6 md:mb-8 pr-12 md:pr-16">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl md:text-3xl text-gray-800 mb-1 md:mb-2">Historial</h1>
-              <p className="text-sm md:text-base text-gray-600">Genera reportes en Excel por cliente y tipo de proyecto</p>
-            </div>
-            <div className="w-full md:w-auto shrink-0">
+        <PageHeader
+          title="Historial"
+          subtitle="Genera reportes en Excel por cliente y tipo de proyecto"
+          rightContent={
+            <div className="w-full sm:w-auto">
               <input
                 type="search"
                 placeholder="Buscar clientes..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 aria-label="Buscar clientes"
-                className="w-full md:min-w-[18rem] md:w-80 px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base placeholder:text-gray-400"
+                className="w-full sm:min-w-[18rem] sm:w-80 px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base placeholder:text-gray-400"
               />
             </div>
-          </div>
-        </header>
+          }
+        />
 
         <section aria-label="Listado de clientes">
           {clients.length === 0 ? (

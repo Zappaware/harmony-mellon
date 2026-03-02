@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useApp, User } from '@/context/AppContext';
 import { Users, Mail, Shield, UserCircle, Edit, Trash2, LayoutList, LayoutGrid } from 'lucide-react';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+import { PageHeader } from '@/components/PageHeader';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { CreateUserModal } from '@/components/CreateUserModal';
 import { EditUserModal } from '@/components/EditUserModal';
@@ -71,30 +72,29 @@ export default function GestionUsuarios() {
   };
 
   return (
-    <LayoutWithSidebar
-      headerActions={
-        <ToggleGroup
-          type="single"
-          value={viewMode}
-          onValueChange={(v) => v && setViewMode(v as 'list' | 'grid')}
-          variant="outline"
-          size="lg"
-          className="shrink-0 border border-gray-300 bg-white rounded-lg overflow-hidden shadow-sm [&_[data-state=on]]:bg-indigo-100 [&_[data-state=on]]:text-indigo-600 hover:[&_[data-state=on]]:bg-indigo-100"
-        >
-          <ToggleGroupItem value="list" aria-label="Vista lista" title="Vista lista">
-            <LayoutList className="w-5 h-5" />
-          </ToggleGroupItem>
-          <ToggleGroupItem value="grid" aria-label="Vista cuadrícula" title="Vista cuadrícula">
-            <LayoutGrid className="w-5 h-5" />
-          </ToggleGroupItem>
-        </ToggleGroup>
-      }
-    >
+    <LayoutWithSidebar>
       <div className="p-4 md:p-8">
-        <div className="mb-6 md:mb-8 pr-12 md:pr-16">
-          <h1 className="text-xl md:text-3xl text-gray-800 mb-2">Gestión de Usuarios</h1>
-          <p className="text-sm md:text-base text-gray-600">Administra el equipo y sus permisos</p>
-        </div>
+        <PageHeader
+          title="Gestión de Usuarios"
+          subtitle="Administra el equipo y sus permisos"
+          rightContent={
+            <ToggleGroup
+              type="single"
+              value={viewMode}
+              onValueChange={(v) => v && setViewMode(v as 'list' | 'grid')}
+              variant="outline"
+              size="lg"
+              className="shrink-0 border border-gray-300 bg-white rounded-lg overflow-hidden shadow-sm [&_[data-state=on]]:bg-indigo-100 [&_[data-state=on]]:text-indigo-600 hover:[&_[data-state=on]]:bg-indigo-100"
+            >
+              <ToggleGroupItem value="list" aria-label="Vista lista" title="Vista lista">
+                <LayoutList className="w-5 h-5" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="grid" aria-label="Vista cuadrícula" title="Vista cuadrícula">
+                <LayoutGrid className="w-5 h-5" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+          }
+        />
 
         <div className="bg-white rounded-lg shadow">
           <div className="p-4 md:p-6 flex flex-col gap-3">
@@ -194,7 +194,7 @@ export default function GestionUsuarios() {
             </section>
           ) : (
             <section aria-label="Cuadrícula de usuarios" className="w-full px-2.5 pb-2.5">
-              <div className="grid w-full gap-4" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+              <div className="grid w-full gap-4 pb-2.5" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                 {filteredUsers.map((user) => (
                   <div key={user.id} className="min-w-0 bg-white rounded-lg shadow border border-gray-200 overflow-hidden group flex flex-col">
                     <div className="flex flex-col p-4 flex-1 min-h-0">

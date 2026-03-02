@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, Building2, Download, Loader2 } from 'lucide-react';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+import { PageHeader } from '@/components/PageHeader';
 import { Loading } from '@/components/Loading';
 import { api, ApiClient, getFileDisplayUrl } from '@/services/api';
 import { useApp } from '@/context/AppContext';
@@ -90,7 +91,10 @@ export default function HistorialClientPage() {
   if (loading) {
     return (
       <LayoutWithSidebar>
-        <Loading fullScreen message="Cargando cliente..." />
+        <div className="p-4 md:p-8">
+          <PageHeader title="Historial" subtitle="Cargando reporte..." />
+          <Loading message="Cargando cliente..." />
+        </div>
       </LayoutWithSidebar>
     );
   }
@@ -99,6 +103,7 @@ export default function HistorialClientPage() {
     return (
       <LayoutWithSidebar>
         <div className="p-4 md:p-8">
+          <PageHeader title="Historial" subtitle="Cliente no encontrado" />
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <p className="text-gray-600 mb-4">Cliente no encontrado</p>
             <Link href="/historial" className="text-indigo-600 hover:text-indigo-700">
@@ -114,6 +119,7 @@ export default function HistorialClientPage() {
     return (
       <LayoutWithSidebar>
         <div className="p-4 md:p-8">
+          <PageHeader title="Historial" subtitle="Acceso restringido" />
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <p className="text-gray-600 mb-4">No tienes permiso para acceder al historial.</p>
             <Link href="/historial" className="text-indigo-600 hover:text-indigo-700">
@@ -128,80 +134,85 @@ export default function HistorialClientPage() {
   return (
     <LayoutWithSidebar>
       <div className="p-4 md:p-8">
-        <header className="mb-6 md:mb-8 pr-12 md:pr-16">
-          <Link
-            href="/historial"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Volver a historial</span>
-          </Link>
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="w-14 h-14 min-w-14 min-h-14 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative">
-              {client.logo ? (
-                <>
-                  <img
-                    src={getFileDisplayUrl(client.logo) ?? ''}
-                    alt={client.name}
-                    className="w-full h-full object-cover min-w-full min-h-full absolute inset-0"
-                    width={56}
-                    height={56}
-                    loading="eager"
-                    onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }}
-                  />
-                  <Building2 className="w-8 h-8 text-indigo-600 hidden" aria-hidden />
-                </>
-              ) : (
-                <Building2 className="w-8 h-8 text-indigo-600" />
-              )}
+        <PageHeader
+          rightContent={
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm font-medium text-gray-700">Periodo:</span>
+              <select
+                value={filterMonth}
+                onChange={(e) => setFilterMonth(Number(e.target.value))}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                aria-label="Filtrar por mes"
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
+                  <option key={m} value={m}>{MONTH_LABELS[m]}</option>
+                ))}
+              </select>
+              <select
+                value={filterYear}
+                onChange={(e) => setFilterYear(Number(e.target.value))}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                aria-label="Filtrar por año"
+              >
+                {availableYears.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleDownload}
+                disabled={filteredProjects.length === 0 || downloading}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                type="button"
+              >
+                {downloading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Generando...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    Descargar Excel
+                  </>
+                )}
+              </button>
             </div>
-            <div className="min-w-0">
-              <h1 className="text-2xl md:text-3xl text-gray-800 truncate">{client.name}</h1>
-              <p className="text-sm text-gray-600">Filtra por mes y año, descarga el reporte en Excel</p>
+          }
+        >
+          <div className="flex flex-col gap-3 min-w-0">
+            <Link
+              href="/historial"
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm">Volver a historial</span>
+            </Link>
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-14 h-14 min-w-14 min-h-14 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative">
+                {client.logo ? (
+                  <>
+                    <img
+                      src={getFileDisplayUrl(client.logo) ?? ''}
+                      alt={client.name}
+                      className="w-full h-full object-cover min-w-full min-h-full absolute inset-0"
+                      width={56}
+                      height={56}
+                      loading="eager"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }}
+                    />
+                    <Building2 className="w-8 h-8 text-indigo-600 hidden" aria-hidden />
+                  </>
+                ) : (
+                  <Building2 className="w-8 h-8 text-indigo-600" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-2xl md:text-3xl text-gray-800 truncate">{client.name}</h1>
+                <p className="text-sm text-gray-600">Filtra por mes y año, descarga el reporte en Excel</p>
+              </div>
             </div>
           </div>
-        </header>
-
-        <div className="flex flex-wrap items-center gap-3 mb-6">
-          <span className="text-sm font-medium text-gray-700">Periodo:</span>
-          <select
-            value={filterMonth}
-            onChange={(e) => setFilterMonth(Number(e.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            aria-label="Filtrar por mes"
-          >
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
-              <option key={m} value={m}>{MONTH_LABELS[m]}</option>
-            ))}
-          </select>
-          <select
-            value={filterYear}
-            onChange={(e) => setFilterYear(Number(e.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            aria-label="Filtrar por año"
-          >
-            {availableYears.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-          <button
-            onClick={handleDownload}
-            disabled={filteredProjects.length === 0 || downloading}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {downloading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Generando...
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4" />
-                Descargar Excel
-              </>
-            )}
-          </button>
-        </div>
+        </PageHeader>
 
         <section className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           {filteredProjects.length === 0 ? (

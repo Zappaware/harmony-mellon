@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import { useApp, Issue } from '@/context/AppContext';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+import { PageHeader } from '@/components/PageHeader';
 import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, Plus, CheckSquare, FolderKanban, X, Edit, ChevronDown } from 'lucide-react';
 import { format, isSameDay, parseISO, startOfMonth, endOfMonth, getDaysInMonth, getDay, addDays, subDays } from 'date-fns';
 import { es } from 'date-fns/locale/es';
@@ -151,13 +152,11 @@ export default function CalendarioPage() {
 
   return (
     <LayoutWithSidebar>
-      <div style={{ padding: '1rem 2rem' }}>
-        <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem', paddingRight: '4rem' }}>
-            Calendario de Tareas
-          </h1>
-          <p style={{ fontSize: '1rem', color: '#4b5563' }}>Visualiza tus tareas por fecha</p>
-        </div>
+      <div className="p-4 md:p-8">
+        <PageHeader
+          title="Calendario de Tareas"
+          subtitle="Visualiza tus tareas por fecha"
+        />
 
         {/* Mobile View: Calendar + List */}
         <div className="block md:hidden">

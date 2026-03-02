@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+import { PageHeader } from '@/components/PageHeader';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Loading } from '@/components/Loading';
 import { api, ApiClient, ApiClientMember, ApiProject, getFileDisplayUrl } from '@/services/api';
@@ -270,97 +271,98 @@ export default function ClienteDetailPage() {
   }
 
   return (
-    <LayoutWithSidebar
-      headerActions={
-        <ToggleGroup
-          type="single"
-          value={viewMode}
-          onValueChange={(v) => v && setViewMode(v as 'list' | 'grid')}
-          variant="outline"
-          size="lg"
-          className="shrink-0 border border-gray-300 bg-white rounded-lg overflow-hidden shadow-sm [&_[data-state=on]]:bg-indigo-100 [&_[data-state=on]]:text-indigo-600 hover:[&_[data-state=on]]:bg-indigo-100"
-        >
-          <ToggleGroupItem value="list" aria-label="Vista lista" title="Vista lista">
-            <LayoutList className="w-5 h-5" />
-          </ToggleGroupItem>
-          <ToggleGroupItem value="grid" aria-label="Vista cuadrícula" title="Vista cuadrícula">
-            <LayoutGrid className="w-5 h-5" />
-          </ToggleGroupItem>
-        </ToggleGroup>
-      }
-    >
+    <LayoutWithSidebar>
       <div className="p-4 md:p-8">
-        {/* Header: same pattern as client list — pr-12 md:pr-16 for bell, plus in row */}
-        <header className="mb-6 md:mb-8 pr-12 md:pr-16">
-          <Link
-            href="/clientes"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Volver a clientes</span>
-          </Link>
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="w-14 h-14 min-w-14 min-h-14 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative">
-                {client.logo ? (
-                  <>
-                    <img
-                      src={getFileDisplayUrl(client.logo) ?? ''}
-                      alt={client.name}
-                      className="w-full h-full object-cover min-w-full min-h-full absolute inset-0"
-                      width={56}
-                      height={56}
-                      loading="eager"
-                      onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }}
-                    />
-                    <Building2 className="w-8 h-8 text-indigo-600 hidden" aria-hidden />
-                  </>
-                ) : (
-                  <Building2 className="w-8 h-8 text-indigo-600" />
-                )}
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl md:text-3xl text-gray-800 truncate">{client.name}</h1>
-                  <button
-                    onClick={() => setInfoClientModalOpen(true)}
-                    className="inline-flex items-center justify-center w-10 h-10 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors shrink-0"
-                    title="Ver información del cliente"
-                    aria-label="Ver información del cliente"
-                  >
-                    <Info className="w-5 h-5" />
-                  </button>
+        <PageHeader
+          rightContent={
+            <ToggleGroup
+              type="single"
+              value={viewMode}
+              onValueChange={(v) => v && setViewMode(v as 'list' | 'grid')}
+              variant="outline"
+              size="lg"
+              className="shrink-0 border border-gray-300 bg-white rounded-lg overflow-hidden shadow-sm [&_[data-state=on]]:bg-indigo-100 [&_[data-state=on]]:text-indigo-600 hover:[&_[data-state=on]]:bg-indigo-100"
+            >
+              <ToggleGroupItem value="list" aria-label="Vista lista" title="Vista lista">
+                <LayoutList className="w-5 h-5" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="grid" aria-label="Vista cuadrícula" title="Vista cuadrícula">
+                <LayoutGrid className="w-5 h-5" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+          }
+        >
+          <div className="flex flex-col gap-3 w-full min-w-0">
+            <Link
+              href="/clientes"
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors self-start"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm">Volver a clientes</span>
+            </Link>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="w-14 h-14 min-w-14 min-h-14 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative">
+                  {client.logo ? (
+                    <>
+                      <img
+                        src={getFileDisplayUrl(client.logo) ?? ''}
+                        alt={client.name}
+                        className="w-full h-full object-cover min-w-full min-h-full absolute inset-0"
+                        width={56}
+                        height={56}
+                        loading="eager"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }}
+                      />
+                      <Building2 className="w-8 h-8 text-indigo-600 hidden" aria-hidden />
+                    </>
+                  ) : (
+                    <Building2 className="w-8 h-8 text-indigo-600" />
+                  )}
                 </div>
-                {client.description && (
-                  <p className="text-gray-600 mt-1 line-clamp-2">{client.description}</p>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl md:text-3xl text-gray-800 truncate">{client.name}</h1>
+                    <button
+                      onClick={() => setInfoClientModalOpen(true)}
+                      className="inline-flex items-center justify-center w-10 h-10 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors shrink-0"
+                      title="Ver información del cliente"
+                      aria-label="Ver información del cliente"
+                    >
+                      <Info className="w-5 h-5" />
+                    </button>
+                  </div>
+                  {client.description && (
+                    <p className="text-gray-600 mt-1 line-clamp-2">{client.description}</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {canManageClient && (
+                  <button
+                    type="button"
+                    onClick={openCreateProjectPersonalized}
+                    className="inline-flex items-center justify-center w-10 h-10 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 transition-colors"
+                    title="Añadir proyecto"
+                    aria-label="Añadir proyecto"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                )}
+                {canEditClient && (
+                  <button
+                    onClick={() => setEditClientModalOpen(true)}
+                    className="inline-flex items-center justify-center w-10 h-10 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                    title="Editar cliente"
+                    aria-label="Editar cliente"
+                  >
+                    <Pencil className="w-5 h-5" />
+                  </button>
                 )}
               </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {canManageClient && (
-                <button
-                  type="button"
-                  onClick={openCreateProjectPersonalized}
-                  className="inline-flex items-center justify-center w-10 h-10 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 transition-colors"
-                  title="Añadir proyecto"
-                  aria-label="Añadir proyecto"
-                >
-                  <Plus className="w-5 h-5" />
-                </button>
-              )}
-              {canEditClient && (
-                <button
-                  onClick={() => setEditClientModalOpen(true)}
-                  className="inline-flex items-center justify-center w-10 h-10 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                  title="Editar cliente"
-                  aria-label="Editar cliente"
-                >
-                  <Pencil className="w-5 h-5" />
-                </button>
-              )}
             </div>
           </div>
-        </header>
+        </PageHeader>
 
         {infoClientModalOpen && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setInfoClientModalOpen(false)}>

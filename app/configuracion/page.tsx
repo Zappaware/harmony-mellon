@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tag, AlertTriangle, Sliders, Plus, Edit, FolderKanban, Trash2 } from 'lucide-react';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+import { PageHeader } from '@/components/PageHeader';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -170,10 +171,10 @@ export default function Configuracion() {
   return (
     <LayoutWithSidebar>
       <div className="p-4 md:p-8">
-        <div className="mb-6 md:mb-8">
-          <h1 className="text-xl md:text-3xl text-gray-800 mb-2 pr-12 md:pr-16">Configuración</h1>
-          <p className="text-sm md:text-base text-gray-600">Gestiona los parámetros del sistema</p>
-        </div>
+        <PageHeader
+          title="Configuración"
+          subtitle="Gestiona los parámetros del sistema"
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           <div className="bg-white rounded-lg shadow">

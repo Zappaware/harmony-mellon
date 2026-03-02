@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, CheckCircle2, MessageSquare, UserPlus } from 'lucide-react';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+import { PageHeader } from '@/components/PageHeader';
 import { DateDisplay } from '@/components/DateDisplay';
 import { api, ApiNotification } from '@/services/api';
 import { useApp } from '@/context/AppContext';
@@ -119,6 +120,10 @@ export default function Notificaciones() {
     return (
       <LayoutWithSidebar>
         <div className="p-4 md:p-8">
+          <PageHeader
+            title="Notificaciones"
+            subtitle="Mantente al día con las actualizaciones"
+          />
           <div className="text-center text-gray-600">Cargando notificaciones...</div>
         </div>
       </LayoutWithSidebar>
@@ -128,18 +133,19 @@ export default function Notificaciones() {
   return (
     <LayoutWithSidebar>
       <div className="p-4 md:p-8">
-        <div className="mb-6 md:mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl md:text-3xl text-gray-800 mb-2 pr-12 md:pr-16">Notificaciones</h1>
-            <p className="text-sm md:text-base text-gray-600">Mantente al día con las actualizaciones</p>
-          </div>
-          <button 
-            onClick={handleMarkAllAsRead}
-            className="text-sm md:text-base text-indigo-600 hover:text-indigo-700 whitespace-nowrap flex-shrink-0 mr-16 md:mr-20"
-          >
-            Marcar todas como leídas
-          </button>
-        </div>
+        <PageHeader
+          title="Notificaciones"
+          subtitle="Mantente al día con las actualizaciones"
+          rightContent={
+            <button
+              onClick={handleMarkAllAsRead}
+              className="text-sm md:text-base text-indigo-600 hover:text-indigo-700 whitespace-nowrap"
+              type="button"
+            >
+              Marcar todas como leídas
+            </button>
+          }
+        />
 
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">

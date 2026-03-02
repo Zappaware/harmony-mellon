@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { Building2, ChevronRight, LayoutGrid, LayoutList, Plus, Search, Trash2, Users } from 'lucide-react';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
+import { PageHeader } from '@/components/PageHeader';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { CreateClientModal } from '@/components/CreateClientModal';
 import { Loading } from '@/components/Loading';
@@ -82,7 +83,13 @@ function ClientesContent() {
   if (isLoading) {
     return (
       <LayoutWithSidebar>
-        <Loading fullScreen message="Cargando clientes..." />
+        <div className="p-4 md:p-8">
+          <PageHeader
+            title="Clientes"
+            subtitle="Gestiona todos tus clientes"
+          />
+          <Loading message="Cargando clientes..." />
+        </div>
       </LayoutWithSidebar>
     );
   }
@@ -90,34 +97,30 @@ function ClientesContent() {
   return (
     <LayoutWithSidebar>
       <div className="p-4 md:p-8">
-        {/* Header: title + plus, search, view toggle */}
-        <header className="mb-6 md:mb-8 pr-12 md:pr-16">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1 md:mb-2">
-                <h1 className="text-xl md:text-3xl text-gray-800">Clientes</h1>
-                {canCreate && (
-                  <button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 shrink-0"
-                  >
-                    <Plus className="w-5 h-5" />
-                    <span className="hidden sm:inline">Nuevo Cliente</span>
-                    <span className="sm:hidden">Nuevo</span>
-                  </button>
-                )}
-              </div>
-              <p className="text-sm md:text-base text-gray-600">Gestiona todos tus clientes</p>
-            </div>
-            <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
-              <div className="flex-1 md:flex-initial min-w-0">
+        <PageHeader
+          title="Clientes"
+          subtitle="Gestiona todos tus clientes"
+          rightContent={
+            <div className="flex items-center gap-2 flex-wrap">
+              {canCreate && (
+                <button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                  type="button"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span className="hidden sm:inline">Nuevo Cliente</span>
+                  <span className="sm:hidden">Nuevo</span>
+                </button>
+              )}
+              <div className="flex-1 min-w-48 sm:min-w-[18rem]">
                 <input
                   type="search"
                   placeholder="Buscar Clientes..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   aria-label="Buscar clientes"
-                  className="w-full md:min-w-[18rem] md:w-80 px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base placeholder:text-gray-400"
+                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base placeholder:text-gray-400"
                 />
               </div>
               <ToggleGroup
@@ -136,8 +139,8 @@ function ClientesContent() {
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
-          </div>
-        </header>
+          }
+        />
 
         {/* Content: empty state, no results, list, or grid */}
         {clients.length === 0 ? (
@@ -230,7 +233,7 @@ function ClientesContent() {
           </section>
         ) : (
           <section aria-label="Cuadrícula de clientes" className="w-full px-2.5 pb-2.5">
-            <div className="grid w-full gap-4" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+            <div className="grid w-full gap-4 pb-2.5" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
               {filteredClients.map((client) => (
                 <div key={client.id} className="min-w-0 bg-white rounded-lg shadow border border-gray-200 overflow-hidden group flex flex-col">
                   <Link
