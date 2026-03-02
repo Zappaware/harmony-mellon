@@ -233,7 +233,10 @@ function ClientesContent() {
           </section>
         ) : (
           <section aria-label="Cuadrícula de clientes" className="w-full px-2.5 pb-2.5">
-            <div className="grid w-full gap-4 pb-2.5" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+            <div
+              className="grid w-full gap-4 pb-2.5"
+              style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', paddingBottom: '10px' }}
+            >
               {filteredClients.map((client) => (
                 <div key={client.id} className="min-w-0 bg-white rounded-lg shadow border border-gray-200 overflow-hidden group flex flex-col">
                   <Link
