@@ -15,12 +15,14 @@ import (
 type ReportHandler struct {
 	clientRepo  repository.ClientRepository
 	projectRepo repository.ProjectRepository
+	userRepo    repository.UserRepository
 }
 
-func NewReportHandler(clientRepo repository.ClientRepository, projectRepo repository.ProjectRepository) *ReportHandler {
+func NewReportHandler(clientRepo repository.ClientRepository, projectRepo repository.ProjectRepository, userRepo repository.UserRepository) *ReportHandler {
 	return &ReportHandler{
 		clientRepo:  clientRepo,
 		projectRepo: projectRepo,
+		userRepo:    userRepo,
 	}
 }
 
@@ -47,9 +49,12 @@ func (h *ReportHandler) DownloadClientReportFiltered(c *gin.Context) {
 		return
 	}
 
-	userRole, _ := c.Get("user_role")
-	role, _ := userRole.(string)
-	if role != string(models.RoleAdmin) && role != string(models.RoleTeamLead) {
+	currentUser, err := GetCurrentUserFromDB(c, h.userRepo)
+	if err != nil || currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no encontrado"})
+		return
+	}
+	if currentUser.Role != models.RoleAdmin && currentUser.Role != models.RoleTeamLead {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y líderes de equipo pueden descargar reportes"})
 		return
 	}
@@ -162,9 +167,12 @@ func (h *ReportHandler) DownloadClientReport(c *gin.Context) {
 		return
 	}
 
-	userRole, _ := c.Get("user_role")
-	role, _ := userRole.(string)
-	if role != string(models.RoleAdmin) && role != string(models.RoleTeamLead) {
+	currentUser, err := GetCurrentUserFromDB(c, h.userRepo)
+	if err != nil || currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no encontrado"})
+		return
+	}
+	if currentUser.Role != models.RoleAdmin && currentUser.Role != models.RoleTeamLead {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y líderes de equipo pueden descargar reportes"})
 		return
 	}

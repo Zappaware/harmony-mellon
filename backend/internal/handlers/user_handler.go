@@ -58,9 +58,13 @@ type UpdateUserRequest struct {
 func (h *UserHandler) UpdateUser(c *gin.Context) {
 	userIDStr, _ := c.Get("user_id")
 	currentUserID := userIDStr.(string)
-	userRole, _ := c.Get("user_role")
-	role, ok := userRole.(string)
-	isAdmin := ok && role == string(models.RoleAdmin)
+
+	currentUser, err := GetCurrentUserFromDB(c, h.userRepo)
+	if err != nil || currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no encontrado"})
+		return
+	}
+	isAdmin := currentUser.Role == models.RoleAdmin
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {

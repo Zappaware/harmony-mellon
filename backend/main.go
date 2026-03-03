@@ -96,7 +96,7 @@ func main() {
 	clientHandler := handlers.NewClientHandler(clientService, userRepo, notificationService, clientMemberRepo)
 	projectHandler := handlers.NewProjectHandler(projectService, userRepo, notificationService, projectRepo, clientMemberRepo)
 	fileHandler := handlers.NewFileHandler(fileService)
-	reportHandler := handlers.NewReportHandler(clientRepo, projectRepo)
+	reportHandler := handlers.NewReportHandler(clientRepo, projectRepo, userRepo)
 
 	// Setup router
 	router := gin.Default()

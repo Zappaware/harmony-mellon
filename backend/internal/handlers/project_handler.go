@@ -33,10 +33,13 @@ func NewProjectHandler(projectService service.ProjectService, userRepo repositor
 func (h *ProjectHandler) GetProjects(c *gin.Context) {
 	userIDStr, _ := c.Get("user_id")
 	userID, _ := uuid.Parse(userIDStr.(string))
-	role, _ := c.Get("user_role")
-	roleStr, _ := role.(string)
 
-	projects, err := h.projectService.GetProjectsForUser(userID, roleStr)
+	currentUser, err := GetCurrentUserFromDB(c, h.userRepo)
+	if err != nil || currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no encontrado"})
+		return
+	}
+	projects, err := h.projectService.GetProjectsForUser(userID, string(currentUser.Role))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -77,8 +80,12 @@ type CreateProjectRequest struct {
 func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	userIDStr, _ := c.Get("user_id")
 	userID, _ := uuid.Parse(userIDStr.(string))
-	userRole, _ := c.Get("user_role")
-	role, _ := userRole.(string)
+
+	currentUser, err := GetCurrentUserFromDB(c, h.userRepo)
+	if err != nil || currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no encontrado"})
+		return
+	}
 
 	var req CreateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -87,7 +94,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	}
 
 	// Admin/team_lead can create any project; regular users can only create projects for clients they belong to
-	if role != string(models.RoleAdmin) && role != string(models.RoleTeamLead) {
+	if currentUser.Role != models.RoleAdmin && currentUser.Role != models.RoleTeamLead {
 		if req.ClientID == nil {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Debes especificar un cliente para crear un proyecto"})
 			return
@@ -199,11 +206,15 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 
 	userIDStr, _ := c.Get("user_id")
 	userID, _ := uuid.Parse(userIDStr.(string))
-	userRole, _ := c.Get("user_role")
-	roleStr, _ := userRole.(string)
+
+	currentUser, err := GetCurrentUserFromDB(c, h.userRepo)
+	if err != nil || currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no encontrado"})
+		return
+	}
 
 	// Admin and team_lead can update any project; regular users can only update projects of clients they belong to
-	if roleStr != string(models.RoleAdmin) && roleStr != string(models.RoleTeamLead) {
+	if currentUser.Role != models.RoleAdmin && currentUser.Role != models.RoleTeamLead {
 		project, err := h.projectService.GetProject(id)
 		if err != nil || project == nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
@@ -367,11 +378,15 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 
 	userIDStr, _ := c.Get("user_id")
 	userID, _ := uuid.Parse(userIDStr.(string))
-	userRole, _ := c.Get("user_role")
-	role, _ := userRole.(string)
+
+	currentUser, err := GetCurrentUserFromDB(c, h.userRepo)
+	if err != nil || currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no encontrado"})
+		return
+	}
 
 	// Admin/team_lead can delete any project; regular users can only delete projects of clients they belong to
-	if role != string(models.RoleAdmin) && role != string(models.RoleTeamLead) {
+	if currentUser.Role != models.RoleAdmin && currentUser.Role != models.RoleTeamLead {
 		project, err := h.projectService.GetProject(id)
 		if err != nil || project == nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
@@ -483,9 +498,13 @@ type BulkCreateMonthlyRequest struct {
 func (h *ProjectHandler) BulkCreateMonthly(c *gin.Context) {
 	userIDStr, _ := c.Get("user_id")
 	userID, _ := uuid.Parse(userIDStr.(string))
-	userRole, _ := c.Get("user_role")
-	role, ok := userRole.(string)
-	if !ok || (role != string(models.RoleAdmin) && role != string(models.RoleTeamLead)) {
+
+	currentUser, err := GetCurrentUserFromDB(c, h.userRepo)
+	if err != nil || currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no encontrado"})
+		return
+	}
+	if currentUser.Role != models.RoleAdmin && currentUser.Role != models.RoleTeamLead {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y líderes de equipo pueden crear proyectos masivos"})
 		return
 	}

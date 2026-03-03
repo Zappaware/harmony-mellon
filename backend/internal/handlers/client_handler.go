@@ -80,11 +80,14 @@ type CreateClientRequest struct {
 func (h *ClientHandler) CreateClient(c *gin.Context) {
 	userIDStr, _ := c.Get("user_id")
 	userID, _ := uuid.Parse(userIDStr.(string))
-	userRole, _ := c.Get("user_role")
 
-	// Check if user is admin or team_lead
-	role, ok := userRole.(string)
-	if !ok || (role != string(models.RoleAdmin) && role != string(models.RoleTeamLead)) {
+	// Check role from database (so role changes take effect without re-login)
+	currentUser, err := GetCurrentUserFromDB(c, h.userRepo)
+	if err != nil || currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no encontrado"})
+		return
+	}
+	if currentUser.Role != models.RoleAdmin && currentUser.Role != models.RoleTeamLead {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y líderes de equipo pueden crear clientes"})
 		return
 	}
@@ -162,10 +165,13 @@ func (h *ClientHandler) UpdateClient(c *gin.Context) {
 
 	userIDStr, _ := c.Get("user_id")
 	userID, _ := uuid.Parse(userIDStr.(string))
-	userRole, _ := c.Get("user_role")
-	role, _ := userRole.(string)
 
-	if !h.canManageClient(id, userID, role) {
+	currentUser, err := GetCurrentUserFromDB(c, h.userRepo)
+	if err != nil || currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no encontrado"})
+		return
+	}
+	if !h.canManageClient(id, userID, string(currentUser.Role)) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "No tienes permiso para actualizar este cliente"})
 		return
 	}
@@ -223,10 +229,13 @@ func (h *ClientHandler) DeleteClient(c *gin.Context) {
 
 	userIDStr, _ := c.Get("user_id")
 	userID, _ := uuid.Parse(userIDStr.(string))
-	userRole, _ := c.Get("user_role")
-	role, _ := userRole.(string)
 
-	if !h.canManageClient(id, userID, role) {
+	currentUser, err := GetCurrentUserFromDB(c, h.userRepo)
+	if err != nil || currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no encontrado"})
+		return
+	}
+	if !h.canManageClient(id, userID, string(currentUser.Role)) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "No tienes permiso para eliminar este cliente"})
 		return
 	}
@@ -261,10 +270,13 @@ func (h *ClientHandler) AddClientMember(c *gin.Context) {
 	}
 	userIDStr, _ := c.Get("user_id")
 	userID, _ := uuid.Parse(userIDStr.(string))
-	userRole, _ := c.Get("user_role")
-	role, _ := userRole.(string)
 
-	if !h.canManageClient(clientID, userID, role) {
+	currentUser, err := GetCurrentUserFromDB(c, h.userRepo)
+	if err != nil || currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no encontrado"})
+		return
+	}
+	if !h.canManageClient(clientID, userID, string(currentUser.Role)) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "No tienes permiso para gestionar el equipo del cliente"})
 		return
 	}
@@ -295,10 +307,13 @@ func (h *ClientHandler) RemoveClientMember(c *gin.Context) {
 	}
 	currentUserIDStr, _ := c.Get("user_id")
 	currentUserID, _ := uuid.Parse(currentUserIDStr.(string))
-	userRole, _ := c.Get("user_role")
-	role, _ := userRole.(string)
 
-	if !h.canManageClient(clientID, currentUserID, role) {
+	currentUser, err := GetCurrentUserFromDB(c, h.userRepo)
+	if err != nil || currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no encontrado"})
+		return
+	}
+	if !h.canManageClient(clientID, currentUserID, string(currentUser.Role)) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "No tienes permiso para gestionar el equipo del cliente"})
 		return
 	}

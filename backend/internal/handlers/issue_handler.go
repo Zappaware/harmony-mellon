@@ -32,15 +32,15 @@ func NewIssueHandler(issueService service.IssueService, userRepo repository.User
 func (h *IssueHandler) GetIssues(c *gin.Context) {
 	filters := make(map[string]interface{})
 
-	// Role-based access: regular users only see tasks assigned to them
-	userIDStr, _ := c.Get("user_id")
-	userRole, _ := c.Get("user_role")
-	roleStr, _ := userRole.(string)
-	if roleStr == string(models.RoleUser) {
+	// Role-based access: regular users only see tasks assigned to them (use DB role so changes take effect immediately)
+	currentUser, err := GetCurrentUserFromDB(c, h.userRepo)
+	if err != nil || currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no encontrado"})
+		return
+	}
+	if currentUser.Role == models.RoleUser {
 		// Restrict to current user's tasks only; ignore any assigned_to from query
-		if id, err := uuid.Parse(userIDStr.(string)); err == nil {
-			filters["assigned_to"] = id
-		}
+		filters["assigned_to"] = currentUser.ID
 	} else {
 		// Admin and team_lead: allow optional filters from query
 		if status := c.Query("status"); status != "" {
