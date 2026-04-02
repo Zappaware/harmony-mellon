@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
-import { Building2, ChevronRight, LayoutGrid, LayoutList, Plus, Search, Trash2, Users } from 'lucide-react';
+import { ArrowDownAZ, Building2, ChevronRight, LayoutGrid, LayoutList, List, Plus, Search, Trash2, Users } from 'lucide-react';
 import { LayoutWithSidebar } from '@/components/LayoutWithSidebar';
 import { PageHeader } from '@/components/PageHeader';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -28,21 +28,27 @@ function ClientesContent() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [sortOrder, setSortOrder] = useState<'default' | 'az'>('default');
   const { user } = useApp();
 
   const canCreate = user?.role === 'admin' || user?.role === 'team_lead';
 
   const filteredClients = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return clients;
-    return clients.filter((c) => {
-      const name = (c.name ?? '').toLowerCase();
-      const desc = (c.description ?? '').toLowerCase();
-      const contact = (c.contact_name ?? '').toLowerCase();
-      const email = (c.email ?? '').toLowerCase();
-      return name.includes(q) || desc.includes(q) || contact.includes(q) || email.includes(q);
-    });
-  }, [clients, searchQuery]);
+    const list = !q
+      ? clients
+      : clients.filter((c) => {
+          const name = (c.name ?? '').toLowerCase();
+          const desc = (c.description ?? '').toLowerCase();
+          const contact = (c.contact_name ?? '').toLowerCase();
+          const email = (c.email ?? '').toLowerCase();
+          return name.includes(q) || desc.includes(q) || contact.includes(q) || email.includes(q);
+        });
+    if (sortOrder === 'default') return list;
+    return [...list].sort((a, b) =>
+      (a.name ?? '').localeCompare(b.name ?? '', 'es', { sensitivity: 'base' })
+    );
+  }, [clients, searchQuery, sortOrder]);
 
   useEffect(() => {
     const loadClients = async () => {
@@ -123,6 +129,29 @@ function ClientesContent() {
                   className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base placeholder:text-gray-400"
                 />
               </div>
+              <ToggleGroup
+                type="single"
+                value={sortOrder}
+                onValueChange={(v) => v && setSortOrder(v as 'default' | 'az')}
+                variant="outline"
+                size="lg"
+                className="shrink-0 border border-gray-300 bg-white rounded-lg overflow-hidden shadow-sm [&_[data-state=on]]:bg-indigo-100 [&_[data-state=on]]:text-indigo-600 hover:[&_[data-state=on]]:bg-indigo-100"
+              >
+                <ToggleGroupItem
+                  value="default"
+                  aria-label="Orden predeterminado"
+                  title="Orden predeterminado (como en el servidor)"
+                >
+                  <List className="w-5 h-5" />
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                  value="az"
+                  aria-label="Ordenar por nombre de la A a la Z"
+                  title="Nombre (A–Z)"
+                >
+                  <ArrowDownAZ className="w-5 h-5" />
+                </ToggleGroupItem>
+              </ToggleGroup>
               <ToggleGroup
                 type="single"
                 value={viewMode}
