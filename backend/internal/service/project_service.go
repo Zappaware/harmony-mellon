@@ -53,6 +53,9 @@ func (s *projectService) GetProjectsForUser(userID uuid.UUID, role string) ([]mo
 		return nil, err
 	}
 	if role == string(models.RoleAdmin) || role == string(models.RoleTeamLead) {
+		if all == nil {
+			return []models.Project{}, nil
+		}
 		return all, nil
 	}
 	clientIDs, err := s.clientMemberRepo.GetClientIDsForUser(userID)
@@ -66,7 +69,8 @@ func (s *projectService) GetProjectsForUser(userID uuid.UUID, role string) ([]mo
 	for _, id := range clientIDs {
 		set[id] = true
 	}
-	var out []models.Project
+	// Non-nil empty slice so JSON is [] not null (frontend calls .find on projects)
+	out := make([]models.Project, 0)
 	for _, p := range all {
 		if p.ClientID != nil && set[*p.ClientID] {
 			out = append(out, p)
