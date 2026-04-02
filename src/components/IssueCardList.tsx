@@ -65,8 +65,8 @@ interface IssueCardListProps {
 
 export function IssueCardList({ issue, assignedUser, showProject, showApprovedStar }: IssueCardListProps) {
   const { projects } = useApp();
-  const project = showProject && issue.projectId 
-    ? projects.find(p => p.id === issue.projectId)
+  const project = showProject && issue.projectId
+    ? (projects ?? []).find((p) => p.id === issue.projectId)
     : null;
 
   return (

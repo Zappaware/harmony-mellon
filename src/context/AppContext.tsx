@@ -75,6 +75,11 @@ interface CreateUserData {
 const EXPIRING_TASKS_MODAL_STORAGE_KEY = 'expiringTasksModalLastShown';
 const EXPIRING_TASKS_MODAL_THROTTLE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+/** API may send null (e.g. Go nil slice); UI always expects an array for .find */
+function normalizeApiProjectList(data: unknown): ApiProject[] {
+  return Array.isArray(data) ? (data as ApiProject[]) : [];
+}
+
 interface AppContextType {
   user: User | null;
   isLoading: boolean;
@@ -381,7 +386,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (token && useApi && user) {
         try {
           const apiProjects = await api.getProjects();
-          setProjects(apiProjects);
+          setProjects(normalizeApiProjectList(apiProjects));
         } catch (error) {
           console.error('Error loading projects:', error);
         }
@@ -600,7 +605,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           planning_year: data.planning_year,
         });
         const apiProjects = await api.getProjects();
-        setProjects(apiProjects);
+        setProjects(normalizeApiProjectList(apiProjects));
       } catch (error) {
         throw error;
       }
@@ -632,7 +637,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await api.updateProject(projectId, updateData);
         // Reload projects to get updated data
         const apiProjects = await api.getProjects();
-        setProjects(apiProjects);
+        setProjects(normalizeApiProjectList(apiProjects));
       } catch (error) {
         console.error('Error updating project:', error);
         throw error;
