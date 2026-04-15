@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useApp, Issue } from '@/context/AppContext';
 import { api, type ApiAttachment } from '@/services/api';
-import { User, Calendar, MessageSquare, Send, Clock, Trash2, FolderKanban, Pencil, AlertCircle, Plus, Paperclip, Download } from 'lucide-react';
+import { User, Calendar, MessageSquare, Send, Clock, Trash2, FolderKanban, Pencil, AlertCircle, Plus, Paperclip, Download, ExternalLink, Link as LinkIcon } from 'lucide-react';
 import { Badge } from '@/components/Badge';
 import { Avatar } from '@/components/Avatar';
 import { PageHeader } from '@/components/PageHeader';
@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { EditIssueModal } from '@/components/EditIssueModal';
+import { MentionInput, renderMentions } from '@/components/MentionInput';
 
 export default function DetalleIssue() {
   const params = useParams();
@@ -378,53 +379,40 @@ export default function DetalleIssue() {
                     </div>
                   </div>
                 </div>
-                <p className="text-gray-700 pl-11">{comment.text}</p>
+                <p className="text-gray-700 pl-11">{renderMentions(comment.text, users)}</p>
                 {comment.attachments && comment.attachments.length > 0 && (
-                  <div className="mt-3 pl-11 flex flex-wrap gap-2">
+                  <div className="mt-3 pl-11 space-y-1">
                     {comment.attachments.map((att, idx) => {
                       const fileName = att.name || att.url.split('/').pop() || 'archivo';
                       const isImage = att.type === 'image' || (att.url && /\.(jpe?g|png|gif|webp)$/i.test(att.url));
+                      const isLink = att.type === 'link';
                       
                       return (
-                        <div key={idx} className="relative flex items-center gap-1 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden group">
+                        <div key={idx} className="flex items-center gap-2 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden p-2">
                           {isImage ? (
                             <>
-                              <a href={att.url} target="_blank" rel="noopener noreferrer" className="block" title="Ver imagen">
-                                <img
-                                  src={att.url}
-                                  alt=""
-                                  className="h-14 w-14 object-cover"
-                                />
+                              <a href={att.url} target="_blank" rel="noopener noreferrer" className="block shrink-0" title="Ver imagen">
+                                <img src={att.url} alt="" className="h-10 w-10 object-cover rounded" />
                               </a>
-                              <button
-                                type="button"
-                                onClick={() => handleDownload(att.url, fileName)}
-                                disabled={downloadingUrl === att.url}
-                                className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-gray-200 transition-colors flex items-center justify-center disabled:opacity-50"
-                                title="Descargar imagen"
-                              >
-                                <Download className="w-4 h-4" />
+                              <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 text-sm text-indigo-600 hover:underline truncate min-w-0">{att.name || fileName}</a>
+                              <button type="button" onClick={() => handleDownload(att.url, fileName)} disabled={downloadingUrl === att.url} className="p-1.5 text-gray-500 hover:text-indigo-600 rounded transition-colors shrink-0 disabled:opacity-50" title="Descargar">
+                                <Download className="w-3.5 h-3.5" />
                               </button>
+                            </>
+                          ) : isLink ? (
+                            <>
+                              <LinkIcon className="w-4 h-4 text-indigo-500 shrink-0" />
+                              <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 text-sm text-indigo-600 hover:underline truncate min-w-0" title={att.url}>{att.name || att.url}</a>
+                              <a href={att.url} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-500 hover:text-indigo-600 rounded transition-colors shrink-0" title="Abrir enlace">
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
                             </>
                           ) : (
                             <>
-                              <a
-                                href={att.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center justify-center p-3 text-gray-500 hover:text-indigo-600 hover:bg-gray-200 transition-colors"
-                                title={`Ver ${fileName}`}
-                              >
-                                <Paperclip className="w-6 h-6" />
-                              </a>
-                              <button
-                                type="button"
-                                onClick={() => handleDownload(att.url, fileName)}
-                                disabled={downloadingUrl === att.url}
-                                className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-gray-200 transition-colors flex items-center justify-center border-l border-gray-300 disabled:opacity-50"
-                                title="Descargar archivo"
-                              >
-                                <Download className="w-4 h-4" />
+                              <Paperclip className="w-4 h-4 text-gray-500 shrink-0" />
+                              <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 text-sm text-indigo-600 hover:underline truncate min-w-0">{att.name || fileName}</a>
+                              <button type="button" onClick={() => handleDownload(att.url, fileName)} disabled={downloadingUrl === att.url} className="p-1.5 text-gray-500 hover:text-indigo-600 rounded transition-colors shrink-0 disabled:opacity-50" title="Descargar">
+                                <Download className="w-3.5 h-3.5" />
                               </button>
                             </>
                           )}
@@ -467,15 +455,19 @@ export default function DetalleIssue() {
             </div>
           )}
 
-          <form onSubmit={handleAddComment} className="flex gap-3">
+          <form id="comment-form" onSubmit={handleAddComment} className="flex gap-3">
             <Avatar name={currentUser?.name || 'Usuario'} size="md" />
             <div className="flex-1 flex gap-3">
-              <input
-                type="text"
+              <MentionInput
                 value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Escribe un comentario..."
+                onChange={setNewComment}
+                users={users}
+                placeholder="Escribe un comentario... (usa @ para mencionar)"
                 className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                onSubmit={() => {
+                  const form = document.getElementById('comment-form') as HTMLFormElement | null;
+                  if (form) form.requestSubmit();
+                }}
               />
               <div className="flex items-center gap-2">
                 <input
