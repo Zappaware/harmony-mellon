@@ -130,7 +130,7 @@ export default function TareasArchivadas() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar tareas archivadas..."
+                placeholder=""
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
               />
             </div>
