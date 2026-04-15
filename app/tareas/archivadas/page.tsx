@@ -168,7 +168,7 @@ export default function TareasArchivadas() {
                       </div>
                       <div className="flex items-center gap-3 text-xs text-gray-500">
                         <div className="flex items-center gap-1">
-                          <Avatar name={getAssigneeName(issue.assignedTo)} size="xs" />
+                          <Avatar name={getAssigneeName(issue.assignedTo)} size="sm" />
                           <span>{getAssigneeName(issue.assignedTo)}</span>
                         </div>
                         {projectName && (
