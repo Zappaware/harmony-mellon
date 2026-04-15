@@ -39,8 +39,8 @@ func (h *IssueHandler) GetIssues(c *gin.Context) {
 		return
 	}
 	if currentUser.Role == models.RoleUser {
-		// Restrict to current user's tasks only; ignore any assigned_to from query
-		filters["assigned_to"] = currentUser.ID
+		// Show tasks assigned to OR created by the current user
+		filters["assigned_to_or_created_by"] = currentUser.ID
 	} else {
 		// Admin and team_lead: allow optional filters from query
 		if status := c.Query("status"); status != "" {

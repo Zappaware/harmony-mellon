@@ -13,6 +13,7 @@ type IssueRepository interface {
 	GetByID(id uuid.UUID) (*models.Issue, error)
 	GetAll(filters map[string]interface{}) ([]models.Issue, error)
 	GetByAssignedTo(userID uuid.UUID) ([]models.Issue, error)
+	GetByAssignedToOrCreatedBy(userID uuid.UUID) ([]models.Issue, error)
 	GetByProjectID(projectID uuid.UUID) ([]models.Issue, error)
 	Update(issue *models.Issue) error
 	Delete(id uuid.UUID) error
@@ -50,7 +51,9 @@ func (r *issueRepository) GetAll(filters map[string]interface{}) ([]models.Issue
 	if priority, ok := filters["priority"]; ok {
 		query = query.Where("priority = ?", priority)
 	}
-	if assignedTo, ok := filters["assigned_to"]; ok {
+	if userID, ok := filters["assigned_to_or_created_by"]; ok {
+		query = query.Where("assigned_to = ? OR created_by = ?", userID, userID)
+	} else if assignedTo, ok := filters["assigned_to"]; ok {
 		query = query.Where("assigned_to = ?", assignedTo)
 	}
 	if projectID, ok := filters["project_id"]; ok {
@@ -68,6 +71,13 @@ func (r *issueRepository) GetByAssignedTo(userID uuid.UUID) ([]models.Issue, err
 	var issues []models.Issue
 	err := r.db.Preload("Assignee").Preload("Creator").Preload("Project").Preload("Client").Preload("Comments.User").
 		Where("assigned_to = ?", userID).Order("created_at DESC").Find(&issues).Error
+	return issues, err
+}
+
+func (r *issueRepository) GetByAssignedToOrCreatedBy(userID uuid.UUID) ([]models.Issue, error) {
+	var issues []models.Issue
+	err := r.db.Preload("Assignee").Preload("Creator").Preload("Project").Preload("Client").Preload("Comments.User").
+		Where("assigned_to = ? OR created_by = ?", userID, userID).Order("created_at DESC").Find(&issues).Error
 	return issues, err
 }
 
