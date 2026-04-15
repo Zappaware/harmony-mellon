@@ -263,37 +263,68 @@ export default function DetalleIssue() {
               Adjuntos del issue
             </h3>
             {issue.attachments && issue.attachments.length > 0 ? (
-              <div className="flex flex-wrap gap-3">
+              <div className="space-y-2">
                 {issue.attachments.map((att, index) => {
                   const fileName = att.name || att.url.split('/').pop() || 'archivo';
                   const isImage = att.type === 'image' || (att.url && /\.(jpe?g|png|gif|webp)$/i.test(att.url));
+                  const isLink = att.type === 'link';
                   return (
-                    <div key={att.url ? `${att.url}-${index}` : index} className="relative flex items-center gap-1 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden group">
+                    <div key={att.url ? `${att.url}-${index}` : index} className="flex items-center gap-2 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden p-2">
                       {isImage ? (
                         <>
-                          <a href={att.url} target="_blank" rel="noopener noreferrer" className="block" title="Ver imagen">
-                            <img src={att.url} alt="" className="h-14 w-14 object-cover" />
+                          <a href={att.url} target="_blank" rel="noopener noreferrer" className="block shrink-0" title="Ver imagen">
+                            <img src={att.url} alt="" className="h-14 w-14 object-cover rounded" />
+                          </a>
+                          <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 text-sm text-indigo-600 hover:text-indigo-800 hover:underline truncate min-w-0">
+                            {att.name || fileName}
                           </a>
                           <button
                             type="button"
                             onClick={() => handleDownload(att.url, fileName)}
                             disabled={downloadingUrl === att.url}
-                            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-gray-200 transition-colors flex items-center justify-center disabled:opacity-50"
+                            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-gray-200 rounded transition-colors shrink-0 disabled:opacity-50"
                             title="Descargar imagen"
                           >
                             <Download className="w-4 h-4" />
                           </button>
                         </>
+                      ) : isLink ? (
+                        <>
+                          <div className="w-8 h-8 bg-indigo-100 rounded flex items-center justify-center shrink-0">
+                            <LinkIcon className="w-4 h-4 text-indigo-600" />
+                          </div>
+                          <a
+                            href={att.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 text-sm text-indigo-600 hover:text-indigo-800 hover:underline truncate min-w-0"
+                            title={att.url}
+                          >
+                            {att.name || att.url}
+                          </a>
+                          <a
+                            href={att.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-gray-200 rounded transition-colors shrink-0"
+                            title="Abrir enlace"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        </>
                       ) : (
                         <>
-                          <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center p-3 text-gray-500 hover:text-indigo-600 hover:bg-gray-100 transition-colors" title={`Ver ${fileName}`}>
-                            <Paperclip className="w-6 h-6" />
+                          <div className="w-8 h-8 bg-gray-200 rounded flex items-center justify-center shrink-0">
+                            <Paperclip className="w-4 h-4 text-gray-600" />
+                          </div>
+                          <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 text-sm text-indigo-600 hover:text-indigo-800 hover:underline truncate min-w-0" title={`Ver ${fileName}`}>
+                            {att.name || fileName}
                           </a>
                           <button
                             type="button"
                             onClick={() => handleDownload(att.url, fileName)}
                             disabled={downloadingUrl === att.url}
-                            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-gray-200 transition-colors flex items-center justify-center border-l border-gray-300 disabled:opacity-50"
+                            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-gray-200 rounded transition-colors shrink-0 disabled:opacity-50"
                             title="Descargar archivo"
                           >
                             <Download className="w-4 h-4" />
