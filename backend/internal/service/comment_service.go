@@ -73,16 +73,71 @@ func (s *commentService) CreateComment(issueID, userID uuid.UUID, text string, a
 	}
 	title, message := s.commentNotificationContent(issue.Title, authorName, text, created.GetAttachments())
 	relatedID := &issueID
-	for _, targetID := range []uuid.UUID{issue.CreatedBy} {
-		if targetID != userID {
-			_ = s.notificationService.CreateNotification(targetID, models.NotificationTypeComment, title, message, relatedID)
-		}
+
+	notifiedSet := make(map[uuid.UUID]bool)
+	notifiedSet[userID] = true // don't notify the author
+
+	if issue.CreatedBy != userID {
+		_ = s.notificationService.CreateNotification(issue.CreatedBy, models.NotificationTypeComment, title, message, relatedID)
+		notifiedSet[issue.CreatedBy] = true
 	}
-	if issue.AssignedTo != nil && *issue.AssignedTo != userID && *issue.AssignedTo != issue.CreatedBy {
+	if issue.AssignedTo != nil && !notifiedSet[*issue.AssignedTo] {
 		_ = s.notificationService.CreateNotification(*issue.AssignedTo, models.NotificationTypeComment, title, message, relatedID)
+		notifiedSet[*issue.AssignedTo] = true
+	}
+
+	// Notify @mentioned users
+	mentionedUsers := s.extractMentionedUsers(text)
+	for _, mentionedUser := range mentionedUsers {
+		if notifiedSet[mentionedUser.ID] {
+			continue
+		}
+		mentionTitle := fmt.Sprintf("Te mencionaron en \"%s\"", issue.Title)
+		mentionMessage := fmt.Sprintf("%s te mencionó en un comentario: %s", authorName, s.truncateText(text, 120))
+		_ = s.notificationService.CreateNotification(mentionedUser.ID, models.NotificationTypeComment, mentionTitle, mentionMessage, relatedID)
+		notifiedSet[mentionedUser.ID] = true
 	}
 
 	return created, nil
+}
+
+// extractMentionedUsers finds @Name mentions in text and returns matching users.
+func (s *commentService) extractMentionedUsers(text string) []*models.User {
+	allUsers, err := s.userRepo.GetAll()
+	if err != nil {
+		return nil
+	}
+	// Sort by name length descending so longer names match first (e.g. "Juan Carlos" before "Juan")
+	sortedUsers := make([]models.User, len(allUsers))
+	copy(sortedUsers, allUsers)
+	for i := 0; i < len(sortedUsers); i++ {
+		for j := i + 1; j < len(sortedUsers); j++ {
+			if len(sortedUsers[j].Name) > len(sortedUsers[i].Name) {
+				sortedUsers[i], sortedUsers[j] = sortedUsers[j], sortedUsers[i]
+			}
+		}
+	}
+
+	var mentioned []*models.User
+	lowerText := strings.ToLower(text)
+	matched := make(map[uuid.UUID]bool)
+	for i := range sortedUsers {
+		u := &sortedUsers[i]
+		needle := "@" + strings.ToLower(u.Name)
+		if strings.Contains(lowerText, needle) && !matched[u.ID] {
+			mentioned = append(mentioned, u)
+			matched[u.ID] = true
+		}
+	}
+	return mentioned
+}
+
+func (s *commentService) truncateText(text string, maxLen int) string {
+	text = strings.TrimSpace(text)
+	if len(text) <= maxLen {
+		return text
+	}
+	return text[:maxLen-3] + "..."
 }
 
 // commentNotificationContent builds title and message for comment notifications (text, image, or file).
