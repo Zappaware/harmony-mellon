@@ -16,7 +16,7 @@ export default function MisTareas() {
   const { issues, user, users } = useApp();
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const myIssues = issues.filter((issue) => issue.assignedTo === user?.id);
+  const myIssues = issues.filter((issue) => issue.assignedTo === user?.id || issue.createdBy === user?.id);
 
   const filteredIssues = filterStatus === 'all' 
     ? myIssues 

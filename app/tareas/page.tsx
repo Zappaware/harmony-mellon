@@ -83,7 +83,7 @@ function TareasPageContent() {
     if (isAdminOrTeamLead) {
       return issues;
     } else {
-      return issues.filter(issue => issue.assignedTo === currentUser?.id);
+      return issues.filter(issue => issue.assignedTo === currentUser?.id || issue.createdBy === currentUser?.id);
     }
   }, [issues, currentUser?.id, isAdminOrTeamLead]);
 

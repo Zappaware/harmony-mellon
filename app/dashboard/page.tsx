@@ -79,7 +79,7 @@ function DashboardUsuario() {
     return <Loading fullScreen message="Cargando datos..." />;
   }
 
-  const myIssues = issues.filter((issue) => issue.assignedTo === user?.id);
+  const myIssues = issues.filter((issue) => issue.assignedTo === user?.id || issue.createdBy === user?.id);
   
   // Current counts (all issues currently in each status)
   const todoCount = myIssues.filter((i) => i.status === 'todo').length;

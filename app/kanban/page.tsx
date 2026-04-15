@@ -221,7 +221,7 @@ function KanbanContent() {
   const pageSubtitle = project
     ? `Tareas del proyecto: ${project.name}`
     : user?.role === 'user'
-      ? 'Tareas asignadas a ti'
+      ? 'Tareas asignadas a ti y creadas por ti'
       : 'Arrastra las tarjetas para cambiar su estado';
 
   const columns = [
