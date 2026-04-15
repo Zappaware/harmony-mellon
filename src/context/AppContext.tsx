@@ -25,6 +25,7 @@ export interface Issue {
   startDate?: string;
   dueDate?: string;
   approvedAt?: string;
+  archivedAt?: string;
   attachments?: Array<{ type: 'link' | 'image' | 'file'; url: string; name?: string }>;
   createdAt: string;
   comments: Comment[];
@@ -94,6 +95,8 @@ interface AppContextType {
   updateProject: (projectId: string, data: Partial<CreateProjectData>) => Promise<void>;
   createUser: (data: CreateUserData) => Promise<void>;
   deleteIssue: (issueId: string) => Promise<void>;
+  archiveIssue: (issueId: string) => Promise<void>;
+  unarchiveIssue: (issueId: string) => Promise<void>;
   deleteUser: (userId: string) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
   refreshIssue: (issueId: string) => Promise<void>;
@@ -260,6 +263,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       startDate: apiIssue.start_date,
       dueDate: apiIssue.due_date,
       approvedAt: apiIssue.approved_at,
+      archivedAt: apiIssue.archived_at,
       attachments: apiIssue.attachments,
       createdAt: apiIssue.created_at,
       comments: (apiIssue.comments || []).map(comment => ({
@@ -693,6 +697,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const archiveIssue = async (issueId: string): Promise<void> => {
+    try {
+      await api.archiveIssue(issueId);
+      setIssues((prev) => prev.filter((issue) => issue.id !== issueId));
+    } catch (error) {
+      console.error('Error archiving issue:', error);
+      throw error;
+    }
+  };
+
+  const unarchiveIssue = async (issueId: string): Promise<void> => {
+    try {
+      const apiIssue = await api.unarchiveIssue(issueId);
+      const converted = convertApiIssue(apiIssue, users);
+      setIssues((prev) => [converted, ...prev]);
+    } catch (error) {
+      console.error('Error unarchiving issue:', error);
+      throw error;
+    }
+  };
+
   const deleteUser = async (userId: string): Promise<void> => {
     if (useApi) {
       try {
@@ -782,6 +807,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateProject,
         createUser,
         deleteIssue,
+        archiveIssue,
+        unarchiveIssue,
         deleteUser,
         deleteProject,
         refreshIssue,

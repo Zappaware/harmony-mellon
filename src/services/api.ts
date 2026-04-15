@@ -106,6 +106,7 @@ export interface ApiIssue {
   start_date?: string;
   due_date?: string;
   approved_at?: string;
+  archived_at?: string;
   attachments?: ApiAttachment[];
   created_at: string;
   updated_at: string;
@@ -302,6 +303,22 @@ class ApiService {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     });
+  }
+
+  async archiveIssue(id: string): Promise<ApiIssue> {
+    return this.request<ApiIssue>(`/issues/${id}/archive`, {
+      method: 'PATCH',
+    });
+  }
+
+  async unarchiveIssue(id: string): Promise<ApiIssue> {
+    return this.request<ApiIssue>(`/issues/${id}/unarchive`, {
+      method: 'PATCH',
+    });
+  }
+
+  async getArchivedIssues(): Promise<ApiIssue[]> {
+    return this.request<ApiIssue[]>('/issues?archived=only');
   }
 
   async deleteIssue(id: string): Promise<void> {

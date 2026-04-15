@@ -66,6 +66,7 @@ type Issue struct {
 	StartDate   *time.Time   `json:"start_date,omitempty"`
 	DueDate     *time.Time   `json:"due_date,omitempty"`
 	ApprovedAt  *time.Time   `json:"approved_at,omitempty"` // Set when a team_lead or admin marks the task as done (star/score)
+	ArchivedAt  *time.Time   `json:"archived_at,omitempty"` // Set when a completed task is archived
 	Attachments string       `gorm:"type:text" json:"-"` // JSON string stored in DB
 	CreatedAt   time.Time    `json:"created_at"`
 	UpdatedAt   time.Time    `json:"updated_at"`
@@ -127,6 +128,7 @@ type IssueResponse struct {
 	StartDate   *time.Time   `json:"start_date,omitempty"`
 	DueDate     *time.Time   `json:"due_date,omitempty"`
 	ApprovedAt  *time.Time   `json:"approved_at,omitempty"`
+	ArchivedAt  *time.Time   `json:"archived_at,omitempty"`
 	Attachments []Attachment `json:"attachments,omitempty"`
 	CreatedAt   time.Time    `json:"created_at"`
 	UpdatedAt   time.Time    `json:"updated_at"`
@@ -153,6 +155,7 @@ func (i *Issue) ToResponse() IssueResponse {
 		StartDate:   i.StartDate,
 		DueDate:     i.DueDate,
 		ApprovedAt:  i.ApprovedAt,
+		ArchivedAt:  i.ArchivedAt,
 		Attachments: i.GetAttachments(),
 		CreatedAt:   i.CreatedAt,
 		UpdatedAt:   i.UpdatedAt,

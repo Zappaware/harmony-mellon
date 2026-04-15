@@ -180,6 +180,8 @@ func main() {
 		protected.POST("/issues", issueHandler.CreateIssue)
 		protected.PUT("/issues/:id", issueHandler.UpdateIssue)
 		protected.PATCH("/issues/:id/status", issueHandler.UpdateIssueStatus)
+		protected.PATCH("/issues/:id/archive", issueHandler.ArchiveIssue)
+		protected.PATCH("/issues/:id/unarchive", issueHandler.UnarchiveIssue)
 		protected.DELETE("/issues/:id", issueHandler.DeleteIssue)
 
 		// Comment routes

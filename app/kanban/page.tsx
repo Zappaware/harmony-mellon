@@ -4,7 +4,7 @@ import React, { useState, useMemo, Suspense, useEffect } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useApp, Issue } from '@/context/AppContext';
-import { AlertCircle, Clock, Edit, Filter } from 'lucide-react';
+import { AlertCircle, Clock, Edit, Filter, Archive } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api, ApiClient } from '@/services/api';
 import { PageHeader } from '@/components/PageHeader';
@@ -33,7 +33,7 @@ interface IssueCardProps {
   issue: Issue;
 }
 
-function IssueCard({ issue, onEdit }: IssueCardProps & { onEdit?: (issue: Issue) => void }) {
+function IssueCard({ issue, onEdit, onArchive }: IssueCardProps & { onEdit?: (issue: Issue) => void; onArchive?: (issueId: string) => void }) {
   const { users } = useApp();
   const router = useRouter();
   const assignedUser = users.find((u) => u.id === issue.assignedTo);
@@ -100,6 +100,15 @@ function IssueCard({ issue, onEdit }: IssueCardProps & { onEdit?: (issue: Issue)
               <Edit className="w-3 h-3" />
             </button>
           )}
+          {issue.status === 'done' && onArchive && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onArchive(issue.id); }}
+              className="p-1 text-amber-600 hover:bg-amber-50 rounded transition-colors"
+              title="Archivar tarea"
+            >
+              <Archive className="w-3 h-3" />
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -115,9 +124,10 @@ interface ColumnProps {
   color: string;
   onEditIssue?: (issue: Issue) => void;
   onStatusChangeRequest?: (issueId: string, oldStatus: Issue['status'], newStatus: Issue['status']) => void;
+  onArchiveIssue?: (issueId: string) => void;
 }
 
-function Column({ title, status, issues, count, color, onEditIssue, onStatusChangeRequest }: ColumnProps) {
+function Column({ title, status, issues, count, color, onEditIssue, onStatusChangeRequest, onArchiveIssue }: ColumnProps) {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'issue',
     drop: (item: { id: string; status: string }) => {
@@ -148,7 +158,7 @@ function Column({ title, status, issues, count, color, onEditIssue, onStatusChan
       
       <div className="p-3 md:p-4 space-y-2 md:space-y-3 min-h-[200px] md:min-h-[500px]">
         {issues.map((issue) => (
-          <IssueCard key={issue.id} issue={issue} onEdit={onEditIssue} />
+          <IssueCard key={issue.id} issue={issue} onEdit={onEditIssue} onArchive={onArchiveIssue} />
         ))}
         {issues.length === 0 && (
           <div className="text-center py-12">
@@ -261,7 +271,7 @@ function KanbanContent() {
     issueTitle: string;
   } | null>(null);
   const [forbiddenMessage, setForbiddenMessage] = useState<string | null>(null);
-  const { updateIssueStatus, user: currentUser } = useApp();
+  const { updateIssueStatus, archiveIssue, user: currentUser } = useApp();
 
   const FORBIDDEN_COMPLETE_MSG = 'Solo un líder o administrador puede mover la tarea de Revisión a Completada.';
   
@@ -383,6 +393,15 @@ function KanbanContent() {
           </div>
         )}
 
+        <div className="flex justify-end mb-3">
+          <a
+            href="/tareas/archivadas"
+            className="inline-flex items-center gap-2 text-sm text-amber-700 hover:text-amber-800 font-medium bg-amber-50 hover:bg-amber-100 px-3 py-2 rounded-lg transition-colors"
+          >
+            <Archive className="w-4 h-4" />
+            Ver tareas archivadas
+          </a>
+        </div>
         <div className="flex flex-col md:flex-row gap-3 md:gap-4 pb-6 md:pb-8 overflow-x-auto md:overflow-x-auto">
           {columns.map((column) => {
             const columnIssues = filteredIssues.filter((issue) => issue.status === column.status);
@@ -396,6 +415,7 @@ function KanbanContent() {
                 color={column.color}
                 onEditIssue={setIssueToEdit}
                 onStatusChangeRequest={handleStatusChangeRequest}
+                onArchiveIssue={archiveIssue}
               />
             );
           })}

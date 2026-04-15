@@ -15,6 +15,8 @@ type IssueService interface {
 	CreateIssue(issue *models.Issue) error
 	UpdateIssue(id uuid.UUID, updates map[string]interface{}) (*models.Issue, error)
 	UpdateIssueStatus(id uuid.UUID, status models.IssueStatus, approvedAt *time.Time) (*models.Issue, error)
+	ArchiveIssue(id uuid.UUID) (*models.Issue, error)
+	UnarchiveIssue(id uuid.UUID) (*models.Issue, error)
 	DeleteIssue(id uuid.UUID) error
 }
 
@@ -106,6 +108,31 @@ func (s *issueService) UpdateIssueStatus(id uuid.UUID, status models.IssueStatus
 		return nil, err
 	}
 
+	return s.issueRepo.GetByID(id)
+}
+
+func (s *issueService) ArchiveIssue(id uuid.UUID) (*models.Issue, error) {
+	issue, err := s.issueRepo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	now := time.Now()
+	issue.ArchivedAt = &now
+	if err := s.issueRepo.Update(issue); err != nil {
+		return nil, err
+	}
+	return s.issueRepo.GetByID(id)
+}
+
+func (s *issueService) UnarchiveIssue(id uuid.UUID) (*models.Issue, error) {
+	issue, err := s.issueRepo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	issue.ArchivedAt = nil
+	if err := s.issueRepo.Update(issue); err != nil {
+		return nil, err
+	}
 	return s.issueRepo.GetByID(id)
 }
 

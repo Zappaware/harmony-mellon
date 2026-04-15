@@ -63,6 +63,15 @@ func (r *issueRepository) GetAll(filters map[string]interface{}) ([]models.Issue
 		query = query.Where("client_id = ?", clientID)
 	}
 
+	// By default exclude archived issues; pass include_archived=true to include them
+	if includeArchived, ok := filters["include_archived"]; ok && includeArchived == true {
+		// no filter
+	} else if onlyArchived, ok := filters["only_archived"]; ok && onlyArchived == true {
+		query = query.Where("archived_at IS NOT NULL")
+	} else {
+		query = query.Where("archived_at IS NULL")
+	}
+
 	err := query.Order("created_at DESC").Find(&issues).Error
 	return issues, err
 }

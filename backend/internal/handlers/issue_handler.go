@@ -66,6 +66,13 @@ func (h *IssueHandler) GetIssues(c *gin.Context) {
 		}
 	}
 
+	// Archive filtering: ?archived=only shows only archived, ?archived=all shows everything
+	if archived := c.Query("archived"); archived == "only" {
+		filters["only_archived"] = true
+	} else if archived == "all" {
+		filters["include_archived"] = true
+	}
+
 	issues, err := h.issueService.GetIssues(filters)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -549,6 +556,38 @@ func (h *IssueHandler) UpdateIssueStatus(c *gin.Context) {
 				}
 			}
 		}()
+	}
+
+	c.JSON(http.StatusOK, issue.ToResponse())
+}
+
+func (h *IssueHandler) ArchiveIssue(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid issue ID"})
+		return
+	}
+
+	issue, err := h.issueService.ArchiveIssue(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, issue.ToResponse())
+}
+
+func (h *IssueHandler) UnarchiveIssue(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid issue ID"})
+		return
+	}
+
+	issue, err := h.issueService.UnarchiveIssue(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, issue.ToResponse())
